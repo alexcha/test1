@@ -3,7 +3,7 @@ name: Streaming list update
 on: 
   push:
   schedule:
-    # 매 시간 5분에 실행되도록 설정 (UTC 기준)
+    # 매 시간 5분에 실행되도록 설정
     - cron: '5 * * * *'
   
 jobs:
@@ -20,7 +20,7 @@ jobs:
     - name: Get Unittest Result
       run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
       
-    - name: Commit files and Generate Chart (DEBUGGING)
+    - name: Commit files and Generate Chart (FINAL FIX)
       run: |
         echo "현재 Ref: ${{ github.ref }}"
         
@@ -34,33 +34,19 @@ jobs:
         sudo apt-get -y install html2text
         
         chmod +x check.sh
-        
-        # 2. 스크립트 실행 및 result.txt에 데이터 추가
         ./check.sh >> result.txt
         
         # ----------------------------------------------------
-        # 3. 차트 생성 로직 시작
+        # 2. 차트 생성 로직 시작
         # ----------------------------------------------------
         
         # 데이터 파싱 및 JavaScript 배열 포맷으로 변환 (JS_DATA)
-        JS_DATA=$(awk -F ' : ' '
-            {
-                timestamp = $1
-                value = $2
-                gsub(/,/, "", value)
-                
-                if (NR == 1) {
-                    printf "{"
-                } else {
-                    printf ", {"
-                }
-                printf "x: \"%s\", y: %s}", timestamp, value
-            } END {
-                printf ""
-            }' result.txt)
+        # 🚨 AWK 명령을 한 줄로 압축하여 YAML 충돌 위험 최소화
+        JS_DATA=$(awk -F ' : ' '{ gsub(/,/, "", $2); if (NR==1) {printf "{"} else {printf ", "}; printf "x: \"%s\", y: %s}", $1, $2 }' result.txt)
 
-        # HTML 파일 생성 (Bash 변수 삽입 오류 방지용 마커 사용)
-        cat << 'CHART_HTML_END_MARKER' > chart.html
+        # HTML 파일 생성 (마커를 'EOF'로 단순화하고, Bash 변수 확장을 허용)
+        # 64번째 줄 오류가 발생하지 않도록 이 구문을 최대한 간결하게 유지합니다.
+        cat << CHART_END > chart.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -80,9 +66,8 @@ jobs:
     </div>
     
     <script>
-    // YAML 오류 방지 및 JSON 파싱을 통한 데이터 할당
-    const dataString = '$JS_DATA'; 
-    const chartData = JSON.parse('[' + dataString + ']'); 
+    // JS_DATA를 직접 삽입하고, 외부에서 배열 괄호([])를 추가
+    const chartData = [${JS_DATA}]; 
 
     const ctx = document.getElementById('timeSeriesChart').getContext('2d');
     
@@ -150,19 +135,19 @@ jobs:
     </script>
 </body>
 </html>
-CHART_HTML_END_MARKER
+CHART_END # 🚨 들여쓰기 없음
+
         # ----------------------------------------------------
-        # 4. 디버깅 및 Git 커밋
+        # 3. 디버깅 및 Git 커밋
         # ----------------------------------------------------
 
-        # 🚨🚨🚨 디버깅 코드: chart.html 파일 생성 확인 🚨🚨🚨
         echo "--- File Status Check ---"
         if [ -f chart.html ]; then
             echo "chart.html successfully created. Size:"
             ls -lh chart.html
         else
             echo "🚨 FATAL ERROR: chart.html was NOT created!" >&2
-            exit 1 # 파일 생성 실패 시 워크플로우 중단
+            exit 1
         fi
         echo "-------------------------"
 
