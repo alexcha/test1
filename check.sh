@@ -1,7 +1,9 @@
 #!/bin/sh
 
-# 1. 스크립트 실행 시간 획득
-# EXEC_TIME은 여전히 KST (한국 표준시)를 포함하여 포맷됩니다.
+# 🚨 수정: TZ 환경 변수를 'Asia/Seoul'로 설정하여 date 명령이 정확히 KST를 출력하도록 강제합니다.
+export TZ='Asia/Seoul'
+
+# 1. 스크립트 실행 시간 획득 (이제 정확히 KST 시간이 출력됩니다)
 EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S KST')
 
 # 2. 상수 정의
@@ -25,7 +27,7 @@ B_NUM=$(echo "$B_RAW" | tr -d '$')
 
 
 # 6. 필수 값 누락 확인 (오류 방지)
-if [ -z "$A_NUM" ] || [ [ -z "$B_NUM" ] ]; then
+if [ -z "$A_NUM" ] || [ -z "$B_NUM" ]; then
     echo "오류: 유동적인 두 값을 모두 추출하지 못했습니다." >&2
     exit 1
 fi
@@ -38,9 +40,7 @@ FINAL_CALC_EXPRESSION="($CALC_EXPRESSION) * $MULTIPLIER"
 RESULT=$(echo "scale=0; $FINAL_CALC_EXPRESSION / 1" | bc)
 
 # 8. 최종 결과 포맷팅 (쉼표 추가)
-# RESULT (예: 2055800)에 쉼표를 추가합니다.
 FINAL_RESULT_FORMATTED=$(echo "$RESULT" | sed -E ':a;s/^([0-9]+)([0-9]{3})/\1,\2/;ta')
 
 # 9. 최종 출력
-# 🚨 수정: '한국 시간' 텍스트를 제거하고 KST 표기만 유지
 echo "$EXEC_TIME : $FINAL_RESULT_FORMATTED"
