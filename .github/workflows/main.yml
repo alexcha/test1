@@ -40,7 +40,7 @@ jobs:
         chmod +x check.sh
         
         # 3. 스크립트 실행 및 결과 파일 생성
-        ./check.sh > result.txt
+        ./check.sh >> result.txt
 
         # 4. Git 설정 및 커밋
         git add result.txt
