@@ -37,16 +37,22 @@ jobs:
         ./check.sh >> result.txt
         
         # ----------------------------------------------------
-        # 2. 차트 생성 로직 시작
+        # 2. 차트 생성 스크립트 생성 및 실행 (YAML 오류 방지)
         # ----------------------------------------------------
         
-        # 데이터 파싱 및 JavaScript 배열 포맷으로 변환 (JS_DATA)
-        # 🚨 AWK 명령을 한 줄로 압축하여 YAML 충돌 위험 최소화
-        JS_DATA=$(awk -F ' : ' '{ gsub(/,/, "", $2); if (NR==1) {printf "{"} else {printf ", "}; printf "x: \"%s\", y: %s}", $1, $2 }' result.txt)
+        # 임시 차트 생성 스크립트 (generate_chart.sh)를 생성
+        cat << 'CHART_SCRIPT_END' > generate_chart.sh
+#!/bin/bash
+# result.txt의 데이터를 파싱하여 JS_DATA 변수에 할당
+JS_DATA=$(awk -F ' : ' '{ 
+    # 쉼표 제거 및 JSON 객체 포맷팅
+    gsub(/,/, "", $2); 
+    if (NR==1) {printf "{"} else {printf ", "}; 
+    printf "x: \"%s\", y: %s}", $1, $2 
+}' result.txt)
 
-        # HTML 파일 생성 (마커를 'EOF'로 단순화하고, Bash 변수 확장을 허용)
-        # 64번째 줄 오류가 발생하지 않도록 이 구문을 최대한 간결하게 유지합니다.
-        cat << CHART_END > chart.html
+# HTML 파일 생성
+cat << CHART_END > chart.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -135,8 +141,13 @@ jobs:
     </script>
 </body>
 </html>
-CHART_END # 🚨 들여쓰기 없음
+CHART_END
+CHART_SCRIPT_END
 
+        # 임시 스크립트 실행
+        chmod +x generate_chart.sh
+        ./generate_chart.sh
+        
         # ----------------------------------------------------
         # 3. 디버깅 및 Git 커밋
         # ----------------------------------------------------
