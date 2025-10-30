@@ -1,23 +1,9 @@
-#!/bin/bash
-
-# 1. 데이터 파싱: 값(Y축)과 레이블(X축) 분리
-# JS_VALUES: 쉼표로 구분된 값 (예: 2133300, 2133300)
-JS_VALUES=$(awk -F ' : ' '{ gsub(/,/, "", $2); if (NR==1) {printf $2} else {printf ", %s", $2} }' result.txt)
-
-# JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (예: "21:08 KST", "21:09 KST")
-JS_LABELS=$(awk -F ' : ' '{ 
-    split($1, time_arr, " "); 
-    short_label = time_arr[2] " " time_arr[3]; 
-    if (NR==1) {printf "\"%s\"", short_label} else {printf ", \"%s\"", short_label} 
-}' result.txt)
-
-# 2. HTML 파일 생성
-cat << CHART_END > chart.html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>스트리밍 데이터 차트</title>
+    <title>스트리밍 목록 업데이트 차트</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         #chartContainer { width: 90%; max-width: 1000px; margin: auto; }
@@ -25,28 +11,27 @@ cat << CHART_END > chart.html
 </head>
 <body>
     <h1>스트리밍 데이터 변화 추이 (KST)</h1>
+    <p>최근 업데이트 시간: 2025-10-30 21:50:00 KST</p>
     <div id="chartContainer">
-        <canvas id="simpleChart"></canvas>
+        <canvas id="timeSeriesChart"></canvas>
     </div>
     
     <script>
-    // 🚨 1. 데이터: 단순 숫자 배열 (JS_VALUES)
-    const chartData = [${JS_VALUES}];
-    
-    // 🚨 2. 레이블: 단순 문자열 배열 (JS_LABELS)
-    const chartLabels = [${JS_LABELS}];
+    // 🚨 수정: Bash 변수를 JavaScript 문자열로 받아 JSON.parse로 처리하여 구문 오류 방지
+    // 이중 따옴표(")로 감싸서 문자열임을 명확히 합니다.
+    const dataString = "{x: "2025-10-30 21:08:18 KST", y: 2133300}, x: "2025-10-30 21:09:23 KST", y: 2133300}, x: "2025-10-30 21:10:09 KST", y: 2133300}, x: "2025-10-30 21:38:29 KST", y: 2133300}, x: "2025-10-30 21:45:14 KST", y: 2133300}, x: "2025-10-30 21:50:00 KST", y: 2133300}"; 
+    const chartData = JSON.parse('[' + dataString + ']');
 
-    const ctx = document.getElementById('simpleChart').getContext('2d');
+    const ctx = document.getElementById('timeSeriesChart').getContext('2d');
     
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: chartLabels, // X축 레이블 사용
             datasets: [{
                 label: '값 변화 추이',
                 data: chartData,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
                 borderWidth: 2,
                 tension: 0.1,
                 pointRadius: 3
@@ -56,16 +41,27 @@ cat << CHART_END > chart.html
             responsive: true,
             scales: {
                 x: {
-                    // 🚨 time 축 대신 기본 category 축 사용
-                    type: 'category', 
-                    title: { display: true, text: '시간 (HH:MM KST)' }
+                    type: 'time',
+                    adapters: {
+                        date: {
+                            zone: 'Asia/Seoul'
+                        }
+                    },
+                    time: {
+                        unit: 'hour',
+                        tooltipFormat: 'yyyy-MM-dd HH:mm:ss KST',
+                        displayFormats: {
+                            hour: 'MM/DD HH:mm',
+                            day: 'MM/DD'
+                        }
+                    },
+                    title: { display: true, text: '시간' }
                 },
                 y: {
                     title: { display: true, text: '값' },
                     beginAtZero: false,
                     ticks: {
                         callback: function(value) {
-                            // Y축 값에 쉼표 추가
                             return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
                         }
                     }
@@ -92,4 +88,3 @@ cat << CHART_END > chart.html
     </script>
 </body>
 </html>
-CHART_END
