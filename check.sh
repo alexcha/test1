@@ -1,6 +1,9 @@
 #!/bin/sh
 
-# 1. 스크립트 실행 시간 획득
+# 🚨 수정: TZ 환경 변수를 'Asia/Seoul'로 설정하여 date 명령이 정확히 KST를 출력하도록 강제합니다.
+export TZ='Asia/Seoul'
+
+# 1. 스크립트 실행 시간 획득 (이제 정확히 KST 시간이 출력됩니다)
 EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S KST')
 
 # 2. 상수 정의
@@ -37,9 +40,6 @@ FINAL_CALC_EXPRESSION="($CALC_EXPRESSION) * $MULTIPLIER"
 RESULT=$(echo "scale=0; $FINAL_CALC_EXPRESSION / 1" | bc)
 
 # 8. 최종 결과 포맷팅 (쉼표 추가)
-# RESULT (예: 2055800)에 쉼표를 추가합니다.
-# 이 기능은 BusyBox 환경에 따라 sed, awk, 또는 printf 등으로 구현 방식이 다릅니다.
-# 가장 일반적인 POSIX sed/awk 패턴을 사용합니다.
 FINAL_RESULT_FORMATTED=$(echo "$RESULT" | sed -E ':a;s/^([0-9]+)([0-9]{3})/\1,\2/;ta')
 
 # 9. 최종 출력
