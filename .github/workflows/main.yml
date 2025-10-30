@@ -3,7 +3,6 @@ name: Streaming list update
 on: 
   push:
   schedule:
-    # 매 시간 5분에 실행되도록 설정 (UTC 기준)
     - cron: '5 * * * *'
   
 jobs:
@@ -22,22 +21,22 @@ jobs:
       
     - name: Run Script, Generate Chart, and Commit
       run: |
-        echo "--- 워크플로우 시작: 파일 URL 경로 수정 반영 ---"
+        echo "--- 워크플로우 시작: README.md 생성 반영 ---"
         
-        # 1. 상수 정의 (🚨 모든 URL을 refs/heads/main 경로로 통일)
+        # 1. 상수 정의
         WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
         WGET_CHART_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/generate_chart.sh"
         WGET_RESULT_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/result.txt"
 
         # 2. 필수 패키지 설치
         sudo apt-get -y update
-        sudo apt-get -y install html2text
+        sudo apt-get -y install html2text # 이젠 필요 없지만 혹시 몰라 유지
 
-        # 3. [순서 1-1] result.txt 다운로드 (기존 데이터 보존)
+        # 3. result.txt 다운로드
         echo "3. 기존 result.txt 다운로드 시도..."
         wget "$WGET_RESULT_URL" -O result.txt || echo "result.txt not found, starting fresh."
         
-        # 4. [순서 1-2] check.sh 및 generate_chart.sh 다운로드
+        # 4. check.sh 및 generate_chart.sh 다운로드
         echo "4. check.sh 및 generate_chart.sh 다운로드..."
         wget "$WGET_CHECK_URL" -O check.sh || { echo "ERROR: check.sh 다운로드 실패" >&2; exit 1; }
         wget "$WGET_CHART_URL" -O generate_chart.sh || { echo "ERROR: generate_chart.sh 다운로드 실패" >&2; exit 1; }
@@ -45,28 +44,29 @@ jobs:
         # 5. 실행 권한 부여
         chmod +x check.sh generate_chart.sh
         
-        # 6. [순서 2] check.sh 실행 및 result.txt에 데이터 추가
+        # 6. check.sh 실행 및 result.txt에 데이터 추가
         echo "6. check.sh 실행 및 result.txt에 새로운 데이터 추가..."
         ./check.sh >> result.txt
         
-        # 7. [순서 3] generate_chart.sh 실행 (chart.html 생성)
-        echo "7. generate_chart.sh 실행 및 chart.html 생성..."
+        # 7. generate_chart.sh 실행 (README.md 생성)
+        echo "7. generate_chart.sh 실행 및 README.md 생성..."
         ./generate_chart.sh
         
         # 8. 생성 파일 확인 (디버깅)
         echo "--- File Status Check ---"
-        if [ -f chart.html ]; then
-            echo "chart.html이 성공적으로 생성되었습니다. 크기:"
-            ls -lh chart.html
+        if [ -f README.md ]; then # 🚨 파일 이름 변경
+            echo "README.md이 성공적으로 생성되었습니다. 크기:"
+            ls -lh README.md
         else
-            echo "🚨 FATAL ERROR: chart.html 생성이 실패했습니다!" >&2
+            echo "🚨 FATAL ERROR: README.md 생성이 실패했습니다!" >&2
             exit 1
         fi
         echo "-------------------------"
 
-        # 9. [순서 4] Git 커밋 및 푸시
+        # 9. Git 커밋 및 푸시
         echo "9. Git 커밋 및 푸시..."
-        git add result.txt chart.html
+        # 🚨 chart.html 대신 README.md 추가
+        git add result.txt README.md
         
         git config --global user.email test@local
         git config --global user.name test
@@ -75,7 +75,7 @@ jobs:
           echo "No changes to commit."
         else
           echo "Committing changes..."
-          git commit -m "Automated update: data and chart"
+          git commit -m "Automated update: data and README.md (data table)"
           git branch -M main
           git push
         fi
