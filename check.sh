@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # 1. 스크립트 실행 시간 획득
+# KST (Korean Standard Time)는 이미 '한국 시간'을 의미합니다.
 EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S KST')
 
 # 2. 상수 정의
@@ -38,9 +39,8 @@ RESULT=$(echo "scale=0; $FINAL_CALC_EXPRESSION / 1" | bc)
 
 # 8. 최종 결과 포맷팅 (쉼표 추가)
 # RESULT (예: 2055800)에 쉼표를 추가합니다.
-# 이 기능은 BusyBox 환경에 따라 sed, awk, 또는 printf 등으로 구현 방식이 다릅니다.
-# 가장 일반적인 POSIX sed/awk 패턴을 사용합니다.
 FINAL_RESULT_FORMATTED=$(echo "$RESULT" | sed -E ':a;s/^([0-9]+)([0-9]{3})/\1,\2/;ta')
 
 # 9. 최종 출력
-echo "$EXEC_TIME : $FINAL_RESULT_FORMATTED"
+# 'KST' 대신 '한국 시간' 텍스트를 사용하여 요청 사항을 반영합니다.
+echo "$EXEC_TIME : $FINAL_RESULT_FORMATTED 한국 시간"
