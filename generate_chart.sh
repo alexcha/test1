@@ -1,20 +1,45 @@
 #!/bin/bash
 
-# 1. 데이터 파싱
+# 1. 데이터 파싱 (견고하게 수정)
+
 # JS_VALUES: 쉼표로 구분된 값 (차트 데이터용 - 차트는 시간 순서대로 유지)
-JS_VALUES=$(awk -F ' : ' '{ 
-    # 값에서 쉼표(,) 제거
-    gsub(/,/, "", $2); 
-    if (NR==1) {printf $2} else {printf ", %s", $2} 
-}' result.txt | tr -d '\n' | sed 's/^[ \t]*//;s/[ \t]*$//')
+# 🚨 Awk의 END 블록을 사용하여 데이터를 배열로 모아 깔끔하게 쉼표로 연결합니다.
+JS_VALUES=$(awk -F ' : ' '
+    { 
+        # 값에서 쉼표(,) 제거
+        gsub(/,/, "", $2); 
+        values[i++] = $2
+    }
+    END {
+        # 배열의 요소를 ", "로 연결하여 출력 (선행/후행 공백 및 줄 바꿈 방지)
+        for (j=0; j<i; j++) {
+            printf "%s", values[j]
+            if (j < i-1) {
+                printf ", "
+            }
+        }
+    }
+' result.txt)
 
 # JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용 - 차트는 시간 순서대로 유지)
-JS_LABELS=$(awk -F ' : ' '{ 
-    # 시간에서 '날짜 시간:분'만 추출하여 레이블로 사용
-    split($1, time_arr, " "); 
-    short_label = time_arr[2] " " time_arr[3]; 
-    if (NR==1) {printf "\"%s\"", short_label} else {printf ", \"%s\"", short_label} 
-}' result.txt | tr -d '\n' | sed 's/^[ \t]*//;s/[ \t]*$//')
+# 🚨 Awk의 END 블록을 사용하여 데이터를 배열로 모아 따옴표와 쉼표로 깔끔하게 연결합니다.
+JS_LABELS=$(awk -F ' : ' '
+    { 
+        # 시간에서 '날짜 시간:분'만 추출하여 레이블로 사용
+        split($1, time_arr, " "); 
+        short_label = time_arr[2] " " time_arr[3]; 
+        labels[i++] = "\"" short_label "\""
+    }
+    END {
+        # 배열의 요소를 ", "로 연결하여 출력
+        for (j=0; j<i; j++) {
+            printf "%s", labels[j]
+            if (j < i-1) {
+                printf ", "
+            }
+        }
+    }
+' result.txt)
 
 # 2. HTML 테이블 생성
 # 'tac result.txt'를 사용하여 파일 내용을 역순으로 읽어 최신 데이터부터 표에 삽입합니다.
@@ -44,7 +69,8 @@ cat << CHART_END > index.html
     <title>No..</title>
     <!-- 🚨 모바일 최적화를 위한 뷰포트 메타 태그 추가 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 🚨 캐싱 방지 코드 추가: Chart.js 스크립트에 쿼리 파라미터 추가 -->
+    <!-- 외부 CDN 링크 -->
+    <!-- 🚨 캐싱 방지 코드 재추가: Chart.js 스크립트에 쿼리 파라미터 추가 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js?v=${CACHE_BUST}"></script>
     <style>
         body { font-family: 'Inter', Arial, sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
@@ -69,7 +95,6 @@ cat << CHART_END > index.html
 <body>
     <div class="container">
         <h1>스트리밍 이맨트 추이</h1>
-        <!-- 🚨 캐싱 방지 코드 추가: 업데이트 시간에 쿼리 파라미터 추가하여 캐싱 방지 -->
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <!-- 차트 영역 -->
