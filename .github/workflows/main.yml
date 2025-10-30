@@ -3,19 +3,28 @@ name: Streaming list update
 on: 
   push:
   schedule:
+    # 매 시간 5분에 실행되도록 설정 (UTC 기준)
     - cron: '5 * * * *'
   
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    # ... (생략된 Checkout, Unittest 스텝) ...
+    - name: Checkout Repository
+      uses: actions/checkout@v4 
       
-    - name: Commit files and Generate Chart
+    - name: Github Action gen-sh-unittest
+      id: action-gen-sh-unittest
+      uses: vargiuscuola/gen-sh-unittest@master
+      
+    - name: Get Unittest Result
+      run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
+      
+    - name: Commit files and Generate Chart (DEBUGGING)
       run: |
         echo "현재 Ref: ${{ github.ref }}"
         
-        # 1. 파일 다운로드 및 환경 설정 (생략)
+        # 1. 파일 다운로드 및 환경 설정
         WGET_URL="https://raw.githubusercontent.com/alexcha/test1/main/check.sh"
         echo "다운로드 시도 URL: $WGET_URL"
         wget "$WGET_URL" -O check.sh || { echo "ERROR: File download failed." >&2; exit 1; }
@@ -25,14 +34,15 @@ jobs:
         sudo apt-get -y install html2text
         
         chmod +x check.sh
+        
+        # 2. 스크립트 실행 및 result.txt에 데이터 추가
         ./check.sh >> result.txt
         
         # ----------------------------------------------------
-        # 2. 차트 생성 로직 시작
+        # 3. 차트 생성 로직 시작
         # ----------------------------------------------------
         
         # 데이터 파싱 및 JavaScript 배열 포맷으로 변환 (JS_DATA)
-        # 🚨 수정: awk 명령의 따옴표 충돌 위험을 줄이기 위해 구조를 명확히 함
         JS_DATA=$(awk -F ' : ' '
             {
                 timestamp = $1
@@ -50,7 +60,129 @@ jobs:
             }' result.txt)
 
         # HTML 파일 생성 (Bash 변수 삽입 오류 방지용 마커 사용)
-        cat << 'CHART_HTML_END_MARKER' > chart.html # <--- 이 줄이 64번째 줄 근처일 수 있습니다.
+        cat << 'CHART_HTML_END_MARKER' > chart.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>스트리밍 목록 업데이트 차트</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chartContainer { width: 90%; max-width: 1000px; margin: auto; }
+    </style>
+</head>
+<body>
+    <h1>스트리밍 데이터 변화 추이 (KST)</h1>
+    <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
+    <div id="chartContainer">
+        <canvas id="timeSeriesChart"></canvas>
+    </div>
+    
+    <script>
+    // YAML 오류 방지 및 JSON 파싱을 통한 데이터 할당
+    const dataString = '$JS_DATA'; 
+    const chartData = JSON.parse('[' + dataString + ']'); 
 
-# ... (HTML 및 JavaScript 코드 생략) ...
-# ... (Git 커밋 및 푸시 로직 생략) ...
+    const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: '값 변화 추이',
+                data: chartData,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    type: 'time',
+                    adapters: {
+                        date: {
+                            zone: 'Asia/Seoul'
+                        }
+                    },
+                    time: {
+                        unit: 'hour',
+                        tooltipFormat: 'yyyy-MM-dd HH:mm:ss KST',
+                        displayFormats: {
+                            hour: 'MM/DD HH:mm',
+                            day: 'MM/DD'
+                        }
+                    },
+                    title: { display: true, text: '시간' }
+                },
+                y: {
+                    title: { display: true, text: '값' },
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    </script>
+</body>
+</html>
+CHART_HTML_END_MARKER
+        # ----------------------------------------------------
+        # 4. 디버깅 및 Git 커밋
+        # ----------------------------------------------------
+
+        # 🚨🚨🚨 디버깅 코드: chart.html 파일 생성 확인 🚨🚨🚨
+        echo "--- File Status Check ---"
+        if [ -f chart.html ]; then
+            echo "chart.html successfully created. Size:"
+            ls -lh chart.html
+        else
+            echo "🚨 FATAL ERROR: chart.html was NOT created!" >&2
+            exit 1 # 파일 생성 실패 시 워크플로우 중단
+        fi
+        echo "-------------------------"
+
+        # Git 커밋 및 푸시
+        git add result.txt chart.html
+        
+        git config --global user.email test@local
+        git config --global user.name test
+
+        if git diff --cached --exit-code; then
+          echo "No changes to commit"
+        else
+          echo "Committing changes..."
+          git commit -m "Automated update: data and chart"
+          git branch -M main
+          git push
+        fi
+        
+    - name: Push changes
+      if: false 
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.ETC_KEY }}
