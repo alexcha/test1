@@ -2,48 +2,163 @@ name: Streaming list update
 
 on: 
   push:
+    # 모든 브랜치 푸시에 대해 실행
   schedule:
+    # 🚨 매 시간 5분에 실행되도록 설정 (UTC 기준)
     - cron: '5 * * * *'
   
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - name: Checkout Repository
+      # 저장소 코드를 러너로 가져옵니다. 최신 안정 버전 사용.
+      uses: actions/checkout@v4 
       
     - name: Github Action gen-sh-unittest
       id: action-gen-sh-unittest
       uses: vargiuscuola/gen-sh-unittest@master
       
-    - name: gensh-unittest result
+    - name: Get Unittest Result
       run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
       
-    - name: Commit files
+    - name: Commit files and Generate Chart
       run: |
         echo "현재 Ref: ${{ github.ref }}"
         
-        # 1. 파일 다운로드 
+        # 1. 파일 다운로드 (공개 저장소)
         WGET_URL="https://raw.githubusercontent.com/alexcha/test1/main/check.sh"
         echo "다운로드 시도 URL: $WGET_URL"
-        
-        wget "$WGET_URL" -O check.sh || { 
-          echo "🚨🚨🚨 ERROR: 파일 다운로드 실패. URL을 확인하세요. 🚨🚨🚨"
-          exit 1
-        }
+        wget "$WGET_URL" -O check.sh || { echo "ERROR: File download failed." >&2; exit 1; }
         
         # 2. 스크립트 실행 환경 설정 및 의존성 설치
         export LANG=ko_KR.UTF-8
-        #sudo apt-get -y update
+        # sudo를 사용하여 시스템 패키지 설치 권한 오류 해결
+        sudo apt-get -y update
         sudo apt-get -y install html2text
         
         chmod +x check.sh
         
-        # 3. 스크립트 실행 및 결과 파일 생성
+        # 3. 스크립트 실행 및 result.txt에 데이터 추가 (>> 사용)
         ./check.sh >> result.txt
+        
+        # ----------------------------------------------------
+        # 4. 차트 생성 로직 시작 (result.txt의 데이터를 파싱)
+        # ----------------------------------------------------
+        
+        # 데이터 파싱 및 JavaScript 배열 포맷으로 변환
+        JS_DATA=$(awk -F ' : ' '{
+            timestamp = $1
+            value = $2
+            gsub(/,/, "", value)
+            
+            if (NR == 1) {
+                printf "{"
+            } else {
+                printf ", {"
+            }
+            # 데이터 포맷: {x: '날짜 시간 KST', y: 값}
+            printf "x: \"%s\", y: %s}", timestamp, value
+        } END {
+            printf ""
+        }' result.txt)
 
-        # 4. Git 설정 및 커밋
-        git add result.txt
+        # HTML 파일 생성 (Chart.js 및 Moment Adapter 사용)
+        cat << EOF > chart.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>스트리밍 목록 업데이트 차트</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chartContainer { width: 90%; max-width: 1000px; margin: auto; }
+    </style>
+</head>
+<body>
+    <h1>스트리밍 데이터 변화 추이 (KST)</h1>
+    <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
+    <div id="chartContainer">
+        <canvas id="timeSeriesChart"></canvas>
+    </div>
+    
+    <script>
+    const chartData = [${JS_DATA}];
+
+    const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: '값 변화 추이',
+                data: chartData,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderWidth: 2,
+                tension: 0.1,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    type: 'time',
+                    adapters: {
+                        date: {
+                            zone: 'Asia/Seoul' // KST 명시적 지정
+                        }
+                    },
+                    time: {
+                        unit: 'hour',
+                        tooltipFormat: 'yyyy-MM-dd HH:mm:ss KST',
+                        displayFormats: {
+                            hour: 'MM/DD HH:mm',
+                            day: 'MM/DD'
+                        }
+                    },
+                    title: { display: true, text: '시간' }
+                },
+                y: {
+                    title: { display: true, text: '값' },
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    </script>
+</body>
+</html>
+EOF
+        # ----------------------------------------------------
+        # 5. Git 커밋 및 푸시
+        # ----------------------------------------------------
+        
+        # result.txt와 새로 생성된 chart.html을 Git에 추가
+        git add result.txt chart.html
         
         git config --global user.email test@local
         git config --global user.name test
@@ -51,17 +166,15 @@ jobs:
         if git diff --cached --exit-code; then
           echo "No changes to commit"
         else
-          git commit -m "Automated update: new data commit"
+          git commit -m "Automated update: data and chart"
           git branch -M main
-          
-          # 5. git push는 기본 인증을 사용하여 수행
+          # 기본 ${{ secrets.GITHUB_TOKEN }}을 사용하여 푸시
           git push
         fi
         
     - name: Push changes
-      # 이 스텝은 'Commit files'에서 이미 푸시했으므로 비활성화하는 것을 권장합니다.
+      # 이전 스텝에서 이미 푸시했으므로 비활성화합니다.
       if: false 
-      # 🚨🚨🚨 수정: v4 대신 안정적인 master 브랜치를 다시 사용합니다. 🚨🚨🚨
-      uses: ad-m/github-push-action@master 
+      uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.ETC_KEY }}
