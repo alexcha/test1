@@ -19,9 +19,9 @@ jobs:
     - name: Get Unittest Result
       run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
       
-    - name: Run Script, Generate Chart, and Commit
+    - name: Run Script, Generate Chart, and Commit (Result.txt DEBUG)
       run: |
-        echo "--- 워크플로우 시작: index.html 생성 반영 ---"
+        echo "--- 워크플로우 시작: result.txt 디버깅 반영 ---"
         
         # 1. 상수 정의
         WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
@@ -32,9 +32,12 @@ jobs:
         sudo apt-get -y update
         sudo apt-get -y install html2text
 
-        # 3. result.txt 다운로드
+        # 3. result.txt 다운로드 및 크기 확인
         echo "3. 기존 result.txt 다운로드 시도..."
         wget "$WGET_RESULT_URL" -O result.txt || echo "result.txt not found, starting fresh."
+        # 다운로드 직후 파일 크기 저장
+        INITIAL_SIZE=$(wc -c < result.txt)
+        echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
         
         # 4. check.sh 및 generate_chart.sh 다운로드
         echo "4. check.sh 및 generate_chart.sh 다운로드..."
@@ -46,15 +49,28 @@ jobs:
         
         # 6. check.sh 실행 및 result.txt에 데이터 추가
         echo "6. check.sh 실행 및 result.txt에 새로운 데이터 추가..."
-        ./check.sh >> result.txt
+        # 🚨 check.sh가 출력하는 내용 디버깅
+        echo "   -> check.sh 출력 내용:"
+        ./check.sh | tee -a result.txt
+        echo "--------------------------"
         
-        # 7. generate_chart.sh 실행 (index.html 생성)
-        echo "7. generate_chart.sh 실행 및 index.html 생성..."
+        # 7. check.sh 실행 후 파일 크기 확인
+        FINAL_SIZE=$(wc -c < result.txt)
+        echo "   -> check.sh 실행 후 result.txt 크기: $FINAL_SIZE 바이트"
+
+        if [ "$INITIAL_SIZE" -eq "$FINAL_SIZE" ]; then
+            echo "🚨 경고: result.txt 파일 크기에 변화가 없습니다. check.sh가 새 데이터를 출력하지 않았을 수 있습니다."
+        else
+            echo "✅ 확인: result.txt에 $FINAL_SIZE 바이트로 변경되었습니다. (+$((FINAL_SIZE - INITIAL_SIZE)) 바이트)"
+        fi
+        
+        # 8. generate_chart.sh 실행 (index.html 생성)
+        echo "8. generate_chart.sh 실행 및 index.html 생성..."
         ./generate_chart.sh
         
-        # 8. 생성 파일 확인 (디버깅)
+        # 9. 생성 파일 확인 및 Git 커밋/푸시
         echo "--- File Status Check ---"
-        if [ -f index.html ]; then # 🚨 파일 이름 변경
+        if [ -f index.html ]; then
             echo "index.html이 성공적으로 생성되었습니다. 크기:"
             ls -lh index.html
         else
@@ -63,16 +79,14 @@ jobs:
         fi
         echo "-------------------------"
 
-        # 9. Git 커밋 및 푸시
-        echo "9. Git 커밋 및 푸시..."
-        # 🚨 index.html 추가
+        echo "10. Git 커밋 및 푸시..."
         git add result.txt index.html
         
         git config --global user.email test@local
         git config --global user.name test
 
         if git diff --cached --exit-code; then
-          echo "No changes to commit."
+          echo "No changes to commit. (두 파일 모두 변경 없음)"
         else
           echo "Committing changes..."
           git commit -m "Automated update: data and index.html (chart)"
