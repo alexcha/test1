@@ -21,7 +21,7 @@ jobs:
       
     - name: Run Script, Generate Chart, and Commit
       run: |
-        echo "--- 워크플로우 시작: README.md 생성 반영 ---"
+        echo "--- 워크플로우 시작: index.html 생성 반영 ---"
         
         # 1. 상수 정의
         WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
@@ -30,7 +30,7 @@ jobs:
 
         # 2. 필수 패키지 설치
         sudo apt-get -y update
-        sudo apt-get -y install html2text # 이젠 필요 없지만 혹시 몰라 유지
+        sudo apt-get -y install html2text
 
         # 3. result.txt 다운로드
         echo "3. 기존 result.txt 다운로드 시도..."
@@ -48,25 +48,25 @@ jobs:
         echo "6. check.sh 실행 및 result.txt에 새로운 데이터 추가..."
         ./check.sh >> result.txt
         
-        # 7. generate_chart.sh 실행 (README.md 생성)
-        echo "7. generate_chart.sh 실행 및 README.md 생성..."
+        # 7. generate_chart.sh 실행 (index.html 생성)
+        echo "7. generate_chart.sh 실행 및 index.html 생성..."
         ./generate_chart.sh
         
         # 8. 생성 파일 확인 (디버깅)
         echo "--- File Status Check ---"
-        if [ -f README.md ]; then # 🚨 파일 이름 변경
-            echo "README.md이 성공적으로 생성되었습니다. 크기:"
-            ls -lh README.md
+        if [ -f index.html ]; then # 🚨 파일 이름 변경
+            echo "index.html이 성공적으로 생성되었습니다. 크기:"
+            ls -lh index.html
         else
-            echo "🚨 FATAL ERROR: README.md 생성이 실패했습니다!" >&2
+            echo "🚨 FATAL ERROR: index.html 생성이 실패했습니다!" >&2
             exit 1
         fi
         echo "-------------------------"
 
         # 9. Git 커밋 및 푸시
         echo "9. Git 커밋 및 푸시..."
-        # 🚨 chart.html 대신 README.md 추가
-        git add result.txt README.md
+        # 🚨 index.html 추가
+        git add result.txt index.html
         
         git config --global user.email test@local
         git config --global user.name test
@@ -75,7 +75,7 @@ jobs:
           echo "No changes to commit."
         else
           echo "Committing changes..."
-          git commit -m "Automated update: data and README.md (data table)"
+          git commit -m "Automated update: data and index.html (chart)"
           git branch -M main
           git push
         fi
