@@ -3,7 +3,8 @@ name: Streaming list update
 on: 
   push:
   schedule:
-    - cron: '5 * * * *'
+    # 🚨 3시간에 한 번 실행 (0시, 3시, 6시, 9시, 12시, 15시, 18시, 21시 UTC의 0분에 실행)
+    - cron: '0 */3 * * *' 
   
 jobs:
   build:
@@ -47,14 +48,23 @@ jobs:
         chmod +x check.sh generate_chart.sh
         
         # 6. check.sh 실행 및 result.txt에 데이터 추가
-        echo "6. check.sh 실행 및 result.txt에 새로운 데이터 추가..."
-        # check.sh 출력 내용을 tee로 result.txt에 추가하면서 로그에도 출력
+        echo "6-1. check.sh 스크립트 내용 확인:"
+        echo "--------------------------"
+        cat check.sh
+        echo "--------------------------"
+        
+        echo "6-2. check.sh 실행 및 result.txt에 새로운 데이터 추가 (Bash Debug ON)"
+        
+        # 🚨 Bash 디버깅 모드 ON
+        set -x 
         ./check.sh | tee -a result.txt
+        set +x # 디버깅 모드 OFF
+        
         echo "cat result.txt !!"
         cat result.txt
         echo "--------------------------"
         
-        # 7. 🚨🚨🚨 추가된 단계: result.txt 파일 내용 확인 🚨🚨🚨
+        # 7. result.txt 파일 내용 (최근 5줄) 확인:
         echo "7. result.txt 파일 내용 (최근 5줄) 확인:"
         tail -n 5 result.txt
         echo "--------------------------"
@@ -64,7 +74,7 @@ jobs:
         echo "8. check.sh 실행 후 result.txt 크기: $FINAL_SIZE 바이트"
 
         if [ "$INITIAL_SIZE" -eq "$FINAL_SIZE" ]; then
-            echo "🚨 경고: result.txt 파일 크기에 변화가 없습니다. check.sh가 새 데이터를 출력하지 않았을 수 있습니다."
+            echo "🚨 경고: result.txt 파일 크기에 변화가 없습니다. check.sh가 새 데이터를 출력하지 않았거나 오류가 발생했을 수 있습니다."
         else
             echo "✅ 확인: result.txt가 성공적으로 업데이트되었습니다. (+$((FINAL_SIZE - INITIAL_SIZE)) 바이트)"
         fi
