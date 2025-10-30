@@ -34,7 +34,7 @@ jobs:
         
         # 2. 스크립트 실행 환경 설정 및 의존성 설치
         export LANG=ko_KR.UTF-8
-        sudo apt-get -y update
+        #sudo apt-get -y update
         sudo apt-get -y install html2text
         
         chmod +x check.sh
