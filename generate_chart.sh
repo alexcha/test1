@@ -34,6 +34,9 @@ END {
 }')
 
 # 3. HTML 파일 생성 (index.html)
+# 🚨 캐싱 방지용 타임스탬프 생성 (초 단위)
+CACHE_BUST=$(date +%s)
+
 cat << CHART_END > index.html
 <!DOCTYPE html>
 <html>
@@ -41,7 +44,8 @@ cat << CHART_END > index.html
     <title>No..</title>
     <!-- 🚨 모바일 최적화를 위한 뷰포트 메타 태그 추가 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- 🚨 캐싱 방지 코드 추가: Chart.js 스크립트에 쿼리 파라미터 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js?v=${CACHE_BUST}"></script>
     <style>
         body { font-family: 'Inter', Arial, sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
         .container { width: 95%; max-width: 1000px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); }
@@ -65,6 +69,7 @@ cat << CHART_END > index.html
 <body>
     <div class="container">
         <h1>스트리밍 이맨트 추이</h1>
+        <!-- 🚨 캐싱 방지 코드 추가: 업데이트 시간에 쿼리 파라미터 추가하여 캐싱 방지 -->
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <!-- 차트 영역 -->
