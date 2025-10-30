@@ -28,7 +28,7 @@ cat << CHART_END > index.html
     </style>
 </head>
 <body>
-    <h1>추이</h1> <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
+    <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
     <div id="chartContainer">
         <canvas id="simpleChart"></canvas>
     </div>
