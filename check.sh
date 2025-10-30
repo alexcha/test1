@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # 1. 스크립트 실행 시간 획득
-# KST (Korean Standard Time)는 이미 '한국 시간'을 의미합니다.
+# EXEC_TIME은 여전히 KST (한국 표준시)를 포함하여 포맷됩니다.
 EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S KST')
 
 # 2. 상수 정의
@@ -25,7 +25,7 @@ B_NUM=$(echo "$B_RAW" | tr -d '$')
 
 
 # 6. 필수 값 누락 확인 (오류 방지)
-if [ -z "$A_NUM" ] || [ -z "$B_NUM" ]; then
+if [ -z "$A_NUM" ] || [ [ -z "$B_NUM" ] ]; then
     echo "오류: 유동적인 두 값을 모두 추출하지 못했습니다." >&2
     exit 1
 fi
@@ -42,5 +42,5 @@ RESULT=$(echo "scale=0; $FINAL_CALC_EXPRESSION / 1" | bc)
 FINAL_RESULT_FORMATTED=$(echo "$RESULT" | sed -E ':a;s/^([0-9]+)([0-9]{3})/\1,\2/;ta')
 
 # 9. 최종 출력
-# 'KST' 대신 '한국 시간' 텍스트를 사용하여 요청 사항을 반영합니다.
-echo "$EXEC_TIME : $FINAL_RESULT_FORMATTED 한국 시간"
+# 🚨 수정: '한국 시간' 텍스트를 제거하고 KST 표기만 유지
+echo "$EXEC_TIME : $FINAL_RESULT_FORMATTED"
