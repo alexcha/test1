@@ -51,7 +51,7 @@ cat << CHART_END > index.html
 </head>
 <body>
     <div class="container">
-        <h1>스트리밍 이맨트 추이</h1>
+
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <div id="chartContainer">
