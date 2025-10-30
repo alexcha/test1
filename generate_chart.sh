@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# 1. 데이터 파싱 (견고하게 수정)
+# 1. 데이터 파싱 (견고하게 수정된 로직 유지)
 
 # JS_VALUES: 쉼표로 구분된 값 (차트 데이터용 - 차트는 시간 순서대로 유지)
-# 🚨 Awk의 END 블록을 사용하여 데이터를 배열로 모아 깔끔하게 쉼표로 연결합니다.
 JS_VALUES=$(awk -F ' : ' '
     { 
         # 값에서 쉼표(,) 제거
@@ -22,7 +21,6 @@ JS_VALUES=$(awk -F ' : ' '
 ' result.txt)
 
 # JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용 - 차트는 시간 순서대로 유지)
-# 🚨 Awk의 END 블록을 사용하여 데이터를 배열로 모아 따옴표와 쉼표로 깔끔하게 연결합니다.
 JS_LABELS=$(awk -F ' : ' '
     { 
         # 시간에서 '날짜 시간:분'만 추출하여 레이블로 사용
@@ -41,8 +39,7 @@ JS_LABELS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 2. HTML 테이블 생성
-# 'tac result.txt'를 사용하여 파일 내용을 역순으로 읽어 최신 데이터부터 표에 삽입합니다.
+# 2. HTML 테이블 생성 (표 데이터 역순 정렬 로직 유지)
 HTML_TABLE_ROWS=$(tac result.txt | awk -F ' : ' 'BEGIN {
     # 테이블 시작 및 스타일 정의
     print "<table style=\"width: 100%; max-width: 1000px; border-collapse: collapse; border: 1px solid #ddd; font-size: 14px; min-width: 300px;\">";
@@ -59,8 +56,7 @@ END {
 }')
 
 # 3. HTML 파일 생성 (index.html)
-# 🚨 캐싱 방지용 타임스탬프 생성 (초 단위)
-CACHE_BUST=$(date +%s)
+# 캐싱 방지용 타임스탬프 생성 로직 제거
 
 cat << CHART_END > index.html
 <!DOCTYPE html>
@@ -69,9 +65,8 @@ cat << CHART_END > index.html
     <title>No..</title>
     <!-- 🚨 모바일 최적화를 위한 뷰포트 메타 태그 추가 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 외부 CDN 링크 -->
-    <!-- 🚨 캐싱 방지 코드 재추가: Chart.js 스크립트에 쿼리 파라미터 추가 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js?v=${CACHE_BUST}"></script>
+    <!-- Chart.js CDN 링크 (안정성을 위해 캐싱 방지 쿼리 파라미터 제거) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', Arial, sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
         .container { width: 95%; max-width: 1000px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); }
@@ -113,6 +108,10 @@ cat << CHART_END > index.html
     <script>
     const chartData = [${JS_VALUES}];
     const chartLabels = [${JS_LABELS}];
+
+    // 🚨🚨 디버깅을 위한 콘솔 로그 추가: 이 배열들을 브라우저 콘솔에서 확인해 주세요!
+    console.log("Chart Data Array:", chartData);
+    console.log("Chart Labels Array:", chartLabels);
 
     const ctx = document.getElementById('simpleChart').getContext('2d');
     
