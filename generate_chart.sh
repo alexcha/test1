@@ -20,7 +20,7 @@ cat << CHART_END > index.html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>스트리밍 이맨트 추이</title>
+    <title>No..</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -28,7 +28,7 @@ cat << CHART_END > index.html
     </style>
 </head>
 <body>
-    <h1>스트리밍 이맨트 추이</h1> <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
+    <h1>추이</h1> <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
     <div id="chartContainer">
         <canvas id="simpleChart"></canvas>
     </div>
