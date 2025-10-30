@@ -1,36 +1,37 @@
 #!/bin/bash
 
 # 1. 데이터 파싱
-# JS_VALUES: 쉼표로 구분된 값 (차트 데이터용)
+# JS_VALUES: 쉼표로 구분된 값 (차트 데이터용 - 차트는 시간 순서대로 유지)
 JS_VALUES=$(awk -F ' : ' '{ 
     # 값에서 쉼표(,) 제거
     gsub(/,/, "", $2); 
     if (NR==1) {printf $2} else {printf ", %s", $2} 
 }' result.txt | tr -d '\n' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
-# JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용)
+# JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용 - 차트는 시간 순서대로 유지)
 JS_LABELS=$(awk -F ' : ' '{ 
+    # 시간에서 '날짜 시간:분'만 추출하여 레이블로 사용
     split($1, time_arr, " "); 
     short_label = time_arr[2] " " time_arr[3]; 
     if (NR==1) {printf "\"%s\"", short_label} else {printf ", \"%s\"", short_label} 
 }' result.txt | tr -d '\n' | sed 's/^[ \t]*//;s/[ \t]*$//')
 
 # 2. HTML 테이블 생성
-# result.txt의 모든 데이터를 HTML <tr><td> 태그로 변환합니다.
-HTML_TABLE_ROWS=$(awk -F ' : ' 'BEGIN {
+# 'tac result.txt'를 사용하여 파일 내용을 역순으로 읽어 최신 데이터부터 표에 삽입합니다.
+HTML_TABLE_ROWS=$(tac result.txt | awk -F ' : ' 'BEGIN {
     # 테이블 시작 및 스타일 정의
-    print "<table style=\"width: 100%; max-width: 1000px; margin: 30px auto 0; border-collapse: collapse; border: 1px solid #ddd;\">";
+    print "<table style=\"width: 100%; max-width: 1000px; border-collapse: collapse; border: 1px solid #ddd; font-size: 14px; min-width: 300px;\">";
     # 테이블 헤더
-    print "<thead><tr><th style=\"padding: 12px; background-color: #f4f4f4; border: 1px solid #ddd; text-align: left;\">시간 (KST)</th><th style=\"padding: 12px; background-color: #f4f4f4; border: 1px solid #ddd; text-align: right;\">값</th></tr></thead>";
+    print "<thead><tr><th style=\"padding: 12px; background-color: #e9ecef; border: 1px solid #ddd; text-align: left; color: #495057;\">시간 (KST)</th><th style=\"padding: 12px; background-color: #e9ecef; border: 1px solid #ddd; text-align: right; color: #495057;\">값</th></tr></thead>";
     print "<tbody>";
 }
 {
     # 데이터 행 (result.txt의 $1=시간, $2=값)
-    printf "<tr><td style=\"padding: 10px; border: 1px solid #ddd; text-align: left;\">%s</td><td style=\"padding: 10px; border: 1px solid #ddd; text-align: right; font-weight: bold;\">%s</td></tr>\n", $1, $2
+    printf "<tr><td style=\"padding: 10px; border: 1px solid #eee; text-align: left; background-color: white;\">%s</td><td style=\"padding: 10px; border: 1px solid #eee; text-align: right; font-weight: bold; color: #d9534f; background-color: white;\">%s</td></tr>\n", $1, $2
 }
 END {
     print "</tbody></table>";
-}' result.txt)
+}')
 
 # 3. HTML 파일 생성 (index.html)
 cat << CHART_END > index.html
@@ -38,28 +39,46 @@ cat << CHART_END > index.html
 <html>
 <head>
     <title>No..</title>
+    <!-- 🚨 모바일 최적화를 위한 뷰포트 메타 태그 추가 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
-        body { font-family: 'Inter', Arial, sans-serif; margin: 20px; background-color: #f7f7f7; color: #333; }
-        .container { width: 95%; max-width: 1000px; margin: auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-        h1 { text-align: center; color: #333; margin-bottom: 5px; }
-        p.update-time { text-align: center; color: #777; margin-bottom: 20px; }
-        #chartContainer { margin-bottom: 40px; }
-        h2 { margin-top: 40px; margin-bottom: 10px; text-align: center; color: #555; }
-        /* 표 스타일은 2. HTML 테이블 생성 섹션의 인라인 스타일로 정의됨 */
+        body { font-family: 'Inter', Arial, sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
+        .container { width: 95%; max-width: 1000px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 24px; }
+        p.update-time { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
+        #chartContainer { margin-bottom: 50px; border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fff; }
+        h2 { margin-top: 40px; margin-bottom: 15px; text-align: center; color: #555; font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;}
+        /* 🚨 모바일에서 테이블 가로 스크롤을 허용하여 레이아웃 깨짐 방지 */
+        .table-wrapper {
+            overflow-x: auto; 
+            margin: 0 auto;
+        }
+        /* 모바일 환경에서 차트의 높이 확보 */
+        @media (max-width: 600px) {
+            #chartContainer {
+                height: 300px; 
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-
+        <h1>스트리밍 이맨트 추이</h1>
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
+        <!-- 차트 영역 -->
         <div id="chartContainer">
             <canvas id="simpleChart"></canvas>
         </div>
         
-        <h2>데이터 기록</h2>
-        ${HTML_TABLE_ROWS} </div>
+        <!-- 데이터 표 영역 -->
+        <h2>데이터 기록 (최신순)</h2>
+        <!-- 🚨 테이블 래퍼로 감싸서 모바일 가로 스크롤 가능하게 처리 -->
+        <div class="table-wrapper">
+            ${HTML_TABLE_ROWS}
+        </div>
+    </div>
     
     <script>
     const chartData = [${JS_VALUES}];
@@ -67,9 +86,14 @@ cat << CHART_END > index.html
 
     const ctx = document.getElementById('simpleChart').getContext('2d');
     
+    // 차트 높이를 컨테이너에 맞게 동적으로 설정 (모바일 환경 고려)
+    if (window.innerWidth <= 600) {
+        ctx.canvas.parentNode.style.height = '300px'; 
+    }
+
     if (chartData.length === 0) {
         console.error("Chart data is empty. Cannot render chart.");
-        document.getElementById('chartContainer').innerHTML = "<p style='text-align: center; color: red;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
+        document.getElementById('chartContainer').innerHTML = "<p style='text-align: center; color: red; padding: 50px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
     } else {
         new Chart(ctx, {
             type: 'line',
@@ -83,19 +107,20 @@ cat << CHART_END > index.html
                     borderWidth: 2,
                     tension: 0.3, 
                     pointRadius: 4,
-                    pointBackgroundColor: 'rgba(255, 99, 132, 1)'
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                    pointHoverRadius: 6
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false, // 컨테이너 크기에 맞춤
                 scales: {
                     x: {
                         type: 'category', 
-                        title: { display: true, text: '시간 (HH:MM KST)', font: { size: 14 } }
+                        title: { display: true, text: '시간 (HH:MM KST)', font: { size: 14, weight: 'bold' } }
                     },
                     y: {
-                        title: { display: true, text: '값', font: { size: 14 } },
+                        title: { display: true, text: '값', font: { size: 14, weight: 'bold' } },
                         beginAtZero: false,
                         ticks: {
                             callback: function(value) {
@@ -109,6 +134,8 @@ cat << CHART_END > index.html
                         display: false
                     },
                     tooltip: {
+                        mode: 'index',
+                        intersect: false,
                         callbacks: {
                             label: function(context) {
                                 let label = context.dataset.label || '';
