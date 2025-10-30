@@ -63,28 +63,18 @@ cat << CHART_END > index.html
 <html>
 <head>
     <title>No..</title>
-    <!-- 🚨 모바일 최적화를 위한 뷰포트 메타 태그 추가 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Chart.js CDN 링크 (안정성을 위해 캐싱 방지 쿼리 파라미터 제거) -->
+    <!-- 🚨 모바일 뷰포트 메타 태그 제거됨 -->
+    <!-- Chart.js CDN 링크 (안정성을 위해 캐싱 방지 쿼리 파라미터 제거됨) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', Arial, sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
         .container { width: 95%; max-width: 1000px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); }
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 24px; }
         p.update-time { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
+        /* 차트 컨테이너 높이 관련 모바일 미디어 쿼리 제거됨 */
         #chartContainer { margin-bottom: 50px; border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fff; }
         h2 { margin-top: 40px; margin-bottom: 15px; text-align: center; color: #555; font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;}
-        /* 🚨 모바일에서 테이블 가로 스크롤을 허용하여 레이아웃 깨짐 방지 */
-        .table-wrapper {
-            overflow-x: auto; 
-            margin: 0 auto;
-        }
-        /* 모바일 환경에서 차트의 높이 확보 */
-        @media (max-width: 600px) {
-            #chartContainer {
-                height: 300px; 
-            }
-        }
+        /* 테이블 래퍼 관련 CSS 제거됨 */
     </style>
 </head>
 <body>
@@ -99,8 +89,8 @@ cat << CHART_END > index.html
         
         <!-- 데이터 표 영역 -->
         <h2>데이터 기록 (최신순)</h2>
-        <!-- 🚨 테이블 래퍼로 감싸서 모바일 가로 스크롤 가능하게 처리 -->
-        <div class="table-wrapper">
+        <!-- 🚨 테이블 래퍼 제거됨 -->
+        <div>
             ${HTML_TABLE_ROWS}
         </div>
     </div>
@@ -115,10 +105,12 @@ cat << CHART_END > index.html
 
     const ctx = document.getElementById('simpleChart').getContext('2d');
     
-    // 차트 높이를 컨테이너에 맞게 동적으로 설정 (모바일 환경 고려)
+    // 🚨 모바일 높이 동적 설정 코드 제거됨
+    /*
     if (window.innerWidth <= 600) {
         ctx.canvas.parentNode.style.height = '300px'; 
     }
+    */
 
     if (chartData.length === 0) {
         console.error("Chart data is empty. Cannot render chart.");
