@@ -4,16 +4,15 @@ on:
   push:
     # 모든 브랜치 푸시에 대해 실행
   schedule:
-    # 2시간 30분마다 실행 (UTC 기준)
-    - cron: '30 */2 * * *'
+    # 🚨 수정: 매 시간 00분에 실행되도록 변경
+    - cron: '0 * * * *'
   
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      # 현재 저장소의 코드를 러너로 가져옵니다.
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       
     - name: Github Action gen-sh-unittest
       id: action-gen-sh-unittest
@@ -26,11 +25,10 @@ jobs:
       run: |
         echo "현재 Ref: ${{ github.ref }}"
         
-        # 1. 파일 다운로드 (저장소가 공개로 전환되었으므로 인증 헤더 불필요)
+        # 1. 파일 다운로드 (공개 저장소)
         WGET_URL="https://raw.githubusercontent.com/alexcha/test1/main/check.sh"
         echo "다운로드 시도 URL: $WGET_URL"
         
-        # wget 성공 (200 OK) 확인 후 파일 저장
         wget "$WGET_URL" -O check.sh || { 
           echo "🚨🚨🚨 ERROR: 파일 다운로드 실패. URL을 확인하세요. 🚨🚨🚨"
           exit 1
@@ -38,7 +36,7 @@ jobs:
         
         # 2. 스크립트 실행 환경 설정 및 의존성 설치
         export LANG=ko_KR.UTF-8
-        # 🚨 sudo를 사용하여 권한 오류 (Permission denied) 해결
+        # 🚨 sudo를 사용하여 권한 오류 해결
         sudo apt-get -y update
         sudo apt-get -y install html2text
         
@@ -50,27 +48,22 @@ jobs:
         # 4. Git 설정 및 커밋
         git add result.txt
         
-        # 커밋 정보 설정
         git config --global user.email test@local
         git config --global user.name test
 
-        # 변경 사항이 있을 때만 커밋 및 푸시
         if git diff --cached --exit-code; then
           echo "No changes to commit"
         else
           git commit -m "Automated update: new data commit"
           git branch -M main
           
-          # 5. git push: ${{ secrets.GITHUB_TOKEN }}을 사용하여 현재 저장소에 푸시
-          # checkout@v2 액션이 설정해 놓은 기본 인증을 사용합니다.
+          # 5. git push: 기본 인증을 사용하여 현재 저장소에 푸시
           git push
         fi
         
     - name: Push changes
-      # 이 스텝은 'Commit files' 스텝의 'git push'로 대체되었으므로,
-      # 기능 중복을 피하기 위해 삭제하거나 비활성화하는 것이 좋습니다.
-      if: always() # 이 스텝은 실제로 푸시가 필요 없을 경우 'if' 조건을 확인 후 제거하세요.
-      uses: ad-m/github-push-action@master
+      # 이전 스텝에서 이미 푸시했으므로 비활성화
+      if: false 
+      uses: ad-m/github-push-action@v5 
       with:
-        # 이 토큰은 현재 워크플로우가 속한 저장소에 대한 쓰기 권한이 있어야 합니다.
         github_token: ${{ secrets.ETC_KEY }}
