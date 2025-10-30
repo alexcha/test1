@@ -2,9 +2,7 @@ name: Streaming list update
 
 on: 
   push:
-    # 모든 브랜치 푸시에 대해 실행
   schedule:
-    # 🚨 수정: 매 시간 00분에 실행되도록 변경
     - cron: '0 * * * *'
   
 jobs:
@@ -25,7 +23,7 @@ jobs:
       run: |
         echo "현재 Ref: ${{ github.ref }}"
         
-        # 1. 파일 다운로드 (공개 저장소)
+        # 1. 파일 다운로드 
         WGET_URL="https://raw.githubusercontent.com/alexcha/test1/main/check.sh"
         echo "다운로드 시도 URL: $WGET_URL"
         
@@ -36,7 +34,6 @@ jobs:
         
         # 2. 스크립트 실행 환경 설정 및 의존성 설치
         export LANG=ko_KR.UTF-8
-        # 🚨 sudo를 사용하여 권한 오류 해결
         sudo apt-get -y update
         sudo apt-get -y install html2text
         
@@ -57,13 +54,15 @@ jobs:
           git commit -m "Automated update: new data commit"
           git branch -M main
           
-          # 5. git push: 기본 인증을 사용하여 현재 저장소에 푸시
+          # 5. git push는 기본 인증을 사용하여 수행
           git push
         fi
         
     - name: Push changes
-      # 이전 스텝에서 이미 푸시했으므로 비활성화
+      # 이 스텝은 'Commit files'에서 이미 푸시했으므로 비활성화하는 것을 권장합니다.
+      # 이 스텝을 사용하려면 위의 'git push'를 제거하세요.
       if: false 
-      uses: ad-m/github-push-action@v5 
+      # 🚨🚨🚨 수정: v5 태그가 없으므로 v4를 사용합니다. 🚨🚨🚨
+      uses: ad-m/github-push-action@v4 
       with:
         github_token: ${{ secrets.ETC_KEY }}
