@@ -3,7 +3,7 @@ name: Streaming list update
 on: 
   push:
   schedule:
-    # 매 시간 5분에 실행되도록 설정
+    # 매 시간 5분에 실행되도록 설정 (UTC 기준)
     - cron: '5 * * * *'
   
 jobs:
@@ -20,156 +20,59 @@ jobs:
     - name: Get Unittest Result
       run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
       
-    - name: Commit files and Generate Chart (FINAL FIX)
+    - name: Run Script, Generate Chart, and Commit
       run: |
-        echo "현재 Ref: ${{ github.ref }}"
+        echo "--- 워크플로우 시작: 파일 URL 경로 수정 반영 ---"
         
-        # 1. 파일 다운로드 및 환경 설정
-        WGET_URL="https://raw.githubusercontent.com/alexcha/test1/main/check.sh"
-        echo "다운로드 시도 URL: $WGET_URL"
-        wget "$WGET_URL" -O check.sh || { echo "ERROR: File download failed." >&2; exit 1; }
-        
-        export LANG=ko_KR.UTF-8
+        # 1. 상수 정의 (🚨 모든 URL을 refs/heads/main 경로로 통일)
+        WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
+        WGET_CHART_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/generate_chart.sh"
+        WGET_RESULT_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/result.txt"
+
+        # 2. 필수 패키지 설치
         sudo apt-get -y update
         sudo apt-get -y install html2text
+
+        # 3. [순서 1-1] result.txt 다운로드 (기존 데이터 보존)
+        echo "3. 기존 result.txt 다운로드 시도..."
+        wget "$WGET_RESULT_URL" -O result.txt || echo "result.txt not found, starting fresh."
         
-        chmod +x check.sh
+        # 4. [순서 1-2] check.sh 및 generate_chart.sh 다운로드
+        echo "4. check.sh 및 generate_chart.sh 다운로드..."
+        wget "$WGET_CHECK_URL" -O check.sh || { echo "ERROR: check.sh 다운로드 실패" >&2; exit 1; }
+        wget "$WGET_CHART_URL" -O generate_chart.sh || { echo "ERROR: generate_chart.sh 다운로드 실패" >&2; exit 1; }
+
+        # 5. 실행 권한 부여
+        chmod +x check.sh generate_chart.sh
+        
+        # 6. [순서 2] check.sh 실행 및 result.txt에 데이터 추가
+        echo "6. check.sh 실행 및 result.txt에 새로운 데이터 추가..."
         ./check.sh >> result.txt
         
-        # ----------------------------------------------------
-        # 2. 차트 생성 스크립트 생성 및 실행 (YAML 오류 방지)
-        # ----------------------------------------------------
-        
-        # 임시 차트 생성 스크립트 (generate_chart.sh)를 생성
-        cat << 'CHART_SCRIPT_END' > generate_chart.sh
-#!/bin/bash
-# result.txt의 데이터를 파싱하여 JS_DATA 변수에 할당
-JS_DATA=$(awk -F ' : ' '{ 
-    # 쉼표 제거 및 JSON 객체 포맷팅
-    gsub(/,/, "", $2); 
-    if (NR==1) {printf "{"} else {printf ", "}; 
-    printf "x: \"%s\", y: %s}", $1, $2 
-}' result.txt)
-
-# HTML 파일 생성
-cat << CHART_END > chart.html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>스트리밍 목록 업데이트 차트</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #chartContainer { width: 90%; max-width: 1000px; margin: auto; }
-    </style>
-</head>
-<body>
-    <h1>스트리밍 데이터 변화 추이 (KST)</h1>
-    <p>최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
-    <div id="chartContainer">
-        <canvas id="timeSeriesChart"></canvas>
-    </div>
-    
-    <script>
-    // JS_DATA를 직접 삽입하고, 외부에서 배열 괄호([])를 추가
-    const chartData = [${JS_DATA}]; 
-
-    const ctx = document.getElementById('timeSeriesChart').getContext('2d');
-    
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: '값 변화 추이',
-                data: chartData,
-                borderColor: 'rgba(54, 162, 235, 1)',
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderWidth: 2,
-                tension: 0.1,
-                pointRadius: 3
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    type: 'time',
-                    adapters: {
-                        date: {
-                            zone: 'Asia/Seoul'
-                        }
-                    },
-                    time: {
-                        unit: 'hour',
-                        tooltipFormat: 'yyyy-MM-dd HH:mm:ss KST',
-                        displayFormats: {
-                            hour: 'MM/DD HH:mm',
-                            day: 'MM/DD'
-                        }
-                    },
-                    title: { display: true, text: '시간' }
-                },
-                y: {
-                    title: { display: true, text: '값' },
-                    beginAtZero: false,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                        }
-                    }
-                }
-            },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                            }
-                            return label;
-                        }
-                    }
-                }
-            }
-        }
-    });
-    </script>
-</body>
-</html>
-CHART_END
-CHART_SCRIPT_END
-
-        # 임시 스크립트 실행
-        chmod +x generate_chart.sh
+        # 7. [순서 3] generate_chart.sh 실행 (chart.html 생성)
+        echo "7. generate_chart.sh 실행 및 chart.html 생성..."
         ./generate_chart.sh
         
-        # ----------------------------------------------------
-        # 3. 디버깅 및 Git 커밋
-        # ----------------------------------------------------
-
+        # 8. 생성 파일 확인 (디버깅)
         echo "--- File Status Check ---"
         if [ -f chart.html ]; then
-            echo "chart.html successfully created. Size:"
+            echo "chart.html이 성공적으로 생성되었습니다. 크기:"
             ls -lh chart.html
         else
-            echo "🚨 FATAL ERROR: chart.html was NOT created!" >&2
+            echo "🚨 FATAL ERROR: chart.html 생성이 실패했습니다!" >&2
             exit 1
         fi
         echo "-------------------------"
 
-        # Git 커밋 및 푸시
+        # 9. [순서 4] Git 커밋 및 푸시
+        echo "9. Git 커밋 및 푸시..."
         git add result.txt chart.html
         
         git config --global user.email test@local
         git config --global user.name test
 
         if git diff --cached --exit-code; then
-          echo "No changes to commit"
+          echo "No changes to commit."
         else
           echo "Committing changes..."
           git commit -m "Automated update: data and chart"
