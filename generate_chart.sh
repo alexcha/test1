@@ -63,7 +63,7 @@ cat << CHART_END > index.html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>스트리밍 이맨트 추이</title>
+    <title>..</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Chart.js CDN 링크 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -79,7 +79,7 @@ cat << CHART_END > index.html
 </head>
 <body>
     <div class="container">
-        <h1>스트리밍 이맨트 추이</h1>
+
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <!-- 차트 영역 -->
