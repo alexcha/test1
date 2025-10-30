@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 # 1. 데이터 파싱 및 JavaScript 배열 포맷으로 변환 (JS_DATA)
 JS_DATA=$(awk -F ' : ' '{ 
     # 쉼표 제거 및 JSON 객체 포맷팅
@@ -11,6 +9,7 @@ JS_DATA=$(awk -F ' : ' '{
 }' result.txt)
 
 # 2. HTML 파일 생성
+# Bash 변수 확장(`$JS_DATA`)이 HTML 블록 내부에서 일어나도록 마커의 따옴표 제거
 cat << CHART_END > chart.html
 <!DOCTYPE html>
 <html>
@@ -31,8 +30,10 @@ cat << CHART_END > chart.html
     </div>
     
     <script>
-    // JS_DATA를 직접 삽입하고, 외부에서 배열 괄호([])를 추가
-    const chartData = [${JS_DATA}]; 
+    // 🚨 수정: Bash 변수를 JavaScript 문자열로 받아 JSON.parse로 처리하여 구문 오류 방지
+    // 이중 따옴표(")로 감싸서 문자열임을 명확히 합니다.
+    const dataString = "${JS_DATA}"; 
+    const chartData = JSON.parse('[' + dataString + ']');
 
     const ctx = document.getElementById('timeSeriesChart').getContext('2d');
     
