@@ -1,0 +1,45 @@
+name: Streaming list update
+
+on: 
+  push:
+      
+  schedule:
+    - cron: '30 */2 * * *'
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Github Action gen-sh-unittest
+      id: action-gen-sh-unittest
+      uses: vargiuscuola/gen-sh-unittest@master
+    - name: gensh-unittest result
+      run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
+    - name: Commit files
+      run: |
+        echo ${{ github.ref }}
+        wget https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh
+        export LANG=ko_KR
+        apt-get -y update
+        apt-get -y install html2text
+        chmod +x check.sh
+        
+         ./check.sh> result.txt
+
+          git add  result.txt
+          
+          #git config --local user.name "alexcha"
+          git config --global user.email test@local
+          git config --global user.name test
+
+          git commit -m "new date commit"
+          git branch -M main
+          git push origin main | exit 0
+          
+    - name: Push changes
+      if: github.ref == 'refs/heads/master'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.ETC_KEY }}
