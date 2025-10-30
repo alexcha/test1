@@ -2,9 +2,8 @@ name: Streaming list update
 
 on: 
   push:
-    # 모든 브랜치 푸시에 대해 실행
   schedule:
-    # 🚨 매 시간 5분에 실행되도록 설정 (UTC 기준)
+    # 매 시간 5분에 실행되도록 설정 (UTC 기준)
     - cron: '5 * * * *'
   
 jobs:
@@ -12,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      # 저장소 코드를 러너로 가져옵니다. 최신 안정 버전 사용.
       uses: actions/checkout@v4 
       
     - name: Github Action gen-sh-unittest
@@ -26,27 +24,26 @@ jobs:
       run: |
         echo "현재 Ref: ${{ github.ref }}"
         
-        # 1. 파일 다운로드 (공개 저장소)
+        # 1. 파일 다운로드 및 환경 설정
         WGET_URL="https://raw.githubusercontent.com/alexcha/test1/main/check.sh"
         echo "다운로드 시도 URL: $WGET_URL"
         wget "$WGET_URL" -O check.sh || { echo "ERROR: File download failed." >&2; exit 1; }
         
-        # 2. 스크립트 실행 환경 설정 및 의존성 설치
         export LANG=ko_KR.UTF-8
-        # sudo를 사용하여 시스템 패키지 설치 권한 오류 해결
         sudo apt-get -y update
         sudo apt-get -y install html2text
         
         chmod +x check.sh
         
-        # 3. 스크립트 실행 및 result.txt에 데이터 추가 (>> 사용)
+        # 2. 스크립트 실행 및 result.txt에 데이터 추가
         ./check.sh >> result.txt
         
         # ----------------------------------------------------
-        # 4. 차트 생성 로직 시작 (result.txt의 데이터를 파싱)
+        # 3. 차트 생성 로직 시작
         # ----------------------------------------------------
         
         # 데이터 파싱 및 JavaScript 배열 포맷으로 변환
+        # JSON.parse를 위해 외부 배열 괄호 ([]) 없이 객체만 생성
         JS_DATA=$(awk -F ' : ' '{
             timestamp = $1
             value = $2
@@ -57,14 +54,13 @@ jobs:
             } else {
                 printf ", {"
             }
-            # 데이터 포맷: {x: '날짜 시간 KST', y: 값}
             printf "x: \"%s\", y: %s}", timestamp, value
         } END {
             printf ""
         }' result.txt)
 
-        # HTML 파일 생성 (Chart.js 및 Moment Adapter 사용)
-        cat << EOF > chart.html
+        # HTML 파일 생성 (Bash 변수 삽입 오류 방지를 위해 EOF 마커 변경)
+        cat << 'CHART_HTML_END_MARKER' > chart.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -84,7 +80,9 @@ jobs:
     </div>
     
     <script>
-    const chartData = [${JS_DATA}];
+    // 🚨 YAML 오류 방지 및 JSON 파싱을 통한 데이터 할당
+    const dataString = '$JS_DATA'; 
+    const chartData = JSON.parse('[' + dataString + ']'); 
 
     const ctx = document.getElementById('timeSeriesChart').getContext('2d');
     
@@ -108,7 +106,7 @@ jobs:
                     type: 'time',
                     adapters: {
                         date: {
-                            zone: 'Asia/Seoul' // KST 명시적 지정
+                            zone: 'Asia/Seoul'
                         }
                     },
                     time: {
@@ -152,12 +150,10 @@ jobs:
     </script>
 </body>
 </html>
-EOF
-        # ----------------------------------------------------
-        # 5. Git 커밋 및 푸시
+CHART_HTML_END_MARKER # 🚨 들여쓰기 없음
         # ----------------------------------------------------
         
-        # result.txt와 새로 생성된 chart.html을 Git에 추가
+        # 4. Git 커밋 및 푸시
         git add result.txt chart.html
         
         git config --global user.email test@local
@@ -168,12 +164,10 @@ EOF
         else
           git commit -m "Automated update: data and chart"
           git branch -M main
-          # 기본 ${{ secrets.GITHUB_TOKEN }}을 사용하여 푸시
           git push
         fi
         
     - name: Push changes
-      # 이전 스텝에서 이미 푸시했으므로 비활성화합니다.
       if: false 
       uses: ad-m/github-push-action@master
       with:
