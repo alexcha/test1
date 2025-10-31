@@ -129,13 +129,106 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 3. 일별 집계 테이블 생성 (데이터 건수 및 전날 대비 변화 포함, 검정색 스타일)
+# 3. 일별 집계 테이블 생성 (데이터 값 총합 및 전날 대비 변화 포함, 검정색 스타일)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
+    # 🚨 Awk 함수: 숫자를 천 단위 구분 기호로 포맷팅하고 부호를 붙임
+    function comma_format(n) {
+        # n이 0이면 "0" 반환
+        if (n == 0) return "0";
+        
+        s = int(n);
+        
+        # 부호 결정 (총합 값에는 + 부호를 붙이지 않음, 변화 값에만 붙임)
+        if (s > 0) {
+            sign_raw = "+";
+            sign_abs = "";
+        } else if (s < 0) {
+            sign_raw = "-"; # 음수일 때 마이너스 부호 명시
+            sign_abs = "-";
+            s = -s;     # 절대값 사용
+        } else {
+            sign_raw = "";
+            sign_abs = "";
+        }
+        
+        s = s "";  # 절대값 숫자를 문자열로 변환
+        
+        result = "";
+        while (s ~ /[0-9]{4}/) {
+            # 오른쪽에서 세 자리마다 쉼표 삽입
+            result = "," substr(s, length(s)-2) result;
+            s = substr(s, 1, length(s)-3);
+        }
+        
+        # 0이 아닌 경우에만 최종 결과에 부호 추가. 변화 값에서는 raw sign 사용
+        # 총합 값을 포맷팅할 때는 sign_abs를 사용하고, 변화 값을 포맷팅할 때는 sign_raw를 사용합니다.
+        # Awk에서는 하나의 함수로 두 가지를 처리하기 어려우므로, comma_format_sum, comma_format_diff로 분리하는 것이 좋지만,
+        # 여기서는 comma_format()을 일반 포맷 함수로 정의하고 호출 시점에 부호를 제어하도록 수정합니다.
+        
+        # 이 AWK 블록에서는 comma_format을 총합값에만 사용하고, diff 출력 시 부호 처리를 외부에서 합니다.
+        # 기존 정의를 유지하고, 호출 시점에 부호를 붙여줌으로써 통일성을 유지합니다.
+        return s result;
+    }
+    
+    # 총합 값에만 사용되는 포맷 함수 (부호 없음)
+    function comma_format_sum_only(n) {
+        if (n == 0) return "0";
+        
+        s = int(n);
+        
+        if (s < 0) {
+            s = -s;
+        }
+        
+        s = s ""; 
+        
+        result = "";
+        while (s ~ /[0-9]{4}/) {
+            result = "," substr(s, length(s)-2) result;
+            s = substr(s, 1, length(s)-3);
+        }
+        
+        return (int(n) < 0 ? "-" : "") s result;
+    }
+    
+    # 변화 값에만 사용되는 포맷 함수 (부호 필수)
+    function comma_format_diff_only(n) {
+        if (n == 0) return "0";
+        
+        s = int(n);
+        
+        if (s > 0) {
+            sign = "+";
+        } else if (s < 0) {
+            sign = "-"; 
+            s = -s;     
+        } else {
+            return "0";
+        }
+        
+        s = s ""; 
+        
+        result = "";
+        while (s ~ /[0-9]{4}/) {
+            result = "," substr(s, length(s)-2) result;
+            s = substr(s, 1, length(s)-3);
+        }
+        
+        return sign s result;
+    }
+
+
     # Initial data collection
     {
-        # 날짜 추출 (YYYY-MM-DD)
+        # 1. 값에서 쉼표(,) 제거 후 숫자형으로 변환
+        numeric_value = $2;
+        gsub(/,/, "", numeric_value);
+        
+        # 2. 날짜 추출 (YYYY-MM-DD)
         date = substr($1, 1, 10);
-        count[date]++;
+        
+        # 3. 데이터 건수 대신 값의 총합을 집계 (요청 사항 반영)
+        sum[date] += numeric_value; 
         
         # 고유 날짜 배열 및 카운트
         if (!(date in added_dates)) {
@@ -158,48 +251,53 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
 
         # 테이블 시작 (검정색 테두리)
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #343a40; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
-        # 테이블 헤더 (검정색 배경)
+        # 테이블 헤더 (검정색 배경): "일별 총합"으로 변경
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: left; color: white;\">날짜</th>\
-            <th style=\"padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: right; color: white;\">데이터 건수</th>\
+            <th style=\"padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: right; color: white;\">일별 총합</th>\
             <th style=\"padding: 14px; background-color: #343a40; text-align: right; color: white;\">전날 대비 변화</th>\
         </tr></thead>";
         print "<tbody>";
 
         # 정렬된 날짜를 순회하며 전날 데이터와 비교
-        prev_count = 0;
+        prev_sum = 0;
         
         for (i = 0; i < num_dates; i++) {
             date = dates_arr[i];
-            current_count = count[date];
+            current_sum = sum[date]; # 총합 사용
 
-            # 변화값 계산 및 포맷팅
-            diff = current_count - prev_count;
-            diff_display = (diff > 0 ? "+" : "") diff;
-
-            # 변화값에 따른 색상 설정 (빨강/파랑/회색)
+            # 변화값 계산
+            diff = current_sum - prev_sum;
+            
+            # 총합 값 포맷팅
+            current_sum_display = comma_format_sum_only(current_sum);
+            
+            # 변화값 포맷팅 및 색상 설정 (빨강/파랑/회색)
             if (i == 0) {
                 # 첫날은 비교값 없음
                 diff_display = "---";
                 color_style = "color: #6c757d;"; /* Gray */
-            } else if (diff > 0) {
-                color_style = "color: #dc3545; font-weight: 600;"; /* Red: 증가 */
-            } else if (diff < 0) {
-                color_style = "color: #007bff; font-weight: 600;"; /* Blue: 감소 */
             } else {
-                diff_display = "0";
-                color_style = "color: #333; font-weight: 600;"; /* Black: 변화 없음 */
+                diff_display = comma_format_diff_only(diff);
+                if (diff > 0) {
+                    color_style = "color: #dc3545; font-weight: 600;"; /* Red: 증가 */
+                } else if (diff < 0) {
+                    color_style = "color: #007bff; font-weight: 600;"; /* Blue: 감소 */
+                } else {
+                    diff_display = "0";
+                    color_style = "color: #333; font-weight: 600;"; /* Black: 변화 없음 */
+                }
             }
             
-            # HTML 행 출력
+            # HTML 행 출력: 날짜, 총합, 변화
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #343a40;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
-            </tr>\n", date, current_count, color_style, diff_display
+            </tr>\n", date, current_sum_display, color_style, diff_display
 
-            # 다음 반복을 위해 현재 건수를 이전 건수로 저장
-            prev_count = current_count;
+            # 다음 반복을 위해 현재 총합을 이전 총합으로 저장
+            prev_sum = current_sum;
         }
 
         print "</tbody></table>";
@@ -277,7 +375,7 @@ cat << CHART_END > index.html
         
         <!-- 일별 집계 테이블 영역 추가 -->
         <div style="text-align: center;">
-            <h2 class="summary-header-black">일별 데이터 요약 (건수)</h2>
+            <h2 class="summary-header-black">일별 데이터 총합</h2>
         </div>
         <div>
             ${DAILY_SUMMARY_TABLE}
