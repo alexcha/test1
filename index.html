@@ -37,10 +37,10 @@
             margin-left: auto;
             margin-right: auto;
         }
-        /* 일별 통계 테이블 헤더 색상 조정 */
-        .summary-header {
-            border-bottom-color: #007bff !important; 
-            color: #007bff !important; 
+        /* 일별 통계 테이블 헤더 색상 조정 (검정색) */
+        .summary-header-black {
+            border-bottom-color: #343a40 !important; /* Dark Gray/Black */
+            color: #343a40 !important; 
             margin-top: 60px !important;
         }
     </style>
@@ -48,7 +48,7 @@
 <body>
     <div class="container">
         <h1>데이터 변화 추이</h1>
-        <p class="update-time">최근 업데이트 시간: 2025-11-01 06:43:51 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-01 06:50:22 KST</p>
         
         <!-- 차트 영역 -->
         <div id="chartContainer">
@@ -63,6 +63,7 @@
             <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
 <thead><tr>            <th style="padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: left; color: #495057;">시간</th>            <th style="padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: right; color: #495057;">값</th>            <th style="padding: 14px; background-color: #f8f9fa; text-align: right; color: #495057;">변화</th>        </tr></thead>
 <tbody>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 06:50:22 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 06:43:51 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 06:42:22 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 06:33:33 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
@@ -106,23 +107,23 @@
         
         <!-- 일별 집계 테이블 영역 추가 -->
         <div style="text-align: center;">
-            <h2 class="summary-header">일별 요약 통계</h2>
+            <h2 class="summary-header-black">일별 데이터 요약 (건수)</h2>
         </div>
         <div>
-            <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;">
-<thead><tr>            <th style="padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: left; color: white;">날짜</th>            <th style="padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: right; color: white;">최고값 (Max)</th>            <th style="padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: right; color: white;">최저값 (Min)</th>            <th style="padding: 14px; background-color: #007bff; text-align: right; color: white;">평균값 (Avg)</th>        </tr></thead>
+            <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #343a40; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;">
+<thead><tr>            <th style="padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: left; color: white;">날짜</th>            <th style="padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: right; color: white;">데이터 건수</th>            <th style="padding: 14px; background-color: #343a40; text-align: right; color: white;">전날 대비 변화</th>        </tr></thead>
 <tbody>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #007bff;">2025-10-31</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;">2,893,100</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;">2,234,700</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white;">2,525,838</td>            </tr>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #007bff;">2025-11-01</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;">3,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;">2,925,600</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white;">3,129,367</td>            </tr>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #007bff;">2025-10-30</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;">2,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;">2,170,400</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white;">2,185,700</td>            </tr>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #343a40;">2025-10-30</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">2</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #6c757d;">---</td>            </tr>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #343a40;">2025-10-31</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">24</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+22</td>            </tr>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #343a40;">2025-11-01</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">13</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #007bff; font-weight: 600;">-11</td>            </tr>
 </tbody></table>
         </div>
     </div>
     
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
-    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3201000, 3201000, 3201000, 3201000, 3201000];
-    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "06:15", "06:23", "06:33", "06:42", "06:43"];
+    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3201000, 3201000, 3201000, 3201000, 3201000, 3201000];
+    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "06:15", "06:23", "06:33", "06:42", "06:43", "06:50"];
 
     console.log("Chart Data Array:", chartData);
     console.log("Chart Labels Array:", chartLabels);
