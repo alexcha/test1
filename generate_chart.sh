@@ -83,7 +83,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         values_num[NR] = $2 + 0; 
     }
     END {
-        # 테이블 스타일 및 헤더 정의 (배경색 white로 변경)
+        # 테이블 스타일 및 헤더 정의 (배경색 white로 유지)
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;\">";
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">시간</th>\
@@ -198,7 +198,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
         }
     }
     END {
-        # Simple Bubble Sort for YYYY-MM-DD strings (Chronological order)
+        # Simple Bubble Sort for YYYY-MM-DD strings (Chronological order: Oldest -> Newest)
         for (i = 0; i < num_dates; i++) {
             for (j = i + 1; j < num_dates; j++) {
                 if (dates_arr[i] > dates_arr[j]) {
@@ -209,18 +209,18 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         }
 
-
         # 테이블 시작 (검정색 테두리)
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #343a40; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
-        # 테이블 헤더 (배경색 white로 변경, 텍스트 색상 #333으로 변경)
+        # 테이블 헤더
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
-            <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">일별 마지막 기록 값</th>\
-            <th style=\"padding: 14px; background-color: white; text-align: right; color: #333;\">전날 대비 변화</th>\
+            <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
+            <th style=\"padding: 14px; background-color: white; text-align: right; color: #333;\">변화</th>\
         </tr></thead>";
         print "<tbody>";
 
-        # 정렬된 날짜를 순회하며 전날 데이터와 비교
+
+        # 1. 정렬된 날짜를 순회하며 전날 데이터와 비교 및 row_data 배열에 저장 (순차적)
         prev_value = 0;
         
         for (i = 0; i < num_dates; i++) {
@@ -250,15 +250,20 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # HTML 행 출력: 날짜, 마지막 값, 변화 (배경색 white 유지)
-            printf "<tr>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #343a40;\">%s</td>\
+            # 🚨 HTML 행 내용을 저장. 날짜 필드에 bold 스타일 없음.
+            row_data[i] = sprintf("<tr>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
-            </tr>\n", date, current_value_display, color_style, diff_display
+            </tr>", date, current_value_display, color_style, diff_display);
 
             # 다음 반복을 위해 현재 값을 이전 값으로 저장
             prev_value = current_value;
+        }
+
+        # 2. 🚨 역순으로 순회하며 테이블 행 출력 (최신 날짜가 상단에 오도록)
+        for (i = num_dates - 1; i >= 0; i--) {
+            print row_data[i];
         }
 
         print "</tbody></table>";
