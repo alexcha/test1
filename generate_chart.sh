@@ -109,13 +109,14 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
                 # 변화값 포맷팅 및 스타일 결정 (comma_format 함수 사용)
                 diff_display = comma_format(diff);
 
+                # 🚨 요청하신 색상으로 변경: + (붉은색), - (파란색), 0 (검은색)
                 if (diff > 0) {
-                    color_style = "color: #28a745; font-weight: 600;"; /* Green: 상승 */
+                    color_style = "color: #dc3545; font-weight: 600;"; /* Red: 상승 */
                 } else if (diff < 0) {
-                    color_style = "color: #dc3545; font-weight: 600;"; /* Red: 하락 */
+                    color_style = "color: #007bff; font-weight: 600;"; /* Blue: 하락 */
                 } else {
                     diff_display = "0";
-                    color_style = "color: #6c757d;"; /* Gray: 변화 없음 */
+                    color_style = "color: #333;"; /* Black: 변화 없음 */
                 }
             } else {
                 # 가장 오래된 데이터 (테이블에서 마지막 행)
@@ -226,7 +227,7 @@ cat << CHART_END > index.html
                     pointRadius: 4,
                     pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
                     pointHoverRadius: 6,
-                    fill: false // 🚨 채우기 제거 (더 깔끔하고 정교한 선 그래프 느낌)
+                    fill: false // 채우기 제거 (더 깔끔하고 정교한 선 그래프 느낌)
                 }]
             },
             options: {
