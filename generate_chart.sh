@@ -50,8 +50,18 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         if (n == 0) return "0";
         
         s = int(n);
-        sign = (s < 0 ? "" : "+"); # 양수일 때만 "+" 부호, 음수는 자동으로 "-" 포함
-        s = (s < 0 ? -s : s) "";  # 절대값 문자열
+        
+        # 부호 결정
+        if (s > 0) {
+            sign = "+";
+        } else if (s < 0) {
+            sign = "-"; # 음수일 때 마이너스 부호 명시
+            s = -s;     # 절대값 사용
+        } else {
+            sign = "";
+        }
+        
+        s = s "";  # 절대값 숫자를 문자열로 변환
         
         result = "";
         while (s ~ /[0-9]{4}/) {
@@ -59,7 +69,8 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
             result = "," substr(s, length(s)-2) result;
             s = substr(s, 1, length(s)-3);
         }
-        return (n < 0 ? "" : sign) s result; # 최종 결과에 부호 추가
+        
+        return sign s result; # 최종 결과에 부호 추가
     }
 
     # 초기화 및 데이터 저장
@@ -73,11 +84,11 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         values_num[NR] = $2 + 0; 
     }
     END {
-        # 테이블 스타일 및 헤더 정의 (새로운 '변화' 컬럼 추가)
+        # 테이블 스타일 및 헤더 정의
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;\">";
         print "<thead><tr>\
-            <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: left; color: #495057;\">시간 (KST)</th>\
-            <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: right; color: #dc3545;\">값</th>\
+            <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: left; color: #495057;\">시간</th>\
+            <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: right; color: #495057;\">값</th>\
             <th style=\"padding: 14px; background-color: #f8f9fa; text-align: right; color: #495057;\">변화</th>\
         </tr></thead>";
         print "<tbody>";
@@ -115,7 +126,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
             # HTML 행 출력
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #dc3545; background-color: white;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
@@ -156,10 +167,10 @@ cat << CHART_END > index.html
             margin-top: 40px; 
             margin-bottom: 15px; 
             text-align: center; 
-            color: #dc3545; /* 빨간색으로 변경 */
+            color: #dc3545; /* 빨간색 유지 */
             font-size: 22px; 
             font-weight: 600;
-            border-bottom: 2px solid #dc3545; /* 빨간색으로 변경 */
+            border-bottom: 2px solid #dc3545; 
             padding-bottom: 10px;
             display: inline-block;
             width: auto;
@@ -208,14 +219,14 @@ cat << CHART_END > index.html
                 datasets: [{
                     label: '값 변화 추이',
                     data: chartData,
-                    borderColor: 'rgba(255, 99, 132, 1)', /* 🚨 붉은색으로 변경 */
-                    backgroundColor: 'rgba(255, 99, 132, 0.4)', /* 🚨 붉은색으로 변경 */
-                    borderWidth: 2,
-                    tension: 0.4, 
+                    borderColor: 'rgba(255, 99, 132, 1)', 
+                    backgroundColor: 'rgba(255, 99, 132, 0.4)', 
+                    borderWidth: 3, // 선 두께 증가 (정교함 강조)
+                    tension: 0.5, // 곡선 부드럽게 증가 (정교함 강조)
                     pointRadius: 4,
-                    pointBackgroundColor: 'rgba(255, 99, 132, 1)', /* 🚨 붉은색으로 변경 */
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
                     pointHoverRadius: 6,
-                    fill: 'start'
+                    fill: false // 🚨 채우기 제거 (더 깔끔하고 정교한 선 그래프 느낌)
                 }]
             },
             options: {
@@ -240,9 +251,27 @@ cat << CHART_END > index.html
                             color: 'rgba(0, 0, 0, 0.05)',
                         },
                         ticks: {
-                            // Y축 값에 쉼표(,) 추가
+                            // Y축 값에 K, M, B 축약 포맷 적용
                             callback: function(value) {
-                                return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                                if (value === 0) return '0';
+                                
+                                const absValue = Math.abs(value);
+                                let formattedValue;
+
+                                if (absValue >= 1000000000) {
+                                    // 10억 이상 (Billion)
+                                    formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+                                } else if (absValue >= 1000000) {
+                                    // 100만 이상 (Million)
+                                    formattedValue = (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+                                } else if (absValue >= 1000) {
+                                    // 1천 이상 (Kilo)
+                                    formattedValue = (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                                } else {
+                                    // 1천 미만은 기존 쉼표 포맷 유지
+                                    formattedValue = new Intl.NumberFormat('ko-KR').format(value);
+                                }
+                                return formattedValue;
                             }
                         }
                     }
@@ -262,8 +291,8 @@ cat << CHART_END > index.html
                                     label += ': ';
                                 }
                                 if (context.parsed.y !== null) {
-                                    // 툴팁 값에도 쉼표(,) 추가
-                                    label += context.parsed.y.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                                    // 툴팁 값은 전체 숫자에 쉼표 포맷 적용
+                                    label += new Intl.NumberFormat('ko-KR').format(context.parsed.y);
                                 }
                                 return label;
                             }
