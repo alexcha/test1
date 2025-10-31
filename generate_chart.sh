@@ -41,8 +41,7 @@ JS_LABELS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 2. HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
-# Awk를 사용하여 파일을 읽고, 데이터를 배열에 저장하며, 역순으로 순회하여 차이값을 계산하고 HTML을 생성합니다.
+# 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
 HTML_TABLE_ROWS=$(awk -F ' : ' '
     # 🚨 Awk 함수: 숫자를 천 단위 구분 기호로 포맷팅하고 부호를 붙임
     function comma_format(n) {
@@ -94,19 +93,14 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         print "<tbody>";
 
         # 역순으로 순회 (최신 데이터부터 출력)
-        # i: 현재 행 번호 (NR), i-1: 이전 행 번호
         for (i = NR; i >= 1; i--) {
             time_str = times[i];
             current_val_str = values_str[i]; 
             current_val_num = values_num[i];
 
-            # 이전 값 (i-1)이 존재하는 경우에만 차이 계산
             if (i > 1) {
                 prev_val_num = values_num[i - 1];
-                # 차이 = 현재 값 (신규) - 이전 값 (구형)
                 diff = current_val_num - prev_val_num;
-
-                # 변화값 포맷팅 및 스타일 결정 (comma_format 함수 사용)
                 diff_display = comma_format(diff);
 
                 # 🚨 요청하신 색상으로 변경: + (붉은색), - (파란색), 0 (검은색)
@@ -116,10 +110,9 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
                     color_style = "color: #007bff; font-weight: 600;"; /* Blue: 하락 */
                 } else {
                     diff_display = "0";
-                    color_style = "color: #333;"; /* Black: 변화 없음 */
+                    color_style = "color: #333; font-weight: 600;"; /* Black: 변화 없음 */
                 }
             } else {
-                # 가장 오래된 데이터 (테이블에서 마지막 행)
                 diff_display = "---";
                 color_style = "color: #6c757d;";
             }
@@ -136,7 +129,82 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 3. HTML 파일 생성 (index.html)
+# 3. 일별 집계 테이블 생성 (Min, Max, Avg)
+DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
+    # 🚨 Awk 함수: 숫자에 쉼표(,)를 추가하는 포맷 함수 (메인 테이블과 동일하게 재정의)
+    function comma_format(n) {
+        if (n == 0) return "0";
+        
+        s = int(n);
+        
+        sign = s < 0 ? "-" : "";
+        s = s < 0 ? -s : s;     # 절대값 사용
+        
+        s = s "";  
+        
+        result = "";
+        while (s ~ /[0-9]{4}/) {
+            result = "," substr(s, length(s)-2) result;
+            s = substr(s, 1, length(s)-3);
+        }
+        
+        return sign s result;
+    }
+
+    # 초기화 및 데이터 저장
+    {
+        # 값에서 쉼표(,) 제거 후 숫자형으로 저장
+        gsub(/,/, "", $2); 
+        value = $2 + 0;
+        
+        # 날짜 추출 (YYYY-MM-DD)
+        date = substr($1, 1, 10);
+
+        count[date]++;
+        sum[date] += value;
+        
+        # Min/Max 초기화 및 업데이트
+        if (count[date] == 1 || value < min[date]) {
+            min[date] = value;
+        }
+        if (count[date] == 1 || value > max[date]) {
+            max[date] = value;
+        }
+    }
+    END {
+        # 테이블 시작
+        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        # 테이블 헤더
+        print "<thead><tr>\
+            <th style=\"padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: left; color: white;\">날짜</th>\
+            <th style=\"padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: right; color: white;\">최고값 (Max)</th>\
+            <th style=\"padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: right; color: white;\">최저값 (Min)</th>\
+            <th style=\"padding: 14px; background-color: #007bff; text-align: right; color: white;\">평균값 (Avg)</th>\
+        </tr></thead>";
+        print "<tbody>";
+
+        # 날짜별 데이터 출력
+        # Awk는 키를 순서 없이 순회하지만, 집계 테이블이므로 기능에 집중
+        for (date in sum) {
+            avg = sum[date] / count[date];
+            
+            # 평균값은 소수점 없는 정수로 반올림 후 포맷팅
+            avg_formatted = comma_format(int(avg + 0.5)); 
+            
+            printf "<tr>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #007bff;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white;\">%s</td>\
+            </tr>\n", date, comma_format(max[date]), comma_format(min[date]), avg_formatted
+        }
+
+        print "</tbody></table>";
+    }
+' result.txt)
+
+
+# 4. HTML 파일 생성 (index.html)
 
 cat << CHART_END > index.html
 <!DOCTYPE html>
@@ -168,7 +236,7 @@ cat << CHART_END > index.html
             margin-top: 40px; 
             margin-bottom: 15px; 
             text-align: center; 
-            color: #dc3545; /* 빨간색 유지 */
+            color: #dc3545; 
             font-size: 22px; 
             font-weight: 600;
             border-bottom: 2px solid #dc3545; 
@@ -177,6 +245,12 @@ cat << CHART_END > index.html
             width: auto;
             margin-left: auto;
             margin-right: auto;
+        }
+        /* 일별 통계 테이블 헤더 색상 조정 */
+        .summary-header {
+            border-bottom-color: #007bff !important; 
+            color: #007bff !important; 
+            margin-top: 60px !important;
         }
     </style>
 </head>
@@ -196,6 +270,14 @@ cat << CHART_END > index.html
         </div>
         <div>
             ${HTML_TABLE_ROWS}
+        </div>
+        
+        <!-- 일별 집계 테이블 영역 추가 -->
+        <div style="text-align: center;">
+            <h2 class="summary-header">일별 요약 통계</h2>
+        </div>
+        <div>
+            ${DAILY_SUMMARY_TABLE}
         </div>
     </div>
     
@@ -222,12 +304,12 @@ cat << CHART_END > index.html
                     data: chartData,
                     borderColor: 'rgba(255, 99, 132, 1)', 
                     backgroundColor: 'rgba(255, 99, 132, 0.4)', 
-                    borderWidth: 3, // 선 두께 증가 (정교함 강조)
-                    tension: 0.5, // 곡선 부드럽게 증가 (정교함 강조)
+                    borderWidth: 3, 
+                    tension: 0.5, 
                     pointRadius: 4,
                     pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
                     pointHoverRadius: 6,
-                    fill: false // 채우기 제거 (더 깔끔하고 정교한 선 그래프 느낌)
+                    fill: false 
                 }]
             },
             options: {
