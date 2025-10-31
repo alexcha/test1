@@ -83,7 +83,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         values_num[NR] = $2 + 0; 
     }
     END {
-        # 테이블 스타일 및 헤더 정의 (배경색 white로 유지)
+        # 테이블 스타일 및 헤더 정의 (외곽 테두리: #ddd, 내부: #ccc / #eee 유지)
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;\">";
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">시간</th>\
@@ -117,7 +117,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             }
 
-            # HTML 행 출력 (배경색 white 유지)
+            # HTML 행 출력 (내부 구분선: #eee 유지)
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
@@ -129,7 +129,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 3. 일별 집계 테이블 생성 (데이터 값 총합 및 전날 대비 변화 포함, 검정색 스타일)
+# 3. 일별 집계 테이블 생성 (테이블 라인 색상 통일)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     # 총합 값에만 사용되는 포맷 함수 (부호 없음)
     function comma_format_sum_only(n) {
@@ -209,9 +209,9 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         }
 
-        # 테이블 시작 (검정색 테두리)
-        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #343a40; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
-        # 테이블 헤더
+        # 🚨 테이블 시작 (외곽 테두리: #ddd로 통일)
+        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        # 테이블 헤더 (내부 구분선: #ccc 유지)
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
@@ -250,7 +250,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # 🚨 HTML 행 내용을 저장. 날짜 필드에 bold 스타일 없음.
+            # 🚨 HTML 행 내용을 저장. (내부 구분선: #eee 유지)
             row_data[i] = sprintf("<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
@@ -299,25 +299,24 @@ cat << CHART_END > index.html
             min-height: 300px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
+        /* 🚨 h2 스타일: 두 제목 모두 검정색으로 통일 */
         h2 { 
             margin-top: 40px; 
             margin-bottom: 15px; 
             text-align: center; 
-            color: #dc3545; 
+            color: #343a40; /* 검정색 */
             font-size: 22px; 
             font-weight: 600;
-            border-bottom: 2px solid #dc3545; 
+            border-bottom: 2px solid #343a40; /* 검정색 */
             padding-bottom: 10px;
             display: inline-block;
             width: auto;
             margin-left: auto;
             margin-right: auto;
         }
-        /* 일별 통계 테이블 헤더 색상 조정 (검정색) */
+        /* 일일 집계 (상단) 제목을 위한 마진 조정 */
         .summary-header-black {
-            border-bottom-color: #343a40 !important; /* Dark Gray/Black */
-            color: #343a40 !important; 
-            margin-top: 60px !important;
+            margin-top: 60px !important; 
         }
     </style>
 </head>
@@ -331,15 +330,15 @@ cat << CHART_END > index.html
             <canvas id="simpleChart"></canvas>
         </div>
         
-        <!-- 🚨 일별 집계 테이블 영역 추가 (상단 배치) -->
+        <!-- 🚨 일일 집계 테이블 영역 (외곽 테두리 색상 통일) -->
         <div style="text-align: center;">
-            <h2 class="summary-header-black">일별 마지막 기록 값</h2>
+            <h2 class="summary-header-black">일일 집계</h2>
         </div>
         <div>
             ${DAILY_SUMMARY_TABLE}
         </div>
 
-        <!-- 데이터 표 영역 (하단 배치) -->
+        <!-- 🚨 데이터 기록 표 영역 (외곽 테두리 색상 통일) -->
         <div style="text-align: center;">
             <h2>데이터 기록 (최신순)</h2>
         </div>
