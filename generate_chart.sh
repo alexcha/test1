@@ -103,7 +103,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
                 diff = current_val_num - prev_val_num;
                 diff_display = comma_format(diff);
 
-                # 🚨 요청하신 색상으로 변경: + (붉은색), - (파란색), 0 (검은색)
+                # 🚨 색상: + (붉은색), - (파란색), 0 (검은색)
                 if (diff > 0) {
                     color_style = "color: #dc3545; font-weight: 600;"; /* Red: 상승 */
                 } else if (diff < 0) {
@@ -129,74 +129,77 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 3. 일별 집계 테이블 생성 (Min, Max, Avg)
+# 3. 일별 집계 테이블 생성 (데이터 건수 및 전날 대비 변화 포함, 검정색 스타일)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
-    # 🚨 Awk 함수: 숫자에 쉼표(,)를 추가하는 포맷 함수 (메인 테이블과 동일하게 재정의)
-    function comma_format(n) {
-        if (n == 0) return "0";
-        
-        s = int(n);
-        
-        sign = s < 0 ? "-" : "";
-        s = s < 0 ? -s : s;     # 절대값 사용
-        
-        s = s "";  
-        
-        result = "";
-        while (s ~ /[0-9]{4}/) {
-            result = "," substr(s, length(s)-2) result;
-            s = substr(s, 1, length(s)-3);
-        }
-        
-        return sign s result;
-    }
-
-    # 초기화 및 데이터 저장
+    # Initial data collection
     {
-        # 값에서 쉼표(,) 제거 후 숫자형으로 저장
-        gsub(/,/, "", $2); 
-        value = $2 + 0;
-        
         # 날짜 추출 (YYYY-MM-DD)
         date = substr($1, 1, 10);
-
         count[date]++;
-        sum[date] += value;
         
-        # Min/Max 초기화 및 업데이트
-        if (count[date] == 1 || value < min[date]) {
-            min[date] = value;
-        }
-        if (count[date] == 1 || value > max[date]) {
-            max[date] = value;
+        # 고유 날짜 배열 및 카운트
+        if (!(date in added_dates)) {
+            dates_arr[num_dates++] = date;
+            added_dates[date] = 1;
         }
     }
     END {
-        # 테이블 시작
-        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
-        # 테이블 헤더
+        # Simple Bubble Sort for YYYY-MM-DD strings (Chronological order)
+        for (i = 0; i < num_dates; i++) {
+            for (j = i + 1; j < num_dates; j++) {
+                if (dates_arr[i] > dates_arr[j]) {
+                    temp = dates_arr[i];
+                    dates_arr[i] = dates_arr[j];
+                    dates_arr[j] = temp;
+                }
+            }
+        }
+
+
+        # 테이블 시작 (검정색 테두리)
+        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #343a40; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        # 테이블 헤더 (검정색 배경)
         print "<thead><tr>\
-            <th style=\"padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: left; color: white;\">날짜</th>\
-            <th style=\"padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: right; color: white;\">최고값 (Max)</th>\
-            <th style=\"padding: 14px; background-color: #007bff; border-right: 1px solid #ddd; text-align: right; color: white;\">최저값 (Min)</th>\
-            <th style=\"padding: 14px; background-color: #007bff; text-align: right; color: white;\">평균값 (Avg)</th>\
+            <th style=\"padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: left; color: white;\">날짜</th>\
+            <th style=\"padding: 14px; background-color: #343a40; border-right: 1px solid #555; text-align: right; color: white;\">데이터 건수</th>\
+            <th style=\"padding: 14px; background-color: #343a40; text-align: right; color: white;\">전날 대비 변화</th>\
         </tr></thead>";
         print "<tbody>";
 
-        # 날짜별 데이터 출력
-        # Awk는 키를 순서 없이 순회하지만, 집계 테이블이므로 기능에 집중
-        for (date in sum) {
-            avg = sum[date] / count[date];
+        # 정렬된 날짜를 순회하며 전날 데이터와 비교
+        prev_count = 0;
+        
+        for (i = 0; i < num_dates; i++) {
+            date = dates_arr[i];
+            current_count = count[date];
+
+            # 변화값 계산 및 포맷팅
+            diff = current_count - prev_count;
+            diff_display = (diff > 0 ? "+" : "") diff;
+
+            # 변화값에 따른 색상 설정 (빨강/파랑/회색)
+            if (i == 0) {
+                # 첫날은 비교값 없음
+                diff_display = "---";
+                color_style = "color: #6c757d;"; /* Gray */
+            } else if (diff > 0) {
+                color_style = "color: #dc3545; font-weight: 600;"; /* Red: 증가 */
+            } else if (diff < 0) {
+                color_style = "color: #007bff; font-weight: 600;"; /* Blue: 감소 */
+            } else {
+                diff_display = "0";
+                color_style = "color: #333; font-weight: 600;"; /* Black: 변화 없음 */
+            }
             
-            # 평균값은 소수점 없는 정수로 반올림 후 포맷팅
-            avg_formatted = comma_format(int(avg + 0.5)); 
-            
+            # HTML 행 출력
             printf "<tr>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #007bff;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white;\">%s</td>\
-            </tr>\n", date, comma_format(max[date]), comma_format(min[date]), avg_formatted
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-weight: bold; color: #343a40;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+            </tr>\n", date, current_count, color_style, diff_display
+
+            # 다음 반복을 위해 현재 건수를 이전 건수로 저장
+            prev_count = current_count;
         }
 
         print "</tbody></table>";
@@ -246,10 +249,10 @@ cat << CHART_END > index.html
             margin-left: auto;
             margin-right: auto;
         }
-        /* 일별 통계 테이블 헤더 색상 조정 */
-        .summary-header {
-            border-bottom-color: #007bff !important; 
-            color: #007bff !important; 
+        /* 일별 통계 테이블 헤더 색상 조정 (검정색) */
+        .summary-header-black {
+            border-bottom-color: #343a40 !important; /* Dark Gray/Black */
+            color: #343a40 !important; 
             margin-top: 60px !important;
         }
     </style>
@@ -274,7 +277,7 @@ cat << CHART_END > index.html
         
         <!-- 일별 집계 테이블 영역 추가 -->
         <div style="text-align: center;">
-            <h2 class="summary-header">일별 요약 통계</h2>
+            <h2 class="summary-header-black">일별 데이터 요약 (건수)</h2>
         </div>
         <div>
             ${DAILY_SUMMARY_TABLE}
