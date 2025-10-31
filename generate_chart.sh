@@ -44,6 +44,24 @@ JS_LABELS=$(awk -F ' : ' '
 # 2. HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
 # Awk를 사용하여 파일을 읽고, 데이터를 배열에 저장하며, 역순으로 순회하여 차이값을 계산하고 HTML을 생성합니다.
 HTML_TABLE_ROWS=$(awk -F ' : ' '
+    # 🚨 Awk 함수: 숫자를 천 단위 구분 기호로 포맷팅하고 부호를 붙임
+    function comma_format(n) {
+        # n이 0이면 "0" 반환
+        if (n == 0) return "0";
+        
+        s = int(n);
+        sign = (s < 0 ? "" : "+"); # 양수일 때만 "+" 부호, 음수는 자동으로 "-" 포함
+        s = (s < 0 ? -s : s) "";  # 절대값 문자열
+        
+        result = "";
+        while (s ~ /[0-9]{4}/) {
+            # 오른쪽에서 세 자리마다 쉼표 삽입
+            result = "," substr(s, length(s)-2) result;
+            s = substr(s, 1, length(s)-3);
+        }
+        return (n < 0 ? "" : sign) s result; # 최종 결과에 부호 추가
+    }
+
     # 초기화 및 데이터 저장
     {
         # $1: 시간 문자열, $2: 값 문자열 (쉼표 포함)
@@ -59,7 +77,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;\">";
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: left; color: #495057;\">시간 (KST)</th>\
-            <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: right; color: #007bff;\">값</th>\
+            <th style=\"padding: 14px; background-color: #f8f9fa; border-right: 1px solid #ddd; text-align: right; color: #dc3545;\">값</th>\
             <th style=\"padding: 14px; background-color: #f8f9fa; text-align: right; color: #495057;\">변화</th>\
         </tr></thead>";
         print "<tbody>";
@@ -77,13 +95,12 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
                 # 차이 = 현재 값 (신규) - 이전 값 (구형)
                 diff = current_val_num - prev_val_num;
 
-                # 변화값 포맷팅 및 스타일 결정
+                # 변화값 포맷팅 및 스타일 결정 (comma_format 함수 사용)
+                diff_display = comma_format(diff);
+
                 if (diff > 0) {
-                    # 쉼표 포맷팅을 위해 Awk의 문자열 함수 사용 (Locale 설정이 복잡하므로 간단히 표시)
-                    diff_display = sprintf("+%,d", diff);
                     color_style = "color: #28a745; font-weight: 600;"; /* Green: 상승 */
                 } else if (diff < 0) {
-                    diff_display = sprintf("%,d", diff); 
                     color_style = "color: #dc3545; font-weight: 600;"; /* Red: 하락 */
                 } else {
                     diff_display = "0";
@@ -98,7 +115,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
             # HTML 행 출력
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #007bff; background-color: white;\">%s</td>\
+                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #dc3545; background-color: white;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
@@ -139,10 +156,10 @@ cat << CHART_END > index.html
             margin-top: 40px; 
             margin-bottom: 15px; 
             text-align: center; 
-            color: #007bff; 
+            color: #dc3545; /* 빨간색으로 변경 */
             font-size: 22px; 
             font-weight: 600;
-            border-bottom: 2px solid #007bff; 
+            border-bottom: 2px solid #dc3545; /* 빨간색으로 변경 */
             padding-bottom: 10px;
             display: inline-block;
             width: auto;
@@ -191,29 +208,28 @@ cat << CHART_END > index.html
                 datasets: [{
                     label: '값 변화 추이',
                     data: chartData,
-                    borderColor: '#007bff', /* 파란색으로 변경 */
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)', /* 투명도 있는 파란색 */
+                    borderColor: 'rgba(255, 99, 132, 1)', /* 🚨 붉은색으로 변경 */
+                    backgroundColor: 'rgba(255, 99, 132, 0.4)', /* 🚨 붉은색으로 변경 */
                     borderWidth: 2,
-                    tension: 0.4, /* 곡선 부드럽게 */
+                    tension: 0.4, 
                     pointRadius: 4,
-                    pointBackgroundColor: '#007bff',
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)', /* 🚨 붉은색으로 변경 */
                     pointHoverRadius: 6,
-                    fill: 'start' // 차트 아래를 채움
+                    fill: 'start'
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // 컨테이너 크기에 맞춤
+                maintainAspectRatio: false,
                 scales: {
                     x: {
                         type: 'category', 
                         title: { display: true, text: '시간 (HH:MM)', font: { size: 14, weight: 'bold' } },
                         ticks: {
-                            // 🚨 데이터가 늘어날 때 X축 레이블 겹침 방지 전략
-                            maxRotation: 45, // 최대 45도 회전 허용 (모바일 가독성 확보)
-                            minRotation: 45, // 45도 회전 강제
-                            autoSkip: true,  // Chart.js가 자동으로 레이블을 건너뛰도록 설정
-                            maxTicksLimit: 25, // 표시할 최대 레이블 수 (데이터 밀도에 따라 유동적)
+                            maxRotation: 45, 
+                            minRotation: 45,
+                            autoSkip: true,
+                            maxTicksLimit: 25,
                             font: { size: 12 }
                         }
                     },
