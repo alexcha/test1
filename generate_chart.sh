@@ -300,8 +300,9 @@ else
         # 1. 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
         ai_prediction_temp=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
         
-        # 2. **sed 구분자(#)를 이스케이프 처리**하여 최종 치환 오류 방지
-        ai_prediction=$(echo "$ai_prediction_temp" | sed 's/\#/\\#/g')
+        # 2. **sed 구분자(|)를 이스케이프 처리**하여 최종 치환 오류 방지
+        #    AI 예측 결과에 파이프 기호가 포함되면 \pipe 로 변경
+        ai_prediction=$(echo "$ai_prediction_temp" | sed 's/|/\\|/g')
     fi
 fi
 
@@ -315,15 +316,20 @@ echo "3.4. AI 예측 완료."
 WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
 wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
-echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '#' 사용)..."
+echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '|' 사용)..."
+
+# **$chart_data** 내부의 파이프 기호(|)를 이스케이프 처리
+# JSON 데이터에 파이프 기호가 포함될 경우 sed 명령이 깨지는 것을 방지
+safe_chart_data=$(echo "$chart_data" | sed 's/|/\\|/g')
+
 
 # index.html 파일 생성 및 변수 삽입
-# sed 구분자를 '#'로 변경하여 변수 내용에 특수 문자가 있어도 오류가 나지 않도록 함
+# sed 구분자를 '|'로 사용하여 HTML 색상 코드(#)와 충돌을 피합니다.
 cat template.html | \
-sed "s#__CHART_DATA__#${chart_data}#g" | \
-sed "s#__AI_PREDICTION__#${ai_prediction}#g" | \
-sed "s#__DAILY_TABLE_HTML__#${daily_table}#g" | \
-sed "s#__HOURLY_TABLE_HTML__#${hourly_table}#g" | \
-sed "s#__LAST_UPDATE_TIME__#${LAST_UPDATE_TIME}#g" > index.html
+sed "s|__CHART_DATA__|${safe_chart_data}|g" | \
+sed "s|__AI_PREDICTION__|${ai_prediction}|g" | \
+sed "s|__DAILY_TABLE_HTML__|${daily_table}|g" | \
+sed "s|__HOURLY_TABLE_HTML__|${hourly_table}|g" | \
+sed "s|__LAST_UPDATE_TIME__|${LAST_UPDATE_TIME}|g" > index.html
 
 echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
