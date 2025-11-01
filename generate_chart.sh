@@ -526,7 +526,7 @@ cat << CHART_END > index.html
         const month = String(lastDayDate.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
         const day = String(lastDayDate.getDate()).padStart(2, '0');
         
-        return \`\${year}-\${month}-\${day}\`;
+        return `${year}-${month}-${day}`;
     }
 
 
@@ -541,23 +541,23 @@ cat << CHART_END > index.html
 
         // API 키가 비어있는지 확인
         if (!GEMINI_API_KEY || GEMINI_API_KEY === "") {
-             // GitHub Actions로 변경했으므로, GitLab GKEY 대신 GEMINI_API_KEY를 확인하라고 메시지 변경
              resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">⚠️ 오류: API 키가 설정되지 않았습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수(GEMINI_API_KEY) 매핑을 확인해주세요.</span>';
              return;
         } 
 
         button.disabled = true;
-        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 \${targetDate}까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
+        // 🌟 수정: targetDate 변수 값을 사용하여 로딩 텍스트 표시
+        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 ' + targetDate + '까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
         
-        // 🌟 수정된 시스템 프롬프트: '10월 28일 오픈', '180개국 글로벌 서비스' 정보 추가 반영
-        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(\${targetDate})**까지의 기간을 고려하여 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
+        // 🌟 수정된 시스템 프롬프트: 게임 상세 정보 및 targetDate 변수 값 반영
+        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(" + targetDate + ")**까지의 기간을 고려하여 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
 
-        // 사용자 쿼리는 예측 날짜 정보만 포함하여 간결하게 유지
-        const userQuery = \`다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **\${targetDate}**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n\${RAW_DATA_STRING}\`;
+        // 🌟 수정된 사용자 쿼리: targetDate 변수 값 반영
+        const userQuery = '다음은 \'YYYY-MM-DD HH:MM:SS : 값\' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **' + targetDate + '**까지의 예상 누적 값을 예측해주세요.\n\n데이터:\n' + RAW_DATA_STRING;
         
         // 무료 버전을 고려하여 gemini-2.5-flash 모델 사용
         const model = "gemini-2.5-flash"; 
-        const apiUrl = \`https://generativelanguage.googleapis.com/v1beta/models/\${model}:generateContent?key=\${GEMINI_API_KEY}\`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
 
         const payload = {
@@ -594,7 +594,7 @@ cat << CHART_END > index.html
                         sourcesHtml = '<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">';
                         sourcesHtml += '<p style="font-size: 12px; color: #555; margin-bottom: 5px;">출처 (Google Search):</p>';
                         sources.forEach((source, index) => {
-                            sourcesHtml += \`<p style="font-size: 12px; margin: 2px 0;"><a href="\${source.uri}" target="_blank" style="color: #007bff; text-decoration: none;">\${source.title}</a></p>\`;
+                            sourcesHtml += `<p style="font-size: 12px; margin: 2px 0;"><a href="${source.uri}" target="_blank" style="color: #007bff; text-decoration: none;">${source.title}</a></p>`;
                         });
                         sourcesHtml += '</div>';
                     }
@@ -613,7 +613,7 @@ cat << CHART_END > index.html
             console.error("Prediction Error:", error);
         } finally {
             button.disabled = false;
-            // 예측 헤더 텍스트 업데이트 (버튼 누른 후 예측 날짜 명시)
+            // 🌟 수정: 헤더와 설명 텍스트도 targetDate 변수를 사용하여 업데이트
             document.getElementById('prediction-header').innerHTML = 'AI 기반 누적 값 예측 (목표: ' + targetDate + ')';
             document.querySelector('.prediction-section p').innerHTML = '제공된 데이터를 기반으로 **' + targetDate + '까지의 예상 누적 값**을 예측합니다.';
             resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
