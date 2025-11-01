@@ -294,11 +294,8 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 MODEL="gemini-2.5-flash"
 API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}"
 
-# 🚨 수정된 부분: 다음 날짜를 예측 목표로 설정
-# 데이터의 마지막 날짜를 가져옵니다.
-LAST_DATA_DATE=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | cut -d ' ' -f 1)
-
 # 다음 날짜를 계산합니다.
+LAST_DATA_DATE=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | cut -d ' ' -f 1)
 TARGET_DATE=$(date -d "$LAST_DATA_DATE + 1 day" +%Y-%m-%d)
 
 # JSON 페이로드에 들어갈 내용을 이스케이프하는 함수
@@ -309,8 +306,8 @@ escape_json() {
     echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
 }
 
-# 🚨 수정된 부분: SYSTEM_PROMPT에서 표(테이블) 생성 지시 제거 및 예측 대상을 다음 날로 한정
-SYSTEM_PROMPT="당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석할 때, **'오픈 효과(Open-Momentum Effect)'**로 인해 초기 일일 매출이 높게 나타나다가 시간이 지남에 따라 점진적으로 감소하는 추세를 **반드시** 고려하여 예측해야 합니다. 분석 결과를 바탕으로 **다음 날인 ${TARGET_DATE}**의 최종 예상 누적 값을 예측하세요. 응답은 분석 결과와 해당 날짜의 예상 누적 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요. **추가적인 일별 예측 목록(테이블)은 제시하지 마세요.**"
+# 🚨 수정된 부분: SYSTEM_PROMPT에 일별 변화량 추이 분석 요청 추가
+SYSTEM_PROMPT="당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)입니다. 이 데이터를 분석할 때, **일별 변화량(Day-over-Day Variation)의 추이 분석**에 최우선 순위를 두세요. 분석 결과는 다음 세 가지를 포함해야 합니다: 1) **최근 일별 변화 추세(상승, 하락, 횡보)**, 2) **최대 일별 상승 및 하락 변동성 구간 파악** (변화의 가속도), 3) **다음 날인 ${TARGET_DATE}의 최종 예상 누적 값 예측** (추정치임을 명시). 응답은 분석과 예측을 모두 포함하는 **단일하고 명확한 한국어 문단**으로 제공하세요. **별도의 목록이나 표는 제시하지 마세요.**"
 USER_QUERY="다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **${TARGET_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
 
 JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
@@ -322,8 +319,8 @@ PAYLOAD='{
     "tools": [{ "google_search": {} }]
 }'
 
-# AI 예측 헤더에서 '(목표: )' 문구 제거 및 콜론으로 변경
-PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측: ${TARGET_DATE}"
+# AI 예측 헤더 업데이트
+PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE}"
 # 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
 PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
@@ -334,15 +331,14 @@ if [ -n "$GEMINI_API_KEY" ]; then
 
     if [ $CURL_STATUS -ne 0 ]; then
         PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">❌ API 호출 실패.</span> Curl 상태 코드: $CURL_STATUS. 네트워크 연결 또는 API 서버 상태를 확인하세요.</div>"
-        PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (Curl 오류)"
+        PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (Curl 오류)"
     elif echo "$API_RESPONSE" | grep -q '"error":'; then
         # API 오류 메시지 추출
         ERROR_MESSAGE=$(echo "$API_RESPONSE" | grep -o '"message": "[^"]*"' | head -n 1 | sed 's/"message": "//; s/"$//')
         PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 예측 결과 실패.</span> API 오류: ${ERROR_MESSAGE}</div>"
-        PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (API 오류)"
+        PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (API 오류)"
     else
         # 🚨 [수정된 부분] jq를 사용하여 안정적으로 JSON 파싱 및 텍스트 추출
-        # jq가 설치되어 있지 않은 경우, 이 로직은 작동하지 않을 수 있습니다.
         RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // ""' 2>/dev/null)
 
         if [ -z "$RAW_TEXT_CONTENT" ]; then
@@ -351,13 +347,12 @@ if [ -n "$GEMINI_API_KEY" ]; then
             
             if [ -n "$BLOCK_REASON" ]; then
                  PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 필터링됨.</span> 응답 내용이 정책에 의해 차단되었거나 (Finish Reason: ${BLOCK_REASON}) 누락되었습니다.</div>"
-                 PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (차단 오류)"
+                 PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (차단 오류)"
             else
-                 PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 파싱 실패.</span> 예측 텍스트를 파싱할 수 없습니다. 이는 API 응답 구조가 예상과 다르거나, `jq` 명령어를 찾을 수 없을 때 발생합니다.</div>"
-                 PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (파싱 오류)"
+                 PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 파싱 실패.</span> 예측 텍스트를 파싱할 수 없습니다. 이는 API 응답 구조가 예상과 다르거나, \`jq\` 명령어를 찾을 수 없을 때 발생합니다.</div>"
+                 PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (파싱 오류)"
             fi
         else
-            # jq -r은 이스케이프를 자동으로 해제하므로, 실제 개행 문자(\n)를 HTML의 <br> 태그로 변환합니다.
             # \n을 <br>로, \t를 공백으로 변환합니다.
             FORMATTED_TEXT=$(echo "$RAW_TEXT_CONTENT" | sed ':a;N;$!ba;s/\n/<br>/g' | sed 's/\t/&nbsp;&nbsp;&nbsp;&nbsp;/g')
 
@@ -480,12 +475,11 @@ cat << CHART_END > index.html
 </head>
 <body>
     <div class="container">
-        <h1>데이터 변화 추이</h1>
+        <h1>데이터 변화 추이 대시보드</h1>
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <div class="prediction-section">
             <h2 id="prediction-header">${PREDICTION_HEADER_EMBED}</h2>
-            <!-- 이전에 있던 설명 문구는 사용자 요청에 따라 제거되었습니다. -->
             <div id="predictionResult">
                 ${PREDICTION_TEXT_EMBED}
             </div>
