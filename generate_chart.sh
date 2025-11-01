@@ -11,23 +11,34 @@ if [ -z "$GEMINI_API_KEY" ]; then
 fi
 
 
-# 1. 데이터 파싱 (차트용 데이터: 시간 순서대로)
+# 1. 데이터 파싱 (차트용 데이터: 변화 값 - 시간 순서대로)
+# 누적값이 아닌, 직전 값과의 '변화 값' 리스트를 생성합니다. (첫 번째 데이터의 변화는 0)
 JS_VALUES=$(awk -F ' : ' '
     { 
+        # 쉼표 제거 후 숫자값으로 변환
         gsub(/,/, "", $2); 
-        values[i++] = $2
+        values[NR] = $2 + 0; # NR starts at 1
     }
     END {
-        for (j=0; j<i; j++) {
-            printf "%s", values[j]
-            if (j < i-1) {
+        # 변화값 배열
+        change_values[1] = 0; # 첫 번째 데이터 포인트의 변화는 0으로 처리 (시작점)
+        
+        for (i = 2; i <= NR; i++) {
+            # 변화값 = 현재 값 - 이전 값
+            change_values[i] = values[i] - values[i-1];
+        }
+
+        # 변화값 출력
+        for (j = 1; j <= NR; j++) {
+            printf "%s", change_values[j]
+            if (j < NR) {
                 printf ", "
             }
         }
     }
 ' result.txt) 
 
-# JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용)
+# JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용 - 변경 없음)
 JS_LABELS=$(awk -F ' : ' '
     { 
         match($1, /[0-9]{2}:[0-9]{2}/, short_label_arr);
@@ -44,7 +55,7 @@ JS_LABELS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
+# 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함 - 변경 없음)
 HTML_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -115,7 +126,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성
+# 3. 일별 집계 테이블 생성 (변경 없음)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -215,7 +226,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES)
+# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 변경 없음)
 JS_DAILY_VALUES=$(awk -F ' : ' '
     {
         numeric_value = $2;
@@ -247,7 +258,7 @@ JS_DAILY_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS)
+# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 변경 없음)
 JS_DAILY_LABELS=$(awk -F ' : ' '
     {
         date = substr($1, 1, 10);
@@ -276,7 +287,7 @@ JS_DAILY_LABELS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 4. AI 예측용 원본 데이터 문자열 (프롬프트에 삽입)
+# 4. AI 예측용 원본 데이터 문자열 (프롬프트에 삽입 - 변경 없음)
 RAW_DATA_PROMPT_CONTENT=$(awk '
     {
         gsub(/"/, "\\\"", $0);
@@ -289,7 +300,7 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 ' result.txt)
 
 
-# --- 5. 🚨 AI 예측 로직 (스크립트 실행 시 자동 호출) ---
+# --- 5. 🚨 AI 예측 로직 (스크립트 실행 시 자동 호출 - 변경 없음) ---
 
 MODEL="gemini-2.5-flash"
 API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}"
@@ -501,14 +512,7 @@ cat << CHART_END > index.html
         </div>
         
         <div style="text-align: center;">
-            <h2>일일 집계 기록 (최신순)</h2>
-        </div>
-        <div>
-            ${DAILY_SUMMARY_TABLE}
-        </div> 
-
-        <div style="text-align: center;">
-            <h2>기록 시간별 변화 추이</h2>
+            <h2>기록 시간별 변화 값 추이</h2>
         </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
@@ -522,16 +526,23 @@ cat << CHART_END > index.html
             ${HTML_TABLE_ROWS}
         </div>
         
+        <div style="text-align: center;">
+            <h2>일일 집계 기록 (최신순)</h2>
+        </div>
+        <div>
+            ${DAILY_SUMMARY_TABLE}
+        </div> 
+        
     </div>
     
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
-    // 1. 시간별 상세 기록 데이터 (빨간색 차트)
+    // 1. 시간별 상세 기록 데이터 (빨간색 차트 - 변화 값)
     const chartData = [${JS_VALUES}];
     const chartLabels = [${JS_LABELS}]; 
 
-    // 2. 일별 최종 값 데이터 (파란색 차트)
+    // 2. 일별 최종 값 데이터 (파란색 차트 - 누적 값)
     const jsDailyValues = [${JS_DAILY_VALUES}];
     const jsDailyLabels = [${JS_DAILY_LABELS}]; 
 
@@ -541,6 +552,7 @@ cat << CHART_END > index.html
         const absValue = Math.abs(value);
         let formattedValue; 
 
+        // 음수와 양수 모두 처리하기 위해 절대값을 사용
         if (absValue >= 1000000000) {
             formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
         } else if (absValue >= 1000000) {
@@ -559,7 +571,8 @@ cat << CHART_END > index.html
             label += ': ';
         }
         if (context.parsed.y !== null) {
-            label += new Intl.NumberFormat('ko-KR').format(context.parsed.y);
+            // 변화값은 부호를 포함하여 포맷팅
+            label += new Intl.NumberFormat('ko-KR', { signDisplay: context.dataset.label === '변화 값' ? 'always' : 'auto' }).format(context.parsed.y);
         }
         return label;
     };
@@ -576,11 +589,13 @@ cat << CHART_END > index.html
         document.getElementById('simpleChart').parentNode.innerHTML = "<p style='text-align: center; color: #dc3545; padding: 50px; font-size: 16px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
     } else {
         new Chart(ctx, {
-            type: 'line',
+            // 변화값은 막대 그래프(bar)로 표현하는 것이 일반적이나, 
+            // 기존과 동일한 line type을 유지하며 title/label만 변경합니다.
+            type: 'line', 
             data: {
                 labels: chartLabels,
                 datasets: [{
-                    label: '기록 값',
+                    label: '변화 값', // 레이블 변경
                     data: chartData,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.4)', 
@@ -608,8 +623,8 @@ cat << CHART_END > index.html
                         }
                     },
                     y: {
-                        title: { display: true, text: '값', font: { size: 14, weight: 'bold' } },
-                        beginAtZero: false,
+                        title: { display: true, text: '변화 값', font: { size: 14, weight: 'bold' } }, // Y축 제목 변경
+                        beginAtZero: true, // 변화 값은 0을 기준으로 보는 것이 중요
                         grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { callback: formatYAxisTick }
                     }
@@ -624,7 +639,7 @@ cat << CHART_END > index.html
                     },
                     title: {
                         display: true,
-                        text: '시간별 상세 기록 (HH:MM)',
+                        text: '시간별 변화 값 추이 (HH:MM)', // 차트 제목 변경
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -634,7 +649,7 @@ cat << CHART_END > index.html
     } 
 
     // ---------------------------------------------
-    // 2. 차트 렌더링 로직 (dailyChart - 파란색)
+    // 2. 차트 렌더링 로직 (dailyChart - 파란색 - 변경 없음)
     // ---------------------------------------------
     const dailyCtx = document.getElementById('dailyChart').getContext('2d'); 
 
