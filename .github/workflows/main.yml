@@ -1,10 +1,10 @@
-Name: Streaming list update
+name: Streaming list update
 
 on: 
   push:
     branches: [ main ]
   schedule:
-    # 🚨 3시간에 한 번 실행 (0시, 3시, 6시, 9시, 12시, 15시, 18시, 21시 UTC의 0분에 실행)
+    # 3시간에 한 번 실행 (UTC 기준 0시, 3시, 6시, 9시, 12시, 15시, 18시, 21시 0분에 실행)
     - cron: '0 0,3,6,9,12,15,18,21 * * *' 
   
 jobs:
@@ -53,22 +53,12 @@ jobs:
         echo "5. check.sh 실행 및 result.txt에 새로운 데이터 추가"
         ./check.sh | tee -a result.txt
         
-        # 6. check.sh 실행 후 파일 크기 확인 및 비교
-        FINAL_SIZE=$(wc -c < result.txt)
-        echo "6. check.sh 실행 후 result.txt 크기: $FINAL_SIZE 바이트"
-        if [ "$INITIAL_SIZE" -eq "$FINAL_SIZE" ]; then
-            echo "🚨 경고: result.txt 파일 크기에 변화가 없습니다. check.sh가 새 데이터를 출력하지 않았을 수 있습니다."
-        else
-            echo "✅ 확인: result.txt가 성공적으로 업데이트되었습니다. (+$((FINAL_SIZE - INITIAL_SIZE)) 바이트)"
-        fi
-        
-        # 7. generate_chart.sh 실행 (index.html 생성 및 AI 예측 실행)
-        # 🚨 GEMINI_API_KEY가 env 섹션을 통해 환경 변수로 전달됨
-        echo "7. generate_chart.sh 실행 및 index.html 생성..."
+        # 6. generate_chart.sh 실행 (index.html 생성 및 AI 예측 실행)
+        echo "6. generate_chart.sh 실행 및 index.html 생성..."
         ./generate_chart.sh
         
-        # 8. Git 커밋 및 푸시
-        echo "8. Git 커밋 및 푸시..."
+        # 7. Git 커밋 및 푸시
+        echo "7. Git 커밋 및 푸시..."
         git add result.txt index.html
         
         git config --global user.email "github-actions-bot@example.com"
@@ -80,6 +70,5 @@ jobs:
           echo "Committing changes..."
           git commit -m "Automated update: data and index.html (chart)"
           git branch -M main
-          # 🚨 GITHUB_TOKEN을 사용하여 안전하게 푸시 (별도 토큰 생성 불필요)
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
         fi
