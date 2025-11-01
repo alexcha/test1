@@ -2,9 +2,16 @@
 #
 
 
-# 🚨 1. 환경 변수 설정 (GitLab CI/CD 환경에서 GKEY 변수를 사용)
-# GitLab Variables: $GKEY (API 키)
-GEMINI_API_KEY="$GKEY"
+# 🚨 1. 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
+# GitHub Actions의 ${{ secrets.GKEY }}가 env: GEMINI_API_KEY로 매핑되어 전달됩니다.
+GEMINI_API_KEY="$GEMINI_API_KEY" 
+
+# 오류 체크: API 키가 비어있는지 셸에서 사전 체크
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "오류: 환경 변수 GEMINI_API_KEY가 설정되지 않았습니다. GitHub Actions의 Secret(GKEY) 및 env: 매핑을 확인하세요." >&2
+    # 스크립트 실행을 중단하지 않고, index.html의 JS 오류 메시지에 의존
+fi
+
 
 # 1. 데이터 파싱 (차트용 데이터: 시간 순서대로)
 JS_VALUES=$(awk -F ' : ' '
@@ -20,7 +27,7 @@ JS_VALUES=$(awk -F ' : ' '
             }
         }
     }
-' result.txt)
+' result.txt) 
 
 # JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용)
 JS_LABELS=$(awk -F ' : ' '
@@ -37,7 +44,7 @@ JS_LABELS=$(awk -F ' : ' '
             }
         }
     }
-' result.txt)
+' result.txt) 
 
 # 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
 HTML_TABLE_ROWS=$(awk -F ' : ' '
@@ -47,8 +54,8 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         if (s > 0) {
             sign = "+";
         } else if (s < 0) {
-            sign = "-"; 
-            s = -s;     
+            sign = "-";
+            s = -s;    
         } else {
             sign = "";
         }
@@ -59,7 +66,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
             s = substr(s, 1, length(s)-3);
         }
         return sign s result;
-    }
+    } 
 
     {
         times[NR] = $1;
@@ -74,17 +81,17 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
             <th style=\"padding: 14px; background-color: white; text-align: right; color: #333;\">변화</th>\
         </tr></thead>";
-        print "<tbody>";
+        print "<tbody>"; 
 
         for (i = NR; i >= 1; i--) {
             time_str = times[i];
             current_val_str = values_str[i]; 
-            current_val_num = values_num[i];
+            current_val_num = values_num[i]; 
 
             if (i > 1) {
                 prev_val_num = values_num[i - 1];
                 diff = current_val_num - prev_val_num;
-                diff_display = comma_format(diff);
+                diff_display = comma_format(diff); 
 
                 if (diff > 0) {
                     color_style = "color: #dc3545; font-weight: 600;";
@@ -97,7 +104,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
             } else {
                 diff_display = "---";
                 color_style = "color: #6c757d;";
-            }
+            } 
 
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
@@ -108,7 +115,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         
         print "</tbody></table>";
     }
-' result.txt)
+' result.txt) 
 
 # 3. 일별 집계 테이블 생성
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
@@ -138,7 +145,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             s = substr(s, 1, length(s)-3);
         }
         return sign s result;
-    }
+    } 
 
     {
         numeric_value = $2;
@@ -159,7 +166,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                     dates_arr[j] = temp;
                 }
             }
-        }
+        } 
 
         print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
         print "<thead><tr>\
@@ -167,7 +174,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
             <th style=\"padding: 14px; background-color: white; text-align: right; color: #333;\">변화</th>\
         </tr></thead>";
-        print "<tbody>";
+        print "<tbody>"; 
 
         prev_value = 0;
         
@@ -197,18 +204,18 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
-            </tr>", date, current_value_display, color_style, diff_display);
+            </tr>", date, current_value_display, color_style, diff_display); 
 
             prev_value = current_value;
-        }
+        } 
 
         for (i = num_dates - 1; i >= 0; i--) {
             print row_data[i];
-        }
+        } 
 
         print "</tbody></table>";
     }
-' result.txt)
+' result.txt) 
 
 # 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES)
 JS_DAILY_VALUES=$(awk -F ' : ' '
@@ -240,7 +247,7 @@ JS_DAILY_VALUES=$(awk -F ' : ' '
             }
         }
     }
-' result.txt)
+' result.txt) 
 
 # 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS)
 JS_DAILY_LABELS=$(awk -F ' : ' '
@@ -269,7 +276,7 @@ JS_DAILY_LABELS=$(awk -F ' : ' '
             }
         }
     }
-' result.txt)
+' result.txt) 
 
 # 4. AI 예측용 원본 데이터 문자열 (프롬프트에 삽입)
 RAW_DATA_PROMPT_CONTENT=$(awk '
@@ -411,14 +418,14 @@ cat << CHART_END > index.html
         </div>
         <div>
             ${DAILY_SUMMARY_TABLE}
-        </div>
+        </div> 
 
         <div style="text-align: center;">
             <h2>기록 시간별 변화 추이</h2>
         </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
-        </div>
+        </div> 
 
         
         <div style="text-align: center;">
@@ -434,26 +441,25 @@ cat << CHART_END > index.html
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
     // AI 예측에 사용되는 원본 데이터 문자열 (프롬프트에 삽입)
-    const RAW_DATA_STRING = "${RAW_DATA_PROMPT_CONTENT}";
+    const RAW_DATA_STRING = "${RAW_DATA_PROMPT_CONTENT}"; 
 
-    // 셸 스크립트에서 주입된 API 키 (GitLab GKEY)
-    // ⚠️ 이 변수 값은 GitLab CI/CD 파이프라인에서 설정한 Secret Variable로 채워집니다.
+    // 셸 스크립트에서 주입된 API 키 (GEMINI_API_KEY)
     const GEMINI_API_KEY = "${GEMINI_API_KEY}";
 
 
     // 1. 시간별 상세 기록 데이터 (빨간색 차트)
     const chartData = [${JS_VALUES}];
-    const chartLabels = [${JS_LABELS}];
+    const chartLabels = [${JS_LABELS}]; 
 
     // 2. 일별 최종 값 데이터 (파란색 차트)
     const jsDailyValues = [${JS_DAILY_VALUES}];
-    const jsDailyLabels = [${JS_DAILY_LABELS}];
+    const jsDailyLabels = [${JS_DAILY_LABELS}]; 
 
     const formatYAxisTick = function(value) {
         if (value === 0) return '0';
         
         const absValue = Math.abs(value);
-        let formattedValue;
+        let formattedValue; 
 
         if (absValue >= 1000000000) {
             formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
@@ -514,18 +520,19 @@ cat << CHART_END > index.html
      */
     async function predictData() {
         const button = document.getElementById('predictButton');
-        const resultDiv = document.getElementById('predictionResult');
+        const resultDiv = document.getElementById('predictionResult'); 
 
         // API 키가 비어있는지 확인
         if (!GEMINI_API_KEY || GEMINI_API_KEY === "") {
-             resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">⚠️ 오류: API 키가 설정되지 않았습니다. GitLab CI/CD 변수(GKEY)를 확인해주세요.</span>';
+             // GitHub Actions로 변경했으므로, GitLab GKEY 대신 GEMINI_API_KEY를 확인하라고 메시지 변경
+             resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">⚠️ 오류: API 키가 설정되지 않았습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수(GEMINI_API_KEY) 매핑을 확인해주세요.</span>';
              return;
-        }
+        } 
 
         button.disabled = true;
         resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 예측하는 중입니다... 잠시만 기다려주세요.</span>';
         
-        const systemPrompt = "당신은 전문적인 데이터 분석가이자 예측 모델입니다. 제공된 시계열 누적 데이터를 분석하고, 과거 성장 추세(선형, 지수 등)를 파악하여 1개월(30일) 후의 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요.";
+        const systemPrompt = "당신은 전문적인 데이터 분석가이자 예측 모델입니다. 제공된 시계열 누적 데이터를 분석하고, 과거 성장 추세(선형, 지수 등)를 파악하여 1개월(30일) 후의 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
 
         const userQuery = \`다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터입니다. 이 데이터를 사용하여 1개월(30일) 후의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n\${RAW_DATA_STRING}\`;
         
@@ -539,17 +546,17 @@ cat << CHART_END > index.html
             systemInstruction: { parts: [{ text: systemPrompt }] },
             // 정보 출처를 위해 Google Search Tool 사용
             tools: [{ "google_search": {} }], 
-        };
+        }; 
 
         try {
             const response = await fetchWithBackoff(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            });
+            }); 
 
             const result = await response.json();
-            const candidate = result.candidates?.[0];
+            const candidate = result.candidates?.[0]; 
 
             if (candidate && candidate.content?.parts?.[0]?.text) {
                 const text = candidate.content.parts[0].text;
@@ -562,7 +569,7 @@ cat << CHART_END > index.html
                             uri: attribution.web?.uri,
                             title: attribution.web?.title,
                         }))
-                        .filter(source => source.uri && source.title);
+                        .filter(source => source.uri && source.title); 
 
                     if (sources.length > 0) {
                         sourcesHtml = '<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">';
@@ -572,15 +579,15 @@ cat << CHART_END > index.html
                         });
                         sourcesHtml += '</div>';
                     }
-                }
+                } 
 
-                resultDiv.innerHTML = text + sourcesHtml;
+                resultDiv.innerHTML = text + sourcesHtml; 
 
             } else {
                  const errorMessage = result.error?.message || '알 수 없는 오류가 발생했습니다.';
                  resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">⚠️ 예측 결과를 가져오는 데 실패했습니다: ' + errorMessage + '</span>';
-                console.error("API response missing text content or error:", result);
-            }
+                 console.error("API response missing text content or error:", result);
+            } 
 
         } catch (error) {
             resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">❌ API 호출 중 오류 발생: ' + error.message + '</span>';
@@ -594,7 +601,7 @@ cat << CHART_END > index.html
 
     // ---------------------------------------------
     // 1. 차트 렌더링 로직 (simpleChart - 빨간색)
-    // ---------------------------------------------
+    // --------------------------------------------- 
 
     const ctx = document.getElementById('simpleChart').getContext('2d');
     
@@ -658,12 +665,12 @@ cat << CHART_END > index.html
                 }
             }
         });
-    }
+    } 
 
     // ---------------------------------------------
     // 2. 차트 렌더링 로직 (dailyChart - 파란색)
     // ---------------------------------------------
-    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d'); 
 
     if (jsDailyValues.length === 0) {
         console.error("Daily chart data is empty. Cannot render dailyChart.");
