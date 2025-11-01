@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate_chart.sh (구문 오류 및 최종 안정화 버전)
+# generate_chart.sh (데이터 파싱 및 구문 안정화 버전)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인
 if [ ! -d ".git" ]; then
@@ -22,6 +22,7 @@ if [ ! -f "result.txt" ]; then
     exit 1
 fi
 
+# 빈 줄 제거
 sed -i '/^$/d' result.txt
 
 # 전체 데이터를 최신 30개 항목만 사용
@@ -36,7 +37,12 @@ VALUES=()
 declare -A DAILY_DATA
 
 # 1.1. 차트 데이터 (시간별) 생성
-while IFS=' : ' read -r datetime value; do
+# CRITICAL FIX: IFS를 ":"로 설정하고 xargs로 앞뒤 공백 제거하여 정확하게 "시각"과 "값"만 분리
+while IFS=":" read -r datetime_raw value_raw; do
+    # 앞뒤 공백 제거
+    datetime=$(echo "$datetime_raw" | xargs)
+    value=$(echo "$value_raw" | xargs)
+
     clean_value=$(echo "$value" | sed 's/,//g')
     
     # 데이터가 유효한지 확인
@@ -48,10 +54,19 @@ while IFS=' : ' read -r datetime value; do
 done < "$DATA_LINES"
 
 # 1.2. 일별 데이터 추출
-while IFS=' : ' read -r datetime value; do
+# CRITICAL FIX: IFS를 ":"로 설정하고 xargs로 앞뒤 공백 제거하여 정확하게 "시각"과 "값"만 분리
+while IFS=":" read -r datetime_raw value_raw; do
+    # 앞뒤 공백 제거
+    datetime=$(echo "$datetime_raw" | xargs)
+    value=$(echo "$value_raw" | xargs)
+
     date_part=$(echo "$datetime" | awk '{print $1}')
     clean_value=$(echo "$value" | sed 's/,//g')
-    DAILY_DATA["$date_part"]="$clean_value"
+
+    # 데이터가 유효한지 확인하고 DAILY_DATA에 저장 (가장 마지막 값이 일별 최종값)
+    if [[ -n "$clean_value" && "$clean_value" =~ ^[0-9]+$ ]]; then
+        DAILY_DATA["$date_part"]="$clean_value"
+    fi
 done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
@@ -105,32 +120,43 @@ escape_for_sed() {
 generate_daily_table() {
     local data_lines=()
     for date in "${!DAILY_DATA[@]}"; do
+        # '날짜 : 값' 형식으로 data_lines 배열에 추가
         data_lines+=("$date : ${DAILY_DATA[$date]}")
     done
     
     if [ ${#data_lines[@]} -eq 0 ]; then
-        echo "<tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>"
+        echo "$(escape_for_sed "<tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>")"
         return
     fi
     
+    # 날짜를 기준으로 내림차순 정렬 (최신 날짜가 위에)
     sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -r)
 
     local table_rows=""
     local previous_value_int=0 
     local temp_rows=""
-
+    
+    # 정렬된 데이터를 다시 읽어서 변화량 계산
     while IFS=' : ' read -r date value_str; do
         if [ -z "$date" ]; then continue; fi
         current_value_int=$(echo "$value_str" | sed 's/,//g')
-        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then continue; fi
+        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then 
+            previous_value_int=0 # 유효하지 않은 값은 스킵하고 이전 값을 0으로 리셋하여 다음 값은 '---'로 처리
+            continue 
+        fi
+        
         # 숫자를 천 단위로 포맷팅
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
         local class_name="zero" 
         
+        # 이전 날짜의 값이 있으면 변화량 계산 (역순으로 계산되지만, 이전 날짜와 비교하는 것은 맞음)
         if [ "$previous_value_int" -ne 0 ]; then
-            change=$((current_value_int - previous_value_int))
+            # 이전 데이터에서 현재 데이터로의 변화 (데이터는 내림차순)
+            # 즉, 현재 날짜(최신 데이터) - 이전 날짜(더 오래된 데이터)
+            # 여기서는 일별 최종값의 변화만 계산하므로, 이전 값과의 차이를 계산
+            change=$((current_value_int - previous_value_int)) 
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
@@ -158,6 +184,7 @@ EOT
         previous_value_int=$current_value_int 
     done <<< "$sorted_daily_data"
 
+    # 최종적으로 생성된 테이블 행을 역순으로 뒤집어 오름차순(오래된 데이터가 위로)으로 표시
     table_rows=$(echo "$temp_rows" | tac)
 
     daily_table_html=$(cat <<EOD
@@ -186,21 +213,31 @@ generate_hourly_table() {
     local reverse_data=$(cat "$DATA_LINES") 
 
     if [ -z "$reverse_data" ]; then
-        echo "<tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>"
+        echo "$(escape_for_sed "<tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>")"
         return
     fi
 
     local temp_rows=""
-    while IFS=' : ' read -r datetime value_str; do
+    # 데이터는 이미 시간순으로 되어 있음
+    while IFS=":" read -r datetime_raw value_raw; do
+        # 앞뒤 공백 제거
+        datetime=$(echo "$datetime_raw" | xargs)
+        value_str=$(echo "$value_raw" | xargs)
+        
         if [ -z "$datetime" ]; then continue; fi
         current_value_int=$(echo "$value_str" | sed 's/,//g')
-        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then continue; fi
+        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then 
+            previous_value_int=0 
+            continue 
+        fi
+        
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
         local class_name="zero" 
         
         if [ "$previous_value_int" -ne 0 ]; then
+            # 현재 데이터 - 이전 데이터 (정방향 변화량)
             change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
@@ -229,6 +266,7 @@ EOT
         previous_value_int=$current_value_int 
     done <<< "$reverse_data"
 
+    # 테이블 행을 역순으로 뒤집어 최신 데이터가 위에 오도록 설정
     table_rows=$(echo "$temp_rows" | tac)
 
     hourly_table_html=$(cat <<EOD
@@ -326,8 +364,8 @@ echo "3.4. AI 예측 완료."
 # ====================================================================
 
 # 템플릿 다운로드 (로컬 환경에 template.html이 있다고 가정)
-WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
-wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
+# WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
+# wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
 echo "4.1. index.html 파일 생성 시작 (Sed 스크립트 방식, 구분자 ~ 사용)..."
 
