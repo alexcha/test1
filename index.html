@@ -3,24 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>데이터 현황 및 AI 예측</title>
+    <title>자동 업데이트 데이터 현황 및 AI 예측</title>
+    <!-- Chart.js 라이브러리 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
+        /* 기본 스타일 설정 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #212529; }
         .container { max-width: 1000px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
         h1 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 25px; }
         h2 { color: #343a40; margin-top: 30px; margin-bottom: 15px; }
         .chart-container { margin-bottom: 40px; }
+        
         /* 테이블 스타일 */
+        /* 이 스타일은 쉘 스크립트에서 삽입되는 테이블에 적용됩니다. */
         table { width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         thead th { padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333; }
         tbody td { padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; color: #343a40; }
         tbody tr:last-child td { border-bottom: none; }
-        .plus { color: #dc3545; font-weight: 600; }
-        .minus { color: #007bff; font-weight: 600; }
-        .zero { color: #6c757d; font-weight: 600; }
+        
+        /* 변화량 색상 (쉘 스크립트에서 이 클래스를 사용해 생성) */
+        .plus { color: #dc3545; font-weight: 600; } 
+        .minus { color: #007bff; font-weight: 600; } 
+        .zero { color: #6c757d; font-weight: 600; } 
+        
         .first-col { text-align: left !important; color: #343a40; font-weight: normal; }
         .value-col { font-weight: bold; color: #333; }
+        .right-align { text-align: right !important; }
         
         /* AI 예측 스타일 */
         .ai-box { white-space: pre-wrap; color: #007bff; font-weight: bold; padding: 15px; border: 1px dashed #007bff; border-radius: 6px; background-color: #f0f8ff; line-height: 1.6; margin-bottom: 20px; }
@@ -29,7 +37,8 @@
 <body>
     <div class="container">
         <h1>자동 업데이트 데이터 차트 및 분석</h1>
-        <p>최종 업데이트 시간: <span id="update-time"></span></p>
+        <!-- 쉘 스크립트에서 2025-11-01 22:06:47 KST으로 치환됩니다. -->
+        <p>최종 업데이트 시간: <span id="update-time">2025-11-01 22:06:47 KST</span></p>
 
         <div class="chart-container">
             <h2>데이터 추이 차트</h2>
@@ -38,19 +47,24 @@
 
         <div style="margin-bottom: 20px;">
             <h2>AI 예측 결과</h2>
-            <div class="ai-box">초기 5일차 누적 매출 추이는 $3,179,000 이상으로 시작하여 현재까지 지속적으로 상승하는 매우 건강한 성장세를 보이고 있습니다. 이는 MMORPG 장르의 특성을 고려할 때 매우 긍정적인 초기 지표로 평가됩니다.<br><br>현재까지의 데이터를 기반으로 오늘(11월 1일) 하루 동안의 총 예상 매출은 $656,000으로 예측됩니다. 이 추세가 11월 한 달 내내 유지된다고 가정할 경우, 11월 총 예상 매출은 $19,680,000에 달할 것으로 전망됩니다.</div>
+            <!-- 쉘 스크립트에서 Gemini API 응답인 출시 초기 5일간의 누적 매출은 11월 1일 늦은 시간까지 360만 달러를 넘어섰습니다. 이는 전 세계 180개국에 서비스되는 신규 MMORPG로서 매우 건강하고 긍정적인 초기 성장 추세를 나타냅니다. 11월 1일 하루 동안의 매출 추이 또한 꾸준히 상승하여, 초기 플레이어들의 활발한 참여와 과금 활동이 잘 이루어지고 있음을 시사합니다.<br><br>현재까지의 데이터 분석을 바탕으로, 오늘(11월 1일) 하루 동안의 총 예상 매출 규모는 약 **$711,000**로 추정됩니다. 이와 같은 추세가 11월 한 달간 유지된다고 가정할 경우, 2025년 11월의 총 예상 매출은 약 **$21,330,000**에 이를 것으로 전망됩니다.으로 치환됩니다. -->
+            <div class="ai-box">출시 초기 5일간의 누적 매출은 11월 1일 늦은 시간까지 360만 달러를 넘어섰습니다. 이는 전 세계 180개국에 서비스되는 신규 MMORPG로서 매우 건강하고 긍정적인 초기 성장 추세를 나타냅니다. 11월 1일 하루 동안의 매출 추이 또한 꾸준히 상승하여, 초기 플레이어들의 활발한 참여와 과금 활동이 잘 이루어지고 있음을 시사합니다.<br><br>현재까지의 데이터 분석을 바탕으로, 오늘(11월 1일) 하루 동안의 총 예상 매출 규모는 약 **$711,000**로 추정됩니다. 이와 같은 추세가 11월 한 달간 유지된다고 가정할 경우, 2025년 11월의 총 예상 매출은 약 **$21,330,000**에 이를 것으로 전망됩니다.</div>
         </div>
         
         <h2>일별 요약 데이터</h2>
-        <tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>
+        <!-- 쉘 스크립트에서 생성된 일별 테이블 HTML인 <tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>로 치환됩니다. -->
+        <div id="daily-table-container">
+            <tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>
+        </div>
 
         <h2 style="margin-top: 40px;">시간별 상세 데이터</h2>
-        <table class="data-table"><thead>    <tr>        <th class="header-col">시간</th>        <th class="header-col right-align">값</th>        <th class="header-col right-align">변화</th>    </tr></thead><tbody></tbody></table>
+        <!-- 쉘 스크립트에서 생성된 시간별 테이블 HTML인 <table class="data-table"><thead>    <tr>        <th class="header-col">시간</th>        <th class="header-col right-align">값</th>        <th class="header-col right-align">변화</th>    </tr></thead><tbody></tbody></table>로 치환됩니다. -->
+        <div id="hourly-table-container">
+            <table class="data-table"><thead>    <tr>        <th class="header-col">시간</th>        <th class="header-col right-align">값</th>        <th class="header-col right-align">변화</th>    </tr></thead><tbody></tbody></table>
+        </div>
         
         <script>
-            // 차트 데이터 삽입 (토큰 추가)
-            const dataSet = JSON.parse('{    "raw_data_string": "2025-11-01 05:32:33 KST : 3,179,000
-2025-11-01 06:09:05 KST : 3,201,000
+            // 쉘 스크립트에서 파싱된 JSON 문자열인 {    "raw_data_string": "2025-11-01 06:09:05 KST : 3,201,000
 2025-11-01 07:43:10 KST : 3,216,000
 2025-11-01 08:25:36 KST : 3,235,300
 2025-11-01 10:02:47 KST : 3,280,000
@@ -78,40 +92,114 @@
 2025-11-01 21:29:30 KST : 3,626,900
 2025-11-01 21:37:44 KST : 3,626,900
 2025-11-01 21:48:40 KST : 3,626,900
-2025-11-01 21:55:55 KST : 3,626,900",    "labels": [],    "values": []}');
+2025-11-01 21:55:55 KST : 3,626,900
+2025-11-01 22:06:47 KST : 3,673,900",    "labels": [],    "values": []}로 치환됩니다.
+            // sed 명령어가 싱글 쿼트(')로 감싸서 데이터를 삽입할 것을 가정합니다.
+            const chartDataString = '{    "raw_data_string": "2025-11-01 06:09:05 KST : 3,201,000
+2025-11-01 07:43:10 KST : 3,216,000
+2025-11-01 08:25:36 KST : 3,235,300
+2025-11-01 10:02:47 KST : 3,280,000
+2025-11-01 11:11:03 KST : 3,298,800
+2025-11-01 14:30:00 KST : 3,388,600
+2025-11-01 15:37:06 KST : 3,446,400
+2025-11-01 16:56:10 KST : 3,475,700
+2025-11-01 17:17:10 KST : 3,501,400
+2025-11-01 18:27:55 KST : 3,545,100
+2025-11-01 20:04:13 KST : 3,600,600
+2025-11-01 20:10:32 KST : 3,600,600
+2025-11-01 20:18:51 KST : 3,600,600
+2025-11-01 20:22:54 KST : 3,600,600
+2025-11-01 20:27:11 KST : 3,600,600
+2025-11-01 20:31:29 KST : 3,600,600
+2025-11-01 20:36:13 KST : 3,600,600
+2025-11-01 20:45:21 KST : 3,600,600
+2025-11-01 20:54:42 KST : 3,600,600
+2025-11-01 21:01:23 KST : 3,626,900
+2025-11-01 21:03:56 KST : 3,626,900
+2025-11-01 21:07:20 KST : 3,626,900
+2025-11-01 21:11:26 KST : 3,626,900
+2025-11-01 21:18:52 KST : 3,626,900
+2025-11-01 21:26:05 KST : 3,626,900
+2025-11-01 21:29:30 KST : 3,626,900
+2025-11-01 21:37:44 KST : 3,626,900
+2025-11-01 21:48:40 KST : 3,626,900
+2025-11-01 21:55:55 KST : 3,626,900
+2025-11-01 22:06:47 KST : 3,673,900",    "labels": [],    "values": []}';
+            let dataSet = { labels: [], values: [] };
 
-            // 마지막 업데이트 시간 표시
-            // 데이터셋 레이블에서 마지막 요소를 추출하여 업데이트 시간을 표시합니다.
-            const lastDataPoint = dataSet.labels[dataSet.labels.length - 1];
-            document.getElementById('update-time').textContent = lastDataPoint;
+            try {
+                // 싱글 쿼트 제거 후 JSON 파싱
+                dataSet = JSON.parse(chartDataString);
+            } catch (e) {
+                console.error("Error parsing chart data JSON:", e);
+                // 데이터 파싱 실패 시 기본값 사용
+                dataSet = { 
+                    labels: ["데이터 오류"], 
+                    values: [0] ,
+                    raw_data_string: chartDataString
+                };
+            }
 
             // Chart.js 설정
             const ctx = document.getElementById('myChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
-                data: dataSet,
+                data: {
+                    // 라벨에서 시간 부분(HH:MM)만 잘라서 표시
+                    labels: dataSet.labels.map(label => label.substring(11, 16)), 
+                    datasets: [{
+                        label: '매출 추정치 ($)',
+                        data: dataSet.values,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.3, 
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: true
+                    }]
+                },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false, 
+                    layout: {
+                        padding: { top: 10 }
+                    },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
+                                // 툴팁 통화 단위를 달러($)로 표시
                                 label: function(context) {
-                                    return context.parsed.y.toLocaleString() + ' 원';
+                                    // 값이 null이거나 숫자가 아니면 처리하지 않음
+                                    if (typeof context.parsed.y !== 'number' || isNaN(context.parsed.y)) {
+                                        return context.dataset.label + ': ' + context.parsed.y;
+                                    }
+                                    return context.parsed.y.toLocaleString('en-US') + ' 달러($)'; 
+                                },
+                                title: function(context) {
+                                    // 전체 시간 레이블 사용
+                                    if (context.length > 0) {
+                                        return dataSet.labels[context[0].dataIndex];
+                                    }
+                                    return '';
                                 }
                             }
                         }
                     },
                     scales: {
+                        x: {
+                            title: { display: true, text: '시간대' },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        },
                         y: {
                             beginAtZero: false,
                             ticks: {
+                                // Y축 통화 단위를 달러($)로 표시
                                 callback: function(value) {
-                                    return value.toLocaleString() + ' 원';
+                                    return value.toLocaleString('en-US') + ' $';
                                 }
-                            }
+                            },
+                            title: { display: true, text: '매출 ($)' }
                         }
                     }
                 }
@@ -120,3 +208,4 @@
     </div>
 </body>
 </html>
+
