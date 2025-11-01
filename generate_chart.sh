@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate_chart.sh (수정본)
+# generate_chart.sh (MMORPG 매출 분석 최종 수정본)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인 (불필요한 경로 오류 방지)
 if [ ! -d ".git" ]; then
@@ -58,7 +58,6 @@ done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
 # 차트가 데이터 전체를 로드하도록 수정
-# **LABELS와 VALUES 배열을 JSON 형식으로 안전하게 이스케이프 처리**
 chart_labels=$(printf '"%s", ' "${LABELS[@]}" | sed 's/, $//')
 chart_values=$(IFS=','; echo "${VALUES[*]}")
 
@@ -67,7 +66,7 @@ chart_values=$(IFS=','; echo "${VALUES[*]}")
 RAW_DATA_STRING=$(cat "$DATA_LINES" | sed -E ':a;N;$!ba;s/\n/\\n/g')
 
 
-# **JSON 생성 시 jq를 사용하여 문자열을 안전하게 처리**
+# JSON 생성 시 jq를 사용하여 문자열을 안전하게 처리
 chart_data_raw=$(cat <<EOD
 {
     "raw_data_string": "${RAW_DATA_STRING}",
@@ -76,10 +75,11 @@ chart_data_raw=$(cat <<EOD
 }
 EOD
 )
-chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/"/\\"/g') # 한 줄로 만들고 내부 "를 \"로 이스케이프
+# AWK 전달을 위해: 한 줄로 만들고 내부 큰따옴표를 역슬래시로 이스케이프
+chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/"/\\"/g') 
 
 # ====================================================================
-# 2. HTML 테이블 생성 함수 (이스케이프 로직 제거 및 출력 클린업)
+# 2. HTML 테이블 생성 함수
 # ====================================================================
 
 # 2.1. 일별 테이블 HTML 생성 함수
@@ -93,38 +93,33 @@ generate_daily_table() {
     sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -r)
 
     local table_rows=""
-    local previous_value_int=0 # 정수형으로 초기화
+    local previous_value_int=0 
 
-    # **첫 번째 루프: 역순으로 읽기 (날짜 순서대로 변화량 계산)**
     local temp_rows=""
     while IFS=' : ' read -r date value_str; do
         if [ -z "$date" ]; then continue; fi
 
-        # 쉼표 제거 및 정수형 변환을 확실히 함
         current_value_int=$(echo "$value_str" | sed 's/,//g')
         
-        # 값이 숫자인지 확인 (배시 정수 비교 오류 방지)
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
             continue
         fi
         
-        # 표시용 값 (쉼표 포함)
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
-        local color="#6c757d" # 회색 (기본값)
+        local color="#6c757d" 
         
-        # 이전 값이 0이 아닐 때만 변화량 계산
         if [ "$previous_value_int" -ne 0 ]; then
             change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
-                color="#dc3545" # 빨간색 (상승)
+                color="#dc3545" 
                 change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
-                color="#007bff" # 파란색 (하락)
+                color="#007bff" 
                 change_str="-$formatted_change"
             else
                 color="#333"
@@ -132,7 +127,6 @@ generate_daily_table() {
             fi
         fi
 
-        # 테이블 행 생성 (정순으로 누적)
         temp_rows=$(cat <<EOT
 $temp_rows
 <tr>
@@ -142,14 +136,12 @@ $temp_rows
 </tr>
 EOT
 )
-        previous_value_int=$current_value_int # 다음 루프를 위해 현재 값을 이전 값으로 설정
+        previous_value_int=$current_value_int 
     done <<< "$sorted_daily_data"
 
-    # **두 번째 루프: 누적된 행을 역순으로 출력 (최신 날짜가 위로)**
     table_rows=$(echo "$temp_rows" | tac)
 
 
-    # 테이블 헤더 추가
     daily_table=$(cat <<EOD
 <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;">
 <thead>
@@ -165,46 +157,41 @@ $table_rows
 </table>
 EOD
 )
-    # **AWK 치환을 위해 모든 개행 문자 제거**
-    echo "$daily_table" | tr -d '\n'
+    # AWK 전달을 위해: 모든 개행 문자 제거 후, 내부 큰따옴표를 역슬래시로 이스케이프
+    echo "$daily_table" | tr -d '\n' | sed 's/"/\\"/g'
 }
 
 # 2.2. 시간별 테이블 HTML 생성 함수
 generate_hourly_table() {
     local table_rows=""
-    local previous_value_int=0 # 정수형으로 초기화
-    local reverse_data=$(cat "$DATA_LINES") # 최신 데이터부터 처리하기 위해 역순 처리
+    local previous_value_int=0 
+    local reverse_data=$(cat "$DATA_LINES") 
 
-    # **첫 번째 루프: 역순으로 읽기 (시간 순서대로 변화량 계산)**
     local temp_rows=""
     while IFS=' : ' read -r datetime value_str; do
         if [ -z "$datetime" ]; then continue; fi
 
-        # 쉼표 제거 및 정수형 변환을 확실히 함
         current_value_int=$(echo "$value_str" | sed 's/,//g')
 
-        # 값이 숫자인지 확인 (배시 정수 비교 오류 방지)
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
             continue
         fi
 
-        # 표시용 값 (쉼표 포함)
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
-        local color="#6c757d" # 회색 (기본값)
+        local color="#6c757d" 
         
-        # 이전 값이 0이 아닐 때만 변화량 계산
         if [ "$previous_value_int" -ne 0 ]; then
             change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
-            formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta') # **수정: 변화량 변수를 사용하도록 수정**
+            formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
-                color="#dc3545" # 빨간색 (상승)
+                color="#dc3545" 
                 change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
-                color="#007bff" # 파란색 (하락)
+                color="#007bff" 
                 change_str="-$formatted_change"
             else
                 color="#333"
@@ -212,7 +199,6 @@ generate_hourly_table() {
             fi
         fi
 
-        # 테이블 행 생성 (정순으로 누적)
         temp_rows=$(cat <<EOT
 $temp_rows
 <tr>
@@ -222,14 +208,12 @@ $temp_rows
 </tr>
 EOT
 )
-        previous_value_int=$current_value_int # 다음 루프를 위해 현재 값을 이전 값으로 설정
+        previous_value_int=$current_value_int 
     done <<< "$reverse_data"
 
-    # **두 번째 루프: 누적된 행을 역순으로 출력 (최신 시간대가 위로)**
     table_rows=$(echo "$temp_rows" | tac)
 
 
-    # 테이블 헤더 추가
     hourly_table=$(cat <<EOD
 <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
 <thead>
@@ -245,8 +229,8 @@ $table_rows
 </table>
 EOD
 )
-    # **AWK 치환을 위해 모든 개행 문자 제거**
-    echo "$hourly_table" | tr -d '\n'
+    # AWK 전달을 위해: 모든 개행 문자 제거 후, 내부 큰따옴표를 역슬래시로 이스케이프
+    echo "$hourly_table" | tr -d '\n' | sed 's/"/\\"/g'
 }
 
 # 테이블 생성 실행
@@ -259,28 +243,37 @@ hourly_table=$(generate_hourly_table)
 
 # 3.1. 분석을 위한 데이터 준비
 analysis_data=$(cat "$DATA_LINES")
+# 현재 날짜 (스크립트 실행 시점 기준)
+CURRENT_DATE=$(date +"%Y-%m-%d")
 
 # 3.2. Gemini API 호출
 echo "3.2. Gemini API 호출 시작..."
-# API 엔드포인트를 v1beta로 변경하여 안정성 확보
 API_ENDPOINT="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
 
-# 프롬프트 정의
+# MMORPG 게임 매출 분석 프롬프트로 수정
 prompt_text=$(cat <<EOP
-당신은 금융 데이터 분석가입니다. 아래 데이터는 시간: 값 형식의 시계열 데이터입니다.
-[데이터]
+당신은 출시 5일차(10월 28일 오픈) MMORPG 모바일/PC 게임의 매출 분석가입니다. 아래 데이터는 매분 수집된 매출 추정치 시계열 데이터입니다.
+
+**게임 정보:**
+* 장르: MMORPG (모바일/PC)
+* 오픈일: 2025년 10월 28일
+* 서비스 지역: 전 세계 180개국
+* 데이터 값: 매출 추정치 (환율/세금 미포함 RAW 데이터)
+
+**[데이터]**
 $analysis_data
 
-[분석 지침]
-1.  **최근 추세 분석**: 데이터의 최근 3일간의 변화를 분석하세요 (상승/하락 추세).
-2.  **예측**: 다음 측정 시점(약 1~2시간 후)의 값을 합리적으로 예측하세요.
-3.  **요약**: 이 상황을 한 줄로 요약하세요.
-4.  **출력 형식**: 분석 결과만 (마크다운 없이) 한 문단으로 작성해 주세요.
+**[분석 지침]**
+분석은 간결하고 명료하게, 마케팅 및 운영팀이 활용할 수 있도록 실제적인 통찰을 제공해야 합니다.
+1.  **초기 성장 분석 (5일차 누적):** 출시 초기 5일간의 전반적인 매출 추이(상승, 하락, 정체)와 추세가 MMORPG 특성상 건강한지 평가하세요.
+2.  **금일 예상 매출 예측:** 현재 시간까지의 데이터($CURRENT_DATE)를 바탕으로, 오늘 하루(23:59:59까지)의 총 예상 매출 규모를 구체적인 숫자로 제시하세요.
+3.  **이달 (11월) 총 예상 매출 예측:** 현재 추세가 유지된다고 가정하고, 11월 총 예상 매출을 합리적인 숫자로 예측하세요.
+4.  **다음 조치 제언:** 현재 추세를 극대화하거나 리스크를 관리하기 위한 간략한 다음 액션 플랜을 제시하세요.
+5.  **출력 형식:** 분석 결과만 (마크다운 없이) 두 문단 이내로 작성해 주세요. (예측치는 쉼표가 포함된 형태로 제시)
 EOP
 )
 
 # JSON 본문 생성
-# jq -s -R '.' | sed 's/\\n//g'를 사용하여 문자열을 안전하게 인코딩
 json_content=$(echo "$prompt_text" | jq -s -R '.' | tr -d '\n')
 json_payload=$(cat <<EOD
 {
@@ -304,16 +297,14 @@ response=$(curl -s -X POST -H "Content-Type: application/json" -d "$json_payload
 if [ -z "$response" ]; then
     ai_prediction="Gemini API 응답을 받지 못했습니다. 네트워크 또는 API 문제일 수 있습니다."
 else
-    # jq를 사용하여 'text' 필드 추출
     ai_prediction_raw=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null)
     
     if [ -z "$ai_prediction_raw" ] || [ "$ai_prediction_raw" == "null" ]; then
-        # 오류 메시지 또는 API 응답 전문 저장
         error_message=$(echo "$response" | html2text)
         ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
     else
         # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
-        # **AWK 치환을 위해 내부의 큰따옴표를 역슬래시로 이스케이프**
+        # AWK 전달을 위해: 내부의 큰따옴표를 역슬래시로 이스케이프
         ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g' | sed 's/"/\\"/g')
     fi
 fi
@@ -333,11 +324,10 @@ echo "4.1. index.html 파일 생성 시작 (AWK 스크립트 파일 방식)..."
 # 템플릿 파일을 임시 파일로 복사
 cp template.html /tmp/index_temp.html
 
-# **AWK 스크립트 생성 (변수 치환)**
-# ⚠️ AWK 스크립트 내에서 셸 변수를 직접 사용하여 이스케이프 문제를 해결합니다.
+# AWK 스크립트 생성 (이스케이프된 변수를 안전하게 사용)
 cat > /tmp/replace.awk <<EOD
 BEGIN {
-    # 셸 변수를 AWK 변수로 가져오기 (AWK 내에서 치환 시 이스케이프 문제가 발생하지 않도록 처리)
+    # 셸 변수를 AWK 변수로 가져오기. (내부 "가 \"로 이스케이프되어 있어 안전함)
     chart_data = "$chart_data";
     ai_prediction = "$ai_prediction";
     daily_table = "$daily_table";
@@ -345,8 +335,7 @@ BEGIN {
     last_update_time = "$LAST_UPDATE_TIME";
 }
 {
-    # AWK에서 치환은 gsub 함수를 사용하며, 구분자로 파이프 기호(|)를 사용
-    # 변수 치환
+    # AWK에서 치환은 gsub 함수를 사용
     gsub(/__CHART_DATA__/, chart_data);
     gsub(/__AI_PREDICTION__/, ai_prediction);
     gsub(/__DAILY_TABLE_HTML__/, daily_table);
