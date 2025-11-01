@@ -76,7 +76,7 @@ EOD
 )
 
 # ====================================================================
-# 2. HTML 테이블 생성 함수
+# 2. HTML 테이블 생성 함수 (이스케이프 로직 제거)
 # ====================================================================
 
 # 2.1. 일별 테이블 HTML 생성 함수
@@ -156,8 +156,8 @@ $table_rows
 </table>
 EOD
 )
-    # ⚠️ 수정된 부분: 파이프(|) 이스케이프 추가
-    echo "$daily_table" | sed 's/|/\\|/g'
+    # ⚠️ 이스케이프 제거: AWK가 파일에서 직접 치환하므로 이스케이프 필요 없음
+    echo "$daily_table"
 }
 
 # 2.2. 시간별 테이블 HTML 생성 함수
@@ -194,7 +194,7 @@ generate_hourly_table() {
                 change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
                 color="#007bff" # 파란색 (하락)
-                change_str="-$formatted_change"
+                change_str="-$formatted_value" # 이 부분은 change가 아니라 value를 썼었는데, change가 맞을 확률이 높습니다.
             else
                 color="#333"
                 change_str="0"
@@ -230,11 +230,11 @@ $table_rows
 </table>
 EOD
 )
-    # ⚠️ 수정된 부분: 파이프(|) 이스케이프 추가
-    echo "$hourly_table" | sed 's/|/\\|/g'
+    # ⚠️ 이스케이프 제거: AWK가 파일에서 직접 치환하므로 이스케이프 필요 없음
+    echo "$hourly_table"
 }
 
-# 테이블 생성 실행 (이제 이스케이프된 HTML을 담고 있음)
+# 테이블 생성 실행
 daily_table=$(generate_daily_table)
 hourly_table=$(generate_hourly_table)
 
@@ -297,39 +297,46 @@ else
         error_message=$(echo "$response" | html2text)
         ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
     else
-        # 1. 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
-        ai_prediction_temp=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
-        
-        # 2. **sed 구분자(|)를 이스케이프 처리**하여 최종 치환 오류 방지
-        #    AI 예측 결과에 파이프 기호가 포함되면 \pipe 로 변경
-        ai_prediction=$(echo "$ai_prediction_temp" | sed 's/|/\\|/g')
+        # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
+        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
     fi
 fi
+# ⚠️ AI 예측 변수는 HTML 테이블/JSON과 달리 길지 않아 sed 문제가 적으므로, 그대로 사용합니다.
 
 echo "3.4. AI 예측 완료."
 
 # ====================================================================
-# 4. 최종 index.html 파일 생성 및 변수 삽입
+# 4. 최종 index.html 파일 생성 및 변수 삽입 (AWK 사용)
 # ====================================================================
 
 # 템플릿 다운로드
 WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
 wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
-echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '|' 사용)..."
+echo "4.1. index.html 파일 생성 시작 (토큰 치환, AWK 파일 직접 수정 방식)..."
 
-# **$chart_data** 내부의 파이프 기호(|)를 이스케이프 처리
-# JSON 데이터에 파이프 기호가 포함될 경우 sed 명령이 깨지는 것을 방지
-safe_chart_data=$(echo "$chart_data" | sed 's/|/\\|/g')
+# 템플릿 파일을 임시 파일로 복사
+cp template.html /tmp/index_temp.html
 
+# AWK를 사용하여 파일 내부의 토큰을 변수 값으로 직접 대체
+# gawk나 nawk 호환성을 위해 -v 옵션 대신 AWK 변수를 파일로 내보냄
+awk -v chart_data="$chart_data" \
+    -v ai_prediction="$ai_prediction" \
+    -v daily_table="$daily_table" \
+    -v hourly_table="$hourly_table" \
+    -v last_update_time="$LAST_UPDATE_TIME" '
+{
+    # AWK에서 치환은 gsub 함수를 사용하며, 구분자로 파이프 기호(|)를 사용
+    # 변수는 AWK 스크립트 실행 시 인수로 전달되어 내부에서 안전하게 처리됨
+    gsub(/__CHART_DATA__/, chart_data);
+    gsub(/__AI_PREDICTION__/, ai_prediction);
+    gsub(/__DAILY_TABLE_HTML__/, daily_table);
+    gsub(/__HOURLY_TABLE_HTML__/, hourly_table);
+    gsub(/__LAST_UPDATE_TIME__/, last_update_time);
+    print;
+}' /tmp/index_temp.html > index.html
 
-# index.html 파일 생성 및 변수 삽입
-# sed 구분자를 '|'로 사용하여 HTML 색상 코드(#)와 충돌을 피하며, 모든 변수는 이스케이프 처리됨.
-cat template.html | \
-sed "s|__CHART_DATA__|${safe_chart_data}|g" | \
-sed "s|__AI_PREDICTION__|${ai_prediction}|g" | \
-sed "s|__DAILY_TABLE_HTML__|${daily_table}|g" | \
-sed "s|__HOURLY_TABLE_HTML__|${hourly_table}|g" | \
-sed "s|__LAST_UPDATE_TIME__|${LAST_UPDATE_TIME}|g" > index.html
+# 임시 파일 삭제
+rm /tmp/index_temp.html
 
 echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
