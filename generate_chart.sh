@@ -156,8 +156,8 @@ $table_rows
 </table>
 EOD
 )
-
-    echo "$daily_table"
+    # ⚠️ 수정된 부분: 파이프(|) 이스케이프 추가
+    echo "$daily_table" | sed 's/|/\\|/g'
 }
 
 # 2.2. 시간별 테이블 HTML 생성 함수
@@ -230,11 +230,11 @@ $table_rows
 </table>
 EOD
 )
-
-    echo "$hourly_table"
+    # ⚠️ 수정된 부분: 파이프(|) 이스케이프 추가
+    echo "$hourly_table" | sed 's/|/\\|/g'
 }
 
-# 테이블 생성 실행
+# 테이블 생성 실행 (이제 이스케이프된 HTML을 담고 있음)
 daily_table=$(generate_daily_table)
 hourly_table=$(generate_hourly_table)
 
@@ -324,7 +324,7 @@ safe_chart_data=$(echo "$chart_data" | sed 's/|/\\|/g')
 
 
 # index.html 파일 생성 및 변수 삽입
-# sed 구분자를 '|'로 사용하여 HTML 색상 코드(#)와 충돌을 피합니다.
+# sed 구분자를 '|'로 사용하여 HTML 색상 코드(#)와 충돌을 피하며, 모든 변수는 이스케이프 처리됨.
 cat template.html | \
 sed "s|__CHART_DATA__|${safe_chart_data}|g" | \
 sed "s|__AI_PREDICTION__|${ai_prediction}|g" | \
