@@ -7,6 +7,7 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
+
 # API 키 확인
 if [ -z "$GEMINI_API_KEY" ]; then
     echo "ERROR: GEMINI_API_KEY 환경 변수가 설정되지 않았습니다." >&2
