@@ -298,7 +298,7 @@ API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:genera
 LAST_DATA_DATE=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | cut -d ' ' -f 1)
 TARGET_DATE=$(date -d "$LAST_DATA_DATE + 1 day" +%Y-%m-%d)
 
-# 🚀 [수정 부분] 현재 월의 마지막 날짜 (월말)를 계산합니다.
+# 현재 월의 마지막 날짜 (월말)를 계산합니다.
 YEAR_MONTH=$(date -d "$LAST_DATA_DATE" +%Y-%m)
 # 다음 달 1일에서 하루를 빼서 현재 월의 마지막 날을 구합니다.
 END_OF_MONTH_DATE=$(date -d "$YEAR_MONTH-01 + 1 month - 1 day" +%Y-%m-%d)
@@ -311,11 +311,11 @@ escape_json() {
     echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
 }
 
-# 🚨 [수정된 부분] SYSTEM_PROMPT에 월말 예측 요청 추가
-SYSTEM_PROMPT="당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)입니다. 이 데이터를 분석할 때, **일별 변화량(Day-over-Day Variation)의 추이 분석**에 최우선 순위를 두세요. 분석 결과는 다음 네 가지를 포함해야 합니다: 1) **최근 일별 변화 추세(상승, 하락, 횡보)**, 2) **최대 일별 상승 및 하락 변동성 구간 파악** (변화의 가속도), 3) **다음 날인 ${TARGET_DATE}의 최종 예상 누적 값 예측** (추정치임을 명시), 4) **이달 말인 ${END_OF_MONTH_DATE}의 최종 예상 누적 값 예측** (추정치임을 명시). 응답은 분석과 예측을 모두 포함하는 **단일하고 명확한 한국어 문단**으로 제공하세요. **별도의 목록이나 표는 제시하지 마세요.**"
+# 🚨 [수정된 부분] SYSTEM_PROMPT: 응답 길이를 '최대 3문장 이내'로 제한하고 요청 사항을 간소화
+SYSTEM_PROMPT="당신은 전문 데이터 분석가입니다. 제공된 일별 누적 데이터(단위: 달러)를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
 
-# 🚨 [수정된 부분] USER_QUERY에 월말 예측 요청 추가
-USER_QUERY="다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
+# 🚨 [수정된 부분] USER_QUERY: 불필요한 설명 제거 및 간소화
+USER_QUERY="다음은 시계열 누적 데이터입니다. 이 데이터를 분석하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
 
 JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
 JSON_USER_QUERY=$(escape_json "$USER_QUERY")
@@ -345,7 +345,7 @@ if [ -n "$GEMINI_API_KEY" ]; then
         PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 예측 결과 실패.</span> API 오류: ${ERROR_MESSAGE}</div>"
         PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (API 오류)"
     else
-        # 🚨 [수정된 부분] jq를 사용하여 안정적으로 JSON 파싱 및 텍스트 추출
+        # jq를 사용하여 안정적으로 JSON 파싱 및 텍스트 추출
         RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // ""' 2>/dev/null)
 
         if [ -z "$RAW_TEXT_CONTENT" ]; then
