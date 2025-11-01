@@ -1,6 +1,11 @@
 #!/bin/bash
 # generate_chart.sh (데이터 파싱 및 구문 안정화 버전)
 
+# ----------------------------------------------------------------------
+# 이 스크립트는 AWK를 사용하여 멀티라인 데이터를 JavaScript 템플릿 리터럴(` `)에 
+# 안전하게 삽입하도록 수정되었습니다. (복잡한 JSON 생성 로직 제거)
+# ----------------------------------------------------------------------
+
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인
 if [ ! -d ".git" ]; then
     echo "ERROR: 이 스크립트는 Git 저장소 디렉토리 내에서 실행되어야 합니다." >&2
@@ -25,35 +30,17 @@ fi
 # 빈 줄 제거
 sed -i '/^$/d' result.txt
 
-# 전체 데이터를 최신 30개 항목만 사용
-tail -n 30 result.txt > /tmp/recent_data.txt
-DATA_LINES="/tmp/recent_data.txt"
+# **중요:** HTML의 JS로 전달할 전체 원시 데이터 문자열 (줄바꿈 포함)
+# 이 데이터를 AWK로 치환하여 JS 백틱 안에 넣을 것입니다.
+RAW_DATA_FOR_JS=$(cat result.txt)
 
 # 최종 업데이트 시간 추출 (sed 치환을 위해 ~ 이스케이프)
 LAST_UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | sed 's/\~/\\~/g') 
 
-LABELS=()
-VALUES=()
+# 일별 데이터 추출을 위해 result.txt 전체 사용
 declare -A DAILY_DATA
 
-# 1.1. 차트 데이터 (시간별) 생성
-# CRITICAL FIX: IFS를 ":"로 설정하고 xargs로 앞뒤 공백 제거하여 정확하게 "시각"과 "값"만 분리
-while IFS=":" read -r datetime_raw value_raw; do
-    # 앞뒤 공백 제거
-    datetime=$(echo "$datetime_raw" | xargs)
-    value=$(echo "$value_raw" | xargs)
-
-    clean_value=$(echo "$value" | sed 's/,//g')
-    
-    # 데이터가 유효한지 확인
-    if [[ -n "$clean_value" && "$clean_value" =~ ^[0-9]+$ ]]; then
-        # 라벨은 JSON에서 문자열로 안전하게 처리
-        LABELS+=("$(echo "$datetime")")
-        VALUES+=("$clean_value")
-    fi
-done < "$DATA_LINES"
-
-# 1.2. 일별 데이터 추출
+# 1.1. 일별 데이터 추출
 # CRITICAL FIX: IFS를 ":"로 설정하고 xargs로 앞뒤 공백 제거하여 정확하게 "시각"과 "값"만 분리
 while IFS=":" read -r datetime_raw value_raw; do
     # 앞뒤 공백 제거
@@ -69,40 +56,8 @@ while IFS=":" read -r datetime_raw value_raw; do
     fi
 done < result.txt
 
-# 1.3. Chart.js 데이터셋 JSON 생성
-if [ ${#LABELS[@]} -gt 0 ]; then
-    chart_labels=$(printf '"%s", ' "${LABELS[@]}" | sed 's/, $//')
-else
-    chart_labels=""
-fi
-
-chart_values=""
-if [ ${#VALUES[@]} -gt 0 ]; then
-    for val in "${VALUES[@]}"; do
-        if [ -n "$chart_values" ]; then
-            chart_values="${chart_values},${val}"
-        else
-            chart_values="${val}"
-        fi
-    done
-fi
-
-chart_data_raw=$(cat <<EOD
-{
-    "raw_data_string": "$(cat "$DATA_LINES" | sed -E ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')",
-    "labels": [${chart_labels}],
-    "values": [${chart_values}]
-}
-EOD
-)
-
-chart_data_single_line=$(echo "$chart_data_raw" | tr -d '\n')
-
-# CRITICAL FIX:
-# 1. JSON 문자열이 HTML의 JS에서 싱글 쿼트('...')로 감싸지므로, 내부의 모든 싱글 쿼트를 이스케이프(\')해야 합니다.
-# 2. sed 구분자 ~도 이스케이프합니다.
-chart_data=$(echo "$chart_data_single_line" | sed "s/'/\\\'/g" | sed 's/\~/\\~/g')
-
+# **기존의 LABELS 및 VALUES 배열 생성 로직과 JSON 생성 로직은 제거되었습니다.**
+# 이제 JavaScript가 RAW_DATA_CONTENT를 파싱하여 차트를 그립니다.
 
 # ====================================================================
 # 2. HTML 테이블 생성 함수 (sed 치환 안정화)
@@ -112,7 +67,7 @@ chart_data=$(echo "$chart_data_single_line" | sed "s/'/\\\'/g" | sed 's/\~/\\~/g
 escape_for_sed() {
     # sed의 구분자로 사용될 ~ 문자를 이스케이프 (\~)
     # sed 치환 오류를 유발하는 & 문자를 이스케이프 (\&)
-    # 줄바꿈 제거
+    # 줄바꿈 제거 (AI 예측 텍스트는 별도로 <br> 치환이 필요)
     echo "$1" | tr -d '\n' | sed 's/\~/\\~/g' | sed 's/\&/\\&/g'
 }
 
@@ -130,7 +85,7 @@ generate_daily_table() {
     fi
     
     # 날짜를 기준으로 내림차순 정렬 (최신 날짜가 위에)
-    sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -r)
+    sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -k1,1 -r)
 
     local table_rows=""
     local previous_value_int=0 
@@ -141,7 +96,7 @@ generate_daily_table() {
         if [ -z "$date" ]; then continue; fi
         current_value_int=$(echo "$value_str" | sed 's/,//g')
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then 
-            previous_value_int=0 # 유효하지 않은 값은 스킵하고 이전 값을 0으로 리셋하여 다음 값은 '---'로 처리
+            previous_value_int=0 
             continue 
         fi
         
@@ -153,9 +108,6 @@ generate_daily_table() {
         
         # 이전 날짜의 값이 있으면 변화량 계산 (역순으로 계산되지만, 이전 날짜와 비교하는 것은 맞음)
         if [ "$previous_value_int" -ne 0 ]; then
-            # 이전 데이터에서 현재 데이터로의 변화 (데이터는 내림차순)
-            # 즉, 현재 날짜(최신 데이터) - 이전 날짜(더 오래된 데이터)
-            # 여기서는 일별 최종값의 변화만 계산하므로, 이전 값과의 차이를 계산
             change=$((current_value_int - previous_value_int)) 
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
@@ -202,7 +154,7 @@ $table_rows
 </table>
 EOD
 )
-    # sed 치환을 위해 이스케이프 처리
+    # sed 치환을 위해 이스케이프 처리 (줄바꿈이 사라짐)
     echo "$(escape_for_sed "$daily_table_html")"
 }
 
@@ -210,7 +162,8 @@ EOD
 generate_hourly_table() {
     local table_rows=""
     local previous_value_int=0 
-    local reverse_data=$(cat "$DATA_LINES") 
+    # 차트와 동일하게 최근 30개 항목만 사용
+    local reverse_data=$(tail -n 30 result.txt) 
 
     if [ -z "$reverse_data" ]; then
         echo "$(escape_for_sed "<tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>")"
@@ -284,7 +237,7 @@ $table_rows
 </table>
 EOD
 )
-    # sed 치환을 위해 이스케이프 처리
+    # sed 치환을 위해 이스케이프 처리 (줄바꿈이 사라짐)
     echo "$(escape_for_sed "$hourly_table_html")"
 }
 
@@ -296,9 +249,8 @@ hourly_table=$(generate_hourly_table)
 # 3. AI 예측 및 분석 (Gemini API 사용)
 # ====================================================================
 
-# AI 예측 로직...
 API_ENDPOINT="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
-analysis_data=$(cat "$DATA_LINES")
+analysis_data=$(tail -n 30 result.txt)
 CURRENT_DATE=$(date +"%Y-%m-%d")
 
 echo "3.2. Gemini API 호출 시작..."
@@ -343,14 +295,16 @@ EOD
 response=$(curl -s -X POST -H "Content-Type: application/json" -d "$json_payload" "$API_ENDPOINT")
 
 if [ -z "$response" ]; then
-    ai_prediction="Gemini API 응답을 받지 못했습니다. 네트워크 또는 API 문제일 수 있습니다."
+    # AI 예측 결과에서 줄바꿈을 <br>로 치환
+    ai_prediction=$(echo "Gemini API 응답을 받지 못했습니다. 네트워크 또는 API 문제일 수 있습니다." | sed 's/\n/<br>/g')
 else
     ai_prediction_raw=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null)
     
     if [ -z "$ai_prediction_raw" ] || [ "$ai_prediction_raw" == "null" ]; then
         error_message=$(echo "$response" | html2text)
-        ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
+        ai_prediction=$(echo "AI 예측 실패. 응답 오류: ${error_message}" | sed 's/\n/<br>/g')
     else
+        # AI 예측 결과에서 줄바꿈을 <br>로 치환하여 HTML에 삽입
         ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
     fi
 fi
@@ -360,22 +314,38 @@ ai_prediction=$(escape_for_sed "$ai_prediction")
 echo "3.4. AI 예측 완료."
 
 # ====================================================================
-# 4. 최종 index.html 파일 생성 및 변수 삽입 (Sed 스크립트 파일 사용)
+# 4. 최종 index.html 파일 생성 및 변수 삽입 (Sed + AWK 스크립트 파일 사용)
 # ====================================================================
 
-# 템플릿 다운로드 (로컬 환경에 template.html이 있다고 가정)
-# WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
-# wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
-
-echo "4.1. index.html 파일 생성 시작 (Sed 스크립트 방식, 구분자 ~ 사용)..."
+echo "4.1. index.html 파일 생성 시작 (Sed + AWK 사용)..."
 
 cp template.html index.html
 
-# Sed를 사용하여 변수 치환 실행 (구분자로 ~ 사용)
-sed -i "s~__CHART_DATA__~$chart_data~g" index.html
-sed -i "s~__AI_PREDICTION__~$ai_prediction~g" index.html
-sed -i "s~__DAILY_TABLE_HTML__~$daily_table~g" index.html
-sed -i "s~__HOURLY_TABLE_HTML__~$hourly_table~g" index.html
-sed -i "s~__LAST_UPDATE_TIME__~$LAST_UPDATE_TIME~g" index.html
+# 4.1. Sed를 사용하여 HTML 텍스트/HTML 테이블 영역 치환 (줄바꿈이 없는 변수)
+# 구분자로 ~ 사용
+sed -i.bak "s~__AI_PREDICTION__~$ai_prediction~g" index.html
+sed -i.bak "s~__DAILY_TABLE_HTML__~$daily_table~g" index.html
+sed -i.bak "s~__HOURLY_TABLE_HTML__~$hourly_table~g" index.html
+sed -i.bak "s~__LAST_UPDATE_TIME__~$LAST_UPDATE_TIME~g" index.html
 
-echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
+# 4.2. AWK를 사용하여 JavaScript 변수 치환 (멀티라인 데이터, 가장 중요한 부분)
+# RAW_DATA_FOR_JS (result.txt의 전체 내용)를 백틱(` `) 안에 안전하게 삽입합니다.
+awk -v data_to_insert="$RAW_DATA_FOR_JS" '
+    BEGIN {
+        # AWK의 -v 옵션을 통해 전달된 문자열은 줄바꿈이 그대로 살아있습니다.
+        # 이스케이프가 필요 없으므로, 문자열 그대로 REPLACEMENT에 저장합니다.
+        # 치환할 원본 문자열 패턴.
+        TARGET_PATTERN = "const RAW_DATA_CONTENT = `RAW_DATA_PLACEHOLDER_FOR_JS`;"
+        REPLACEMENT = "const RAW_DATA_CONTENT = `" data_to_insert "`;";
+    }
+    {
+        # 파일 전체를 순회하며 치환
+        sub(TARGET_PATTERN, REPLACEMENT);
+        print;
+    }
+' index.html > index.html.tmp && mv index.html.tmp index.html
+
+# 4.3. 정리 및 결과 출력
+rm index.html.bak 2>/dev/null
+echo "4.4. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
+
