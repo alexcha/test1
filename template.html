@@ -15,13 +15,12 @@
         .chart-container { margin-bottom: 40px; }
         
         /* 테이블 스타일 */
-        /* 이 스타일은 쉘 스크립트에서 삽입되는 테이블에 적용됩니다. */
         table { width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         thead th { padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333; }
         tbody td { padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; color: #343a40; }
         tbody tr:last-child td { border-bottom: none; }
         
-        /* 변화량 색상 (쉘 스크립트에서 이 클래스를 사용해 생성) */
+        /* 변화량 색상 */
         .plus { color: #dc3545; font-weight: 600; } 
         .minus { color: #007bff; font-weight: 600; } 
         .zero { color: #6c757d; font-weight: 600; } 
@@ -37,7 +36,6 @@
 <body>
     <div class="container">
         <h1>자동 업데이트 데이터 차트 및 분석</h1>
-        <!-- 쉘 스크립트에서 __LAST_UPDATE_TIME__으로 치환됩니다. -->
         <p>최종 업데이트 시간: <span id="update-time">__LAST_UPDATE_TIME__</span></p>
 
         <div class="chart-container">
@@ -47,30 +45,26 @@
 
         <div style="margin-bottom: 20px;">
             <h2>AI 예측 결과</h2>
-            <!-- 쉘 스크립트에서 Gemini API 응답인 __AI_PREDICTION__으로 치환됩니다. -->
             <div class="ai-box">__AI_PREDICTION__</div>
         </div>
         
         <h2>일별 요약 데이터</h2>
-        <!-- 쉘 스크립트에서 생성된 일별 테이블 HTML인 __DAILY_TABLE_HTML__로 치환됩니다. -->
         <div id="daily-table-container">
             __DAILY_TABLE_HTML__
         </div>
 
-        <h2 style="margin-top: 40px;">시간별 상세 데이터</h2>
-        <!-- 쉘 스크립트에서 생성된 시간별 테이블 HTML인 __HOURLY_TABLE_HTML__로 치환됩니다. -->
+        <h2 style="margin-top: 40px;">시간별 상세 데이터 (최근 30개 항목)</h2>
         <div id="hourly-table-container">
             __HOURLY_TABLE_HTML__
         </div>
         
         <script>
-            // 쉘 스크립트에서 파싱된 JSON 문자열인 __CHART_DATA__로 치환됩니다.
-            // sed 명령어가 싱글 쿼트(')로 감싸서 데이터를 삽입할 것을 가정합니다.
+            // 쉘 스크립트에서 치환된 JSON 데이터 문자열을 로드합니다.
             const chartDataString = '__CHART_DATA__';
             let dataSet = { labels: [], values: [] };
 
             try {
-                // 싱글 쿼트 제거 후 JSON 파싱
+                // JSON 문자열을 파싱합니다.
                 dataSet = JSON.parse(chartDataString);
             } catch (e) {
                 console.error("Error parsing chart data JSON:", e);
@@ -84,6 +78,17 @@
 
             // Chart.js 설정
             const ctx = document.getElementById('myChart').getContext('2d');
+            
+            // 차트 데이터가 없거나 비어 있으면 경고를 표시하고 차트를 그리지 않습니다.
+            if (!dataSet.labels || dataSet.labels.length === 0) {
+                ctx.font = "16px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("차트 데이터를 불러올 수 없거나 데이터가 비어 있습니다.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                console.warn("차트 데이터를 그릴 수 없습니다. 라벨 또는 값이 없습니다.");
+                return;
+            }
+
+            // 차트 생성
             new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -112,7 +117,6 @@
                             callbacks: {
                                 // 툴팁 통화 단위를 달러($)로 표시
                                 label: function(context) {
-                                    // 값이 null이거나 숫자가 아니면 처리하지 않음
                                     if (typeof context.parsed.y !== 'number' || isNaN(context.parsed.y)) {
                                         return context.dataset.label + ': ' + context.parsed.y;
                                     }
