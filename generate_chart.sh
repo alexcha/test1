@@ -167,7 +167,8 @@ generate_hourly_table() {
     local reverse_data=$(cat "$DATA_LINES" | tac) # 최신 데이터가 위로 오도록 역순 처리
 
     while IFS=' : ' read -r datetime value_str; do
-        if [ -z "$datetime" ]; then continue; end
+        # ⚠️ 수정된 부분: 'end'를 'fi'로 변경
+        if [ -z "$datetime" ]; then continue; fi 
 
         # 쉼표 제거 및 정수형 변환을 확실히 함
         current_value_int=$(echo "$value_str" | sed 's/,//g')
