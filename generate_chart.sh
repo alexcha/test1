@@ -316,8 +316,8 @@ escape_json() {
     echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
 }
 
-# 🚨 [수정된 부분] SYSTEM_PROMPT: CONTEXTUAL_PRIORITY 변수를 시스템 프롬프트의 최상단에 포함
-SYSTEM_PROMPT="**핵심 고려 사항: ${CONTEXTUAL_PRIORITY}**\n\n당신은 전문 데이터 분석가입니다. 제공된 일별 누적 데이터(단위: 달러)를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
+# 🚨 [수정된 부분] SYSTEM_PROMPT: CONTEXTUAL_PRIORITY와 모바일 게임 맥락을 모두 포함
+SYSTEM_PROMPT="**핵심 고려 사항: ${CONTEXTUAL_PRIORITY}**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
 
 # 🚨 [수정된 부분] USER_QUERY: 불필요한 설명 제거 및 간소화
 USER_QUERY="다음은 시계열 누적 데이터입니다. 이 데이터를 분석하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
@@ -644,60 +644,4 @@ cat << CHART_END > index.html
 
     if (jsDailyValues.length === 0) {
         console.error("Daily chart data is empty. Cannot render dailyChart.");
-        document.getElementById('dailyChart').parentNode.innerHTML = "<p style='text-align: center; color: #007bff; padding: 50px; font-size: 16px;'>일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>";
-    } else {
-        new Chart(dailyCtx, {
-            type: 'line',
-            data: {
-                labels: jsDailyLabels,
-                datasets: [{
-                    label: '일일 최종 값',
-                    data: jsDailyValues,
-                    borderColor: 'rgba(0, 123, 255, 1)',
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)', 
-                    borderWidth: 4, 
-                    tension: 0.3, 
-                    pointRadius: 6,
-                    pointBackgroundColor: 'rgba(0, 123, 255, 1)', 
-                    pointHoverRadius: 8,
-                    fill: 'start' 
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'category', 
-                        title: { display: true, text: '날짜', font: { size: 14, weight: 'bold' } },
-                        ticks: { font: { size: 12 } }
-                    },
-                    y: {
-                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
-                        beginAtZero: false,
-                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                        ticks: { callback: formatYAxisTick }
-                    }
-                },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        bodyFont: { size: 14 },
-                        callbacks: { label: formatTooltip }
-                    },
-                    title: {
-                        display: true,
-                        text: '일별 최종 값 변화 추이 (YYYY-MM-DD)',
-                        font: { size: 18, weight: 'bold' },
-                        padding: { top: 10, bottom: 10 }
-                    }
-                }
-            }
-        });
-    }
-    </script>
-</body>
-</html>
-CHART_END
+        document.getElementById('dailyChart').parentNode.innerHTML = "<p style='text-align: center; color: #007bff; padding: 50px
