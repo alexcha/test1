@@ -116,14 +116,14 @@ generate_daily_table() {
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
-                change_str="+$formatted_change"
                 color="#dc3545" # 빨간색 (상승)
+                change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
-                change_str="-$formatted_change"
                 color="#007bff" # 파란색 (하락)
+                change_str="-$formatted_change"
             else
-                change_str="0"
                 color="#333"
+                change_str="0"
             fi
         fi
 
@@ -167,8 +167,7 @@ generate_hourly_table() {
     local reverse_data=$(cat "$DATA_LINES" | tac) # 최신 데이터가 위로 오도록 역순 처리
 
     while IFS=' : ' read -r datetime value_str; do
-        # ⚠️ 수정된 부분: 'end'를 'fi'로 변경
-        if [ -z "$datetime" ]; then continue; fi 
+        if [ -z "$datetime" ]; then continue; fi
 
         # 쉼표 제거 및 정수형 변환을 확실히 함
         current_value_int=$(echo "$value_str" | sed 's/,//g')
@@ -191,14 +190,14 @@ generate_hourly_table() {
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
-                change_str="+$formatted_change"
                 color="#dc3545" # 빨간색 (상승)
+                change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
-                change_str="-$formatted_change"
                 color="#007bff" # 파란색 (하락)
+                change_str="-$formatted_change"
             else
-                change_str="0"
                 color="#333"
+                change_str="0"
             fi
         fi
 
@@ -298,8 +297,11 @@ else
         error_message=$(echo "$response" | html2text)
         ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
     else
-        # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
-        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
+        # 1. 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
+        ai_prediction_temp=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
+        
+        # 2. **sed 구분자(#)를 이스케이프 처리**하여 최종 치환 오류 방지
+        ai_prediction=$(echo "$ai_prediction_temp" | sed 's/\#/\\#/g')
     fi
 fi
 
@@ -313,15 +315,15 @@ echo "3.4. AI 예측 완료."
 WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
 wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
-echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '@' 사용)..."
+echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '#' 사용)..."
 
 # index.html 파일 생성 및 변수 삽입
-# sed 구분자를 '@'로 사용하여 변수 내용에 특수 문자가 있어도 오류가 나지 않도록 함
+# sed 구분자를 '#'로 변경하여 변수 내용에 특수 문자가 있어도 오류가 나지 않도록 함
 cat template.html | \
-sed "s@__CHART_DATA__@${chart_data}@g" | \
-sed "s@__AI_PREDICTION__@${ai_prediction}@g" | \
-sed "s@__DAILY_TABLE_HTML__@${daily_table}@g" | \
-sed "s@__HOURLY_TABLE_HTML__@${hourly_table}@g" | \
-sed "s@__LAST_UPDATE_TIME__@${LAST_UPDATE_TIME}@g" > index.html
+sed "s#__CHART_DATA__#${chart_data}#g" | \
+sed "s#__AI_PREDICTION__#${ai_prediction}#g" | \
+sed "s#__DAILY_TABLE_HTML__#${daily_table}#g" | \
+sed "s#__HOURLY_TABLE_HTML__#${hourly_table}#g" | \
+sed "s#__LAST_UPDATE_TIME__#${LAST_UPDATE_TIME}#g" > index.html
 
 echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
