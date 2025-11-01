@@ -36,12 +36,11 @@ LAST_UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}')
 # 배열 초기화
 LABELS=()
 VALUES=()
-declare -A DAILY_DATA # 연관 배열로 변경 (일별 최종 값 저장)
+declare -A DAILY_DATA # 연관 배열 (일별 최종 값 저장)
 
 # 1.1. 차트 데이터 (시간별) 생성
 while IFS=' : ' read -r datetime value; do
-    # 시간과 값만 추출
-    time_part=$(echo "$datetime" | awk '{print $2}')
+    # 쉼표 제거 및 값만 추출
     clean_value=$(echo "$value" | sed 's/,//g')
 
     LABELS+=("$(echo "$datetime")") # 날짜와 시간 전체 (툴팁에 표시)
@@ -58,7 +57,7 @@ while IFS=' : ' read -r datetime value; do
 done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
-# 차트가 데이터 전체를 로드하도록 수정 (스크립트 길이를 고려하여 간결하게)
+# 차트가 데이터 전체를 로드하도록 수정
 chart_labels=$(printf '"%s", ' "${LABELS[@]}")
 chart_labels=${chart_labels%, *}
 chart_values=$(IFS=','; echo "${VALUES[*]}")
@@ -88,7 +87,6 @@ generate_daily_table() {
     done
     
     # 날짜 기준 내림차순 정렬 (최신 날짜가 위로)
-    # sort -r: 역순(내림차순) 정렬
     sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -r)
 
     local table_rows=""
@@ -100,7 +98,7 @@ generate_daily_table() {
         # 쉼표 제거 및 정수형 변환을 확실히 함
         current_value_int=$(echo "$value_str" | sed 's/,//g')
         
-        # 값이 숫자인지 확인 (integer expression expected 오류 방지)
+        # 값이 숫자인지 확인 (배시 정수 비교 오류 방지)
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
             continue
         fi
@@ -113,7 +111,6 @@ generate_daily_table() {
         
         # 이전 값이 0이 아닐 때만 변화량 계산
         if [ "$previous_value_int" -ne 0 ]; then
-            # 정수 연산을 위해 $current_value_int와 $previous_value_int 사용
             change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
@@ -170,12 +167,12 @@ generate_hourly_table() {
     local reverse_data=$(cat "$DATA_LINES" | tac) # 최신 데이터가 위로 오도록 역순 처리
 
     while IFS=' : ' read -r datetime value_str; do
-        if [ -z "$datetime" ]; then continue; fi
+        if [ -z "$datetime" ]; then continue; end
 
         # 쉼표 제거 및 정수형 변환을 확실히 함
         current_value_int=$(echo "$value_str" | sed 's/,//g')
 
-        # 값이 숫자인지 확인 (integer expression expected 오류 방지)
+        # 값이 숫자인지 확인 (배시 정수 비교 오류 방지)
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
             continue
         fi
@@ -188,7 +185,6 @@ generate_hourly_table() {
         
         # 이전 값이 0이 아닐 때만 변화량 계산
         if [ "$previous_value_int" -ne 0 ]; then
-            # 정수 연산을 위해 $current_value_int와 $previous_value_int 사용
             change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
@@ -247,11 +243,11 @@ hourly_table=$(generate_hourly_table)
 # ====================================================================
 
 # 3.1. 분석을 위한 데이터 준비
-# 전체 데이터 텍스트 (최대 30개 항목)를 Gemini 모델에 전달
 analysis_data=$(cat "$DATA_LINES")
 
 # 3.2. Gemini API 호출
 echo "3.2. Gemini API 호출 시작..."
+# API 엔드포인트를 v1beta로 변경하여 안정성 확보
 API_ENDPOINT="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
 
 # 프롬프트 정의
@@ -269,8 +265,7 @@ EOP
 )
 
 # JSON 본문 생성
-# jq -s -R로 문자열을 안전하게 인코딩하고, 공백을 제거하여 JSON 유효성 확보
-# jq -s -R : Read all inputs as raw strings and store in an array
+# jq -s -R로 문자열을 안전하게 인코딩 (개행 문자를 \\n으로 변환)
 json_content=$(echo "$prompt_text" | jq -s -R '.' | sed 's/\\n//g')
 json_payload=$(cat <<EOD
 {
@@ -300,7 +295,7 @@ else
     if [ -z "$ai_prediction_raw" ] || [ "$ai_prediction_raw" == "null" ]; then
         # 오류 메시지 또는 API 응답 전문 저장
         error_message=$(echo "$response" | html2text)
-        ai_prediction="AI 예측 실패. 응답 오류: $error_message"
+        ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
     else
         # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
         ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
@@ -320,7 +315,7 @@ wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다�
 echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '@' 사용)..."
 
 # index.html 파일 생성 및 변수 삽입
-# sed 구분자를 '@'로 변경하여 긴 HTML 문자열에 파이프 기호가 포함되어도 오류가 나지 않도록 합니다.
+# sed 구분자를 '@'로 사용하여 변수 내용에 특수 문자가 있어도 오류가 나지 않도록 함
 cat template.html | \
 sed "s@__CHART_DATA__@${chart_data}@g" | \
 sed "s@__AI_PREDICTION__@${ai_prediction}@g" | \
