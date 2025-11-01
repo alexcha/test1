@@ -298,6 +298,11 @@ API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:genera
 LAST_DATA_DATE=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | cut -d ' ' -f 1)
 TARGET_DATE=$(date -d "$LAST_DATA_DATE + 1 day" +%Y-%m-%d)
 
+# 🚀 [수정 부분] 현재 월의 마지막 날짜 (월말)를 계산합니다.
+YEAR_MONTH=$(date -d "$LAST_DATA_DATE" +%Y-%m)
+# 다음 달 1일에서 하루를 빼서 현재 월의 마지막 날을 구합니다.
+END_OF_MONTH_DATE=$(date -d "$YEAR_MONTH-01 + 1 month - 1 day" +%Y-%m-%d)
+
 # JSON 페이로드에 들어갈 내용을 이스케이프하는 함수
 escape_json() {
     # 1. 백슬래시를 먼저 이스케이프 (JSON 문자열에서 백슬래시는 \\로 표현)
@@ -306,9 +311,11 @@ escape_json() {
     echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
 }
 
-# 🚨 수정된 부분: SYSTEM_PROMPT에 일별 변화량 추이 분석 요청 추가
-SYSTEM_PROMPT="당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)입니다. 이 데이터를 분석할 때, **일별 변화량(Day-over-Day Variation)의 추이 분석**에 최우선 순위를 두세요. 분석 결과는 다음 세 가지를 포함해야 합니다: 1) **최근 일별 변화 추세(상승, 하락, 횡보)**, 2) **최대 일별 상승 및 하락 변동성 구간 파악** (변화의 가속도), 3) **다음 날인 ${TARGET_DATE}의 최종 예상 누적 값 예측** (추정치임을 명시). 응답은 분석과 예측을 모두 포함하는 **단일하고 명확한 한국어 문단**으로 제공하세요. **별도의 목록이나 표는 제시하지 마세요.**"
-USER_QUERY="다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **${TARGET_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
+# 🚨 [수정된 부분] SYSTEM_PROMPT에 월말 예측 요청 추가
+SYSTEM_PROMPT="당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)입니다. 이 데이터를 분석할 때, **일별 변화량(Day-over-Day Variation)의 추이 분석**에 최우선 순위를 두세요. 분석 결과는 다음 네 가지를 포함해야 합니다: 1) **최근 일별 변화 추세(상승, 하락, 횡보)**, 2) **최대 일별 상승 및 하락 변동성 구간 파악** (변화의 가속도), 3) **다음 날인 ${TARGET_DATE}의 최종 예상 누적 값 예측** (추정치임을 명시), 4) **이달 말인 ${END_OF_MONTH_DATE}의 최종 예상 누적 값 예측** (추정치임을 명시). 응답은 분석과 예측을 모두 포함하는 **단일하고 명확한 한국어 문단**으로 제공하세요. **별도의 목록이나 표는 제시하지 마세요.**"
+
+# 🚨 [수정된 부분] USER_QUERY에 월말 예측 요청 추가
+USER_QUERY="다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
 
 JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
 JSON_USER_QUERY=$(escape_json "$USER_QUERY")
@@ -319,8 +326,8 @@ PAYLOAD='{
     "tools": [{ "google_search": {} }]
 }'
 
-# AI 예측 헤더 업데이트
-PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE}"
+# 🚨 [수정된 부분] AI 예측 헤더 업데이트
+PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE} 및 ${END_OF_MONTH_DATE}"
 # 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
 PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
