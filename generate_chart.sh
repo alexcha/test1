@@ -1,12 +1,11 @@
 #!/bin/bash
-# generate_chart.sh (최종 안정화 버전)
+# generate_chart.sh (CRITICAL FIX 버전: JSON 이스케이프 로직 강화)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인
-if [ ! -d ".git" ]; then
+if [ ! -d ".git" ]; then then
     echo "ERROR: 이 스크립트는 Git 저장소 디렉토리 내에서 실행되어야 합니다." >&2
     exit 1
 fi
-
 
 # API 키 확인
 if [ -z "$GEMINI_API_KEY" ]; then
@@ -42,6 +41,8 @@ while IFS=' : ' read -r datetime value; do
     
     # 데이터가 유효한지 확인
     if [[ -n "$clean_value" && "$clean_value" =~ ^[0-9]+$ ]]; then
+        # 라벨에 포함될 수 있는 모든 특수문자를 제거하거나 인코딩하는 것은 비효율적이므로, 
+        # 나중에 JSON.parse에 전달할 때 안전하도록 처리합니다.
         LABELS+=("$(echo "$datetime")")
         VALUES+=("$clean_value")
     fi
@@ -54,16 +55,13 @@ while IFS=' : ' read -r datetime value; do
     DAILY_DATA["$date_part"]="$clean_value"
 done < result.txt
 
-# 1.3. Chart.js 데이터셋 JSON 생성 (CRITICAL FIX 적용)
-
-# 1.3.1. chart_labels 생성 (배열이 비어있으면 빈 문자열)
+# 1.3. Chart.js 데이터셋 JSON 생성
 if [ ${#LABELS[@]} -gt 0 ]; then
     chart_labels=$(printf '"%s", ' "${LABELS[@]}" | sed 's/, $//')
 else
     chart_labels=""
 fi
 
-# 1.3.2. chart_values 생성 (순수 숫자만 쉼표로 연결)
 chart_values=""
 if [ ${#VALUES[@]} -gt 0 ]; then
     for val in "${VALUES[@]}"; do
@@ -83,8 +81,14 @@ chart_data_raw=$(cat <<EOD
 }
 EOD
 )
-# sed 치환을 위해: 한 줄로 만들고 내부 ~ 문자를 이스케이프 처리
-chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/\~/\\~/g') 
+
+chart_data_single_line=$(echo "$chart_data_raw" | tr -d '\n')
+
+# CRITICAL FIX (핵심 수정):
+# 1. JSON 문자열이 HTML의 JS에서 싱글 쿼트('...')로 감싸지므로, 내부의 모든 싱글 쿼트를 이스케이프(\')해야 합니다.
+# 2. sed 구분자 ~도 이스케이프합니다.
+chart_data=$(echo "$chart_data_single_line" | sed "s/'/\\\'/g" | sed 's/\~/\\~/g')
+
 
 # ====================================================================
 # 2. HTML 테이블 생성 함수 (sed 치환 안정화)
@@ -94,10 +98,11 @@ chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/\~/\\~/g')
 escape_for_sed() {
     # sed의 구분자로 사용될 ~ 문자를 이스케이프 (\~)
     # sed 치환 오류를 유발하는 & 문자를 이스케이프 (\&)
+    # 줄바꿈 제거
     echo "$1" | tr -d '\n' | sed 's/\~/\\~/g' | sed 's/\&/\\&/g'
 }
 
-# 2.1. 일별 테이블 HTML 생성 함수
+# 2.1. 일별 테이블 HTML 생성 함수 (로직은 동일)
 generate_daily_table() {
     local data_lines=()
     for date in "${!DAILY_DATA[@]}"; do
@@ -156,7 +161,6 @@ EOT
 
     table_rows=$(echo "$temp_rows" | tac)
 
-
     daily_table_html=$(cat <<EOD
 <table class="data-table">
 <thead>
@@ -176,7 +180,7 @@ EOD
     echo "$(escape_for_sed "$daily_table_html")"
 }
 
-# 2.2. 시간별 테이블 HTML 생성 함수
+# 2.2. 시간별 테이블 HTML 생성 함수 (로직은 동일)
 generate_hourly_table() {
     local table_rows=""
     local previous_value_int=0 
@@ -227,7 +231,6 @@ EOT
     done <<< "$reverse_data"
 
     table_rows=$(echo "$temp_rows" | tac)
-
 
     hourly_table_html=$(cat <<EOD
 <table class="data-table">
