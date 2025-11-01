@@ -339,24 +339,8 @@ JS_DAILY_LABELS=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# 4. AI 예측용 원본 데이터 문자열 (프롬프트에 삽입)
-# RAW_DATA_PROMPT_CONTENT: 모든 줄바꿈을 \n으로 바꾸고 따옴표를 이스케이프하여 하나의 JS 문자열로 만듭니다.
-RAW_DATA_PROMPT_CONTENT=$(awk '
-    {
-        # 따옴표 이스케이프
-        gsub(/"/, "\\\"", $0);
-        # 문자열을 빌드하고 줄바꿈을 \n으로 이스케이프
-        output = output $0 "\\n";
-    }
-    END {
-        # 마지막에 추가된 \n 제거
-        sub(/\\n$/, "", output);
-        print output;
-    }
-' result.txt)
 
-
-# 5. HTML 파일 생성 (index.html)
+# 4. HTML 파일 생성 (index.html)
 cat << CHART_END > index.html
 <!DOCTYPE html>
 <html>
@@ -364,7 +348,6 @@ cat << CHART_END > index.html
     <title>데이터 변화 추이 대시보드</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js CDN 링크 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
@@ -401,59 +384,6 @@ cat << CHART_END > index.html
         #daily-chart-header {
             margin-top: 60px !important; 
         }
-        /* New styles for Prediction Section */
-        .prediction-section {
-            padding: 20px;
-            margin-bottom: 40px;
-            background-color: #e9f7ff;
-            border: 2px solid #007bff;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .prediction-section h2 {
-            color: #0056b3;
-            margin-top: 0;
-            border-bottom: none;
-            padding-bottom: 0;
-            font-size: 24px;
-        }
-        #predictButton {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
-            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
-            margin-top: 15px;
-        }
-        #predictButton:hover:not(:disabled) {
-            background-color: #0056b3;
-            transform: translateY(-1px);
-        }
-        #predictButton:disabled {
-            background-color: #a0c9f8;
-            cursor: not-allowed;
-        }
-        #predictionResult {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: white;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            text-align: left;
-            white-space: pre-wrap;
-            min-height: 50px;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-        .loading-text {
-            color: #007bff;
-            font-weight: 600;
-        }
     </style>
 </head>
 <body>
@@ -461,19 +391,7 @@ cat << CHART_END > index.html
         <h1>데이터 변화 추이</h1>
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
-        <!-- 🚨 1. AI 예측 섹션 추가 -->
-        <div class="prediction-section">
-            <h2>AI 기반 누적 값 예측</h2>
-            <p>제공된 데이터를 기반으로 1개월(30일) 및 3개월(90일) 후의 최종 누적 값을 예측합니다.</p>
-            <button id="predictButton" onclick="predictData()">
-                1개월 & 3개월 누적 예측 시작
-            </button>
-            <div id="predictionResult">
-                결과가 여기에 표시됩니다. 예측 버튼을 눌러주세요.
-            </div>
-        </div>
         
-        <!-- 2. 일일 집계 차트 영역 -->
         <div style="text-align: center;">
             <h2 id="daily-chart-header">일일 집계 추이</h2>
         </div>
@@ -481,7 +399,6 @@ cat << CHART_END > index.html
             <canvas id="dailyChart"></canvas>
         </div>
         
-        <!-- 3. 일일 집계 테이블 영역 (위치 유지) -->
         <div style="text-align: center;">
             <h2>일일 집계 기록 (최신순)</h2>
         </div>
@@ -489,7 +406,6 @@ cat << CHART_END > index.html
             ${DAILY_SUMMARY_TABLE}
         </div>
 
-        <!-- 4. 데이터 기록 차트 영역 -->
         <div style="text-align: center;">
             <h2>기록 시간별 변화 추이</h2>
         </div>
@@ -498,7 +414,6 @@ cat << CHART_END > index.html
         </div>
 
         
-        <!-- 5. 데이터 기록 표 영역 -->
         <div style="text-align: center;">
             <h2>데이터 기록 (최신순)</h2>
         </div>
@@ -511,9 +426,6 @@ cat << CHART_END > index.html
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
-    // AI 예측에 사용되는 원본 데이터 문자열 (프롬프트에 삽입)
-    const RAW_DATA_STRING = "${RAW_DATA_PROMPT_CONTENT}";
-
     // 1. 시간별 상세 기록 데이터 (빨간색 차트)
     const chartData = [${JS_VALUES}];
     const chartLabels = [${JS_LABELS}];
@@ -550,129 +462,6 @@ cat << CHART_END > index.html
         }
         return label;
     };
-
-
-    /**
-     * Exponential backoff을 구현하여 API 호출을 재시도합니다.
-     * @param {string} apiUrl - API URL
-     * @param {object} options - Fetch 옵션
-     * @param {number} maxRetries - 최대 재시도 횟수
-     * @param {number} initialDelay - 초기 딜레이 (ms)
-     * @returns {Promise<Response>} API 응답
-     */
-    async function fetchWithBackoff(apiUrl, options, maxRetries = 5, initialDelay = 1000) {
-        let delay = initialDelay;
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const response = await fetch(apiUrl, options);
-                // 403 Forbidden을 포함하여 실패 응답 코드를 여기서 확인
-                if (response.status !== 429 && response.ok) {
-                    return response;
-                }
-                
-                // 429 Too Many Requests이거나 다른 일시적 오류인 경우 재시도
-                if (attempt < maxRetries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2; // 지연 시간 두 배 증가
-                } else {
-                    // 마지막 시도 후에도 실패하면 에러를 발생시켜 catch 블록으로 전달
-                    throw new Error(\`API request failed after \${maxRetries} attempts with status \${response.status}\`);
-                }
-            } catch (error) {
-                // 네트워크 오류 등의 경우
-                if (attempt < maxRetries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
-                } else {
-                    throw new Error(\`API request failed after \${maxRetries} attempts: \${error.message}\`);
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Gemini API를 호출하여 데이터 누적 값을 예측합니다.
-     */
-    async function predictData() {
-        const button = document.getElementById('predictButton');
-        const resultDiv = document.getElementById('predictionResult');
-
-        button.disabled = true;
-        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 예측하는 중입니다... 잠시만 기다려주세요.</span>';
-        
-        const systemPrompt = "당신은 전문적인 데이터 분석가이자 예측 모델입니다. 제공된 시계열 누적 데이터를 분석하고, 과거 성장 추세(선형, 지수 등)를 파악하여 1개월(30일) 및 3개월(90일) 후의 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요.";
-
-        const userQuery = \`다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터입니다. 이 데이터를 사용하여 1개월(30일) 후의 예상 누적 값과 3개월(90일) 후의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n\${RAW_DATA_STRING}\`;
-        
-        // API 설정
-        const apiKey = "";
-        const apiUrl = \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${apiKey}\`;
-
-        // 🚨 디버깅을 위한 로그 추가
-        console.log("------------------------------------------");
-        console.log("API 호출을 시도합니다.");
-        console.log("사용 모델:", "gemini-2.5-flash-preview-09-2025");
-        console.log("요청 URL (키는 실행 환경에서 주입됨):", apiUrl);
-        console.log("------------------------------------------");
-
-
-        const payload = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            tools: [{ "google_search": {} }], 
-        };
-
-        try {
-            const response = await fetchWithBackoff(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            const result = await response.json();
-            const candidate = result.candidates?.[0];
-
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                const text = candidate.content.parts[0].text;
-                
-                let sourcesHtml = '';
-                const groundingMetadata = candidate.groundingMetadata;
-                if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                    const sources = groundingMetadata.groundingAttributions
-                        .map(attribution => ({
-                            uri: attribution.web?.uri,
-                            title: attribution.web?.title,
-                        }))
-                        .filter(source => source.uri && source.title);
-
-                    if (sources.length > 0) {
-                        sourcesHtml = '<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">';
-                        sourcesHtml += '<p style="font-size: 12px; color: #555; margin-bottom: 5px;">출처:</p>';
-                        sources.forEach((source, index) => {
-                            sourcesHtml += \`<p style="font-size: 12px; margin: 2px 0;"><a href="\${source.uri}" target="_blank" style="color: #007bff; text-decoration: none;">\${source.title}</a></p>\`;
-                        });
-                        sourcesHtml += '</div>';
-                    }
-                }
-
-                resultDiv.innerHTML = text + sourcesHtml;
-
-            } else {
-                resultDiv.innerHTML = '<span style="color: #dc3545;">예측 결과를 가져오는 데 실패했습니다. 응답 구조를 확인해주세요.</span>';
-                console.error("API response missing text content:", result);
-            }
-
-        } catch (error) {
-            resultDiv.innerHTML = '<span style="color: #dc3545;">API 호출 중 오류 발생: ' + error.message + '</span>';
-            console.error("Prediction Error:", error);
-        } finally {
-            button.disabled = false;
-            // 결과가 보이도록 스크롤 이동
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-
 
     // ---------------------------------------------
     // 1. 시간별 상세 기록 차트 (simpleChart - 빨간색)
