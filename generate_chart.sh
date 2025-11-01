@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate_chart.sh
+# generate_chart.sh (수정본)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인 (불필요한 경로 오류 방지)
 if [ ! -d ".git" ]; then
@@ -58,15 +58,17 @@ done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
 # 차트가 데이터 전체를 로드하도록 수정
-chart_labels=$(printf '"%s", ' "${LABELS[@]}")
-chart_labels=${chart_labels%, *}
+# **LABELS와 VALUES 배열을 JSON 형식으로 안전하게 이스케이프 처리**
+chart_labels=$(printf '"%s", ' "${LABELS[@]}" | sed 's/, $//')
 chart_values=$(IFS=','; echo "${VALUES[*]}")
 
 # RAW_DATA_STRING (AI 예측에 사용될 원본 데이터 문자열)
-RAW_DATA_STRING=$(cat "$DATA_LINES" | sed 's/\n/\\n/g')
+# 개행 문자를 \n으로 이스케이프 처리
+RAW_DATA_STRING=$(cat "$DATA_LINES" | sed -E ':a;N;$!ba;s/\n/\\n/g')
 
 
-chart_data=$(cat <<EOD
+# **JSON 생성 시 jq를 사용하여 문자열을 안전하게 처리**
+chart_data_raw=$(cat <<EOD
 {
     "raw_data_string": "${RAW_DATA_STRING}",
     "labels": [${chart_labels}],
@@ -74,9 +76,10 @@ chart_data=$(cat <<EOD
 }
 EOD
 )
+chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/"/\\"/g') # 한 줄로 만들고 내부 "를 \"로 이스케이프
 
 # ====================================================================
-# 2. HTML 테이블 생성 함수 (이스케이프 로직 제거)
+# 2. HTML 테이블 생성 함수 (이스케이프 로직 제거 및 출력 클린업)
 # ====================================================================
 
 # 2.1. 일별 테이블 HTML 생성 함수
@@ -92,6 +95,8 @@ generate_daily_table() {
     local table_rows=""
     local previous_value_int=0 # 정수형으로 초기화
 
+    # **첫 번째 루프: 역순으로 읽기 (날짜 순서대로 변화량 계산)**
+    local temp_rows=""
     while IFS=' : ' read -r date value_str; do
         if [ -z "$date" ]; then continue; fi
 
@@ -127,18 +132,22 @@ generate_daily_table() {
             fi
         fi
 
-        # 테이블 행 생성 (새로운 데이터는 앞에 붙여서 역순으로 출력)
-        table_rows=$(cat <<EOT
+        # 테이블 행 생성 (정순으로 누적)
+        temp_rows=$(cat <<EOT
+$temp_rows
 <tr>
     <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">$date</td>
     <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">$formatted_value</td>
     <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: $color; font-weight: 600;">$change_str</td>
 </tr>
-$table_rows
 EOT
 )
         previous_value_int=$current_value_int # 다음 루프를 위해 현재 값을 이전 값으로 설정
     done <<< "$sorted_daily_data"
+
+    # **두 번째 루프: 누적된 행을 역순으로 출력 (최신 날짜가 위로)**
+    table_rows=$(echo "$temp_rows" | tac)
+
 
     # 테이블 헤더 추가
     daily_table=$(cat <<EOD
@@ -156,16 +165,18 @@ $table_rows
 </table>
 EOD
 )
-    # ⚠️ 이스케이프 제거: AWK가 파일에서 직접 치환하므로 이스케이프 필요 없음
-    echo "$daily_table"
+    # **AWK 치환을 위해 모든 개행 문자 제거**
+    echo "$daily_table" | tr -d '\n'
 }
 
 # 2.2. 시간별 테이블 HTML 생성 함수
 generate_hourly_table() {
     local table_rows=""
     local previous_value_int=0 # 정수형으로 초기화
-    local reverse_data=$(cat "$DATA_LINES" | tac) # 최신 데이터가 위로 오도록 역순 처리
+    local reverse_data=$(cat "$DATA_LINES") # 최신 데이터부터 처리하기 위해 역순 처리
 
+    # **첫 번째 루프: 역순으로 읽기 (시간 순서대로 변화량 계산)**
+    local temp_rows=""
     while IFS=' : ' read -r datetime value_str; do
         if [ -z "$datetime" ]; then continue; fi
 
@@ -187,32 +198,36 @@ generate_hourly_table() {
         if [ "$previous_value_int" -ne 0 ]; then
             change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
-            formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+            formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta') # **수정: 변화량 변수를 사용하도록 수정**
 
             if [ "$change" -gt 0 ]; then
                 color="#dc3545" # 빨간색 (상승)
                 change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
                 color="#007bff" # 파란색 (하락)
-                change_str="-$formatted_value" # 이 부분은 change가 아니라 value를 썼었는데, change가 맞을 확률이 높습니다.
+                change_str="-$formatted_change"
             else
                 color="#333"
                 change_str="0"
             fi
         fi
 
-        # 테이블 행 생성 (새로운 데이터는 앞에 붙여서 역순으로 출력)
-        table_rows=$(cat <<EOT
+        # 테이블 행 생성 (정순으로 누적)
+        temp_rows=$(cat <<EOT
+$temp_rows
 <tr>
     <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">$datetime</td>
     <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">$formatted_value</td>
     <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: $color; font-weight: 600;">$change_str</td>
 </tr>
-$table_rows
 EOT
 )
         previous_value_int=$current_value_int # 다음 루프를 위해 현재 값을 이전 값으로 설정
     done <<< "$reverse_data"
+
+    # **두 번째 루프: 누적된 행을 역순으로 출력 (최신 시간대가 위로)**
+    table_rows=$(echo "$temp_rows" | tac)
+
 
     # 테이블 헤더 추가
     hourly_table=$(cat <<EOD
@@ -230,8 +245,8 @@ $table_rows
 </table>
 EOD
 )
-    # ⚠️ 이스케이프 제거: AWK가 파일에서 직접 치환하므로 이스케이프 필요 없음
-    echo "$hourly_table"
+    # **AWK 치환을 위해 모든 개행 문자 제거**
+    echo "$hourly_table" | tr -d '\n'
 }
 
 # 테이블 생성 실행
@@ -265,8 +280,8 @@ EOP
 )
 
 # JSON 본문 생성
-# jq -s -R로 문자열을 안전하게 인코딩 (개행 문자를 \\n으로 변환)
-json_content=$(echo "$prompt_text" | jq -s -R '.' | sed 's/\\n//g')
+# jq -s -R '.' | sed 's/\\n//g'를 사용하여 문자열을 안전하게 인코딩
+json_content=$(echo "$prompt_text" | jq -s -R '.' | tr -d '\n')
 json_payload=$(cat <<EOD
 {
     "contents": [
@@ -298,45 +313,53 @@ else
         ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
     else
         # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
-        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
+        # **AWK 치환을 위해 내부의 큰따옴표를 역슬래시로 이스케이프**
+        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g' | sed 's/"/\\"/g')
     fi
 fi
-# ⚠️ AI 예측 변수는 HTML 테이블/JSON과 달리 길지 않아 sed 문제가 적으므로, 그대로 사용합니다.
 
 echo "3.4. AI 예측 완료."
 
 # ====================================================================
-# 4. 최종 index.html 파일 생성 및 변수 삽입 (AWK 사용)
+# 4. 최종 index.html 파일 생성 및 변수 삽입 (AWK 스크립트 파일 사용)
 # ====================================================================
 
 # 템플릿 다운로드
 WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
 wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
-echo "4.1. index.html 파일 생성 시작 (토큰 치환, AWK 파일 직접 수정 방식)..."
+echo "4.1. index.html 파일 생성 시작 (AWK 스크립트 파일 방식)..."
 
 # 템플릿 파일을 임시 파일로 복사
 cp template.html /tmp/index_temp.html
 
-# AWK를 사용하여 파일 내부의 토큰을 변수 값으로 직접 대체
-# gawk나 nawk 호환성을 위해 -v 옵션 대신 AWK 변수를 파일로 내보냄
-awk -v chart_data="$chart_data" \
-    -v ai_prediction="$ai_prediction" \
-    -v daily_table="$daily_table" \
-    -v hourly_table="$hourly_table" \
-    -v last_update_time="$LAST_UPDATE_TIME" '
+# **AWK 스크립트 생성 (변수 치환)**
+# ⚠️ AWK 스크립트 내에서 셸 변수를 직접 사용하여 이스케이프 문제를 해결합니다.
+cat > /tmp/replace.awk <<EOD
+BEGIN {
+    # 셸 변수를 AWK 변수로 가져오기 (AWK 내에서 치환 시 이스케이프 문제가 발생하지 않도록 처리)
+    chart_data = "$chart_data";
+    ai_prediction = "$ai_prediction";
+    daily_table = "$daily_table";
+    hourly_table = "$hourly_table";
+    last_update_time = "$LAST_UPDATE_TIME";
+}
 {
     # AWK에서 치환은 gsub 함수를 사용하며, 구분자로 파이프 기호(|)를 사용
-    # 변수는 AWK 스크립트 실행 시 인수로 전달되어 내부에서 안전하게 처리됨
+    # 변수 치환
     gsub(/__CHART_DATA__/, chart_data);
     gsub(/__AI_PREDICTION__/, ai_prediction);
     gsub(/__DAILY_TABLE_HTML__/, daily_table);
     gsub(/__HOURLY_TABLE_HTML__/, hourly_table);
     gsub(/__LAST_UPDATE_TIME__/, last_update_time);
     print;
-}' /tmp/index_temp.html > index.html
+}
+EOD
+
+# AWK 스크립트 실행
+awk -f /tmp/replace.awk /tmp/index_temp.html > index.html
 
 # 임시 파일 삭제
-rm /tmp/index_temp.html
+rm /tmp/index_temp.html /tmp/replace.awk
 
 echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
