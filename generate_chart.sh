@@ -30,10 +30,13 @@ sed -i '/^$/d' result.txt
 tail -n 30 result.txt > /tmp/recent_data.txt
 DATA_LINES="/tmp/recent_data.txt"
 
+# 마지막 업데이트 시간 추출 (index.html에 표시용)
+LAST_UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}')
+
 # 배열 초기화
 LABELS=()
 VALUES=()
-DAILY_DATA=() # 일별 요약 데이터 (날짜와 최종 값)
+declare -A DAILY_DATA # 연관 배열로 변경 (일별 최종 값 저장)
 
 # 1.1. 차트 데이터 (시간별) 생성
 while IFS=' : ' read -r datetime value; do
@@ -41,7 +44,7 @@ while IFS=' : ' read -r datetime value; do
     time_part=$(echo "$datetime" | awk '{print $2}')
     clean_value=$(echo "$value" | sed 's/,//g')
 
-    LABELS+=("$(echo "$datetime" | awk '{print $1" "$2}')") # 날짜와 시간
+    LABELS+=("$(echo "$datetime")") # 날짜와 시간 전체 (툴팁에 표시)
     VALUES+=("$clean_value")
 done < "$DATA_LINES"
 
@@ -55,20 +58,20 @@ while IFS=' : ' read -r datetime value; do
 done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
-chart_labels=$(IFS=','; echo "${LABELS[*]}")
+# 차트가 데이터 전체를 로드하도록 수정 (스크립트 길이를 고려하여 간결하게)
+chart_labels=$(printf '"%s", ' "${LABELS[@]}")
+chart_labels=${chart_labels%, *}
 chart_values=$(IFS=','; echo "${VALUES[*]}")
+
+# RAW_DATA_STRING (AI 예측에 사용될 원본 데이터 문자열)
+RAW_DATA_STRING=$(cat "$DATA_LINES" | sed 's/\n/\\n/g')
+
 
 chart_data=$(cat <<EOD
 {
-    "labels": ["${chart_labels//,/\", \"}"],
-    "datasets": [{
-        "label": "값 추이",
-        "data": [${chart_values}],
-        "borderColor": "rgba(0, 123, 255, 1)",
-        "backgroundColor": "rgba(0, 123, 255, 0.1)",
-        "tension": 0.3,
-        "fill": true
-    }]
+    "raw_data_string": "${RAW_DATA_STRING}",
+    "labels": [${chart_labels}],
+    "values": [${chart_values}]
 }
 EOD
 )
@@ -84,40 +87,50 @@ generate_daily_table() {
         data_lines+=("$date : ${DAILY_DATA[$date]}")
     done
     
-    # 내림차순 정렬 (최신 날짜가 위로)
+    # 날짜 기준 내림차순 정렬 (최신 날짜가 위로)
+    # sort -r: 역순(내림차순) 정렬
     sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -r)
 
     local table_rows=""
-    local previous_value=0
+    local previous_value_int=0 # 정수형으로 초기화
 
     while IFS=' : ' read -r date value_str; do
         if [ -z "$date" ]; then continue; fi
 
-        current_value=$(echo "$value_str" | sed 's/,//g')
-        formatted_value=$(echo "$current_value" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+        # 쉼표 제거 및 정수형 변환을 확실히 함
+        current_value_int=$(echo "$value_str" | sed 's/,//g')
         
-        local change_val=""
+        # 값이 숫자인지 확인 (integer expression expected 오류 방지)
+        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
+            continue
+        fi
+        
+        # 표시용 값 (쉼표 포함)
+        formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+        
         local change_str="---"
         local color="#6c757d" # 회색 (기본값)
         
-        if [ "$previous_value" -ne 0 ]; then
-            change=$((current_value - previous_value))
+        # 이전 값이 0이 아닐 때만 변화량 계산
+        if [ "$previous_value_int" -ne 0 ]; then
+            # 정수 연산을 위해 $current_value_int와 $previous_value_int 사용
+            change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
                 change_str="+$formatted_change"
-                color="#dc3545" # 빨간색
+                color="#dc3545" # 빨간색 (상승)
             elif [ "$change" -lt 0 ]; then
                 change_str="-$formatted_change"
-                color="#007bff" # 파란색
+                color="#007bff" # 파란색 (하락)
             else
                 change_str="0"
                 color="#333"
             fi
         fi
 
-        # 테이블 행 생성 (최신 데이터가 위로 오도록)
+        # 테이블 행 생성 (새로운 데이터는 앞에 붙여서 역순으로 출력)
         table_rows=$(cat <<EOT
 <tr>
     <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">$date</td>
@@ -127,7 +140,7 @@ generate_daily_table() {
 $table_rows
 EOT
 )
-        previous_value=$current_value
+        previous_value_int=$current_value_int # 다음 루프를 위해 현재 값을 이전 값으로 설정
     done <<< "$sorted_daily_data"
 
     # 테이블 헤더 추가
@@ -153,37 +166,46 @@ EOD
 # 2.2. 시간별 테이블 HTML 생성 함수
 generate_hourly_table() {
     local table_rows=""
-    local previous_value=0
+    local previous_value_int=0 # 정수형으로 초기화
     local reverse_data=$(cat "$DATA_LINES" | tac) # 최신 데이터가 위로 오도록 역순 처리
 
     while IFS=' : ' read -r datetime value_str; do
         if [ -z "$datetime" ]; then continue; fi
 
-        current_value=$(echo "$value_str" | sed 's/,//g')
-        formatted_value=$(echo "$current_value" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
+        # 쉼표 제거 및 정수형 변환을 확실히 함
+        current_value_int=$(echo "$value_str" | sed 's/,//g')
+
+        # 값이 숫자인지 확인 (integer expression expected 오류 방지)
+        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
+            continue
+        fi
+
+        # 표시용 값 (쉼표 포함)
+        formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
-        local change_val=""
         local change_str="---"
         local color="#6c757d" # 회색 (기본값)
         
-        if [ "$previous_value" -ne 0 ]; then
-            change=$((current_value - previous_value))
+        # 이전 값이 0이 아닐 때만 변화량 계산
+        if [ "$previous_value_int" -ne 0 ]; then
+            # 정수 연산을 위해 $current_value_int와 $previous_value_int 사용
+            change=$((current_value_int - previous_value_int))
             change_abs=$(echo "$change" | sed 's/-//')
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
                 change_str="+$formatted_change"
-                color="#dc3545" # 빨간색
+                color="#dc3545" # 빨간색 (상승)
             elif [ "$change" -lt 0 ]; then
                 change_str="-$formatted_change"
-                color="#007bff" # 파란색
+                color="#007bff" # 파란색 (하락)
             else
                 change_str="0"
                 color="#333"
             fi
         fi
 
-        # 테이블 행 생성
+        # 테이블 행 생성 (새로운 데이터는 앞에 붙여서 역순으로 출력)
         table_rows=$(cat <<EOT
 <tr>
     <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">$datetime</td>
@@ -193,7 +215,7 @@ generate_hourly_table() {
 $table_rows
 EOT
 )
-        previous_value=$current_value
+        previous_value_int=$current_value_int # 다음 루프를 위해 현재 값을 이전 값으로 설정
     done <<< "$reverse_data"
 
     # 테이블 헤더 추가
@@ -230,7 +252,7 @@ analysis_data=$(cat "$DATA_LINES")
 
 # 3.2. Gemini API 호출
 echo "3.2. Gemini API 호출 시작..."
-API_ENDPOINT="https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
+API_ENDPOINT="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
 
 # 프롬프트 정의
 prompt_text=$(cat <<EOP
@@ -247,13 +269,16 @@ EOP
 )
 
 # JSON 본문 생성
+# jq -s -R로 문자열을 안전하게 인코딩하고, 공백을 제거하여 JSON 유효성 확보
+# jq -s -R : Read all inputs as raw strings and store in an array
+json_content=$(echo "$prompt_text" | jq -s -R '.' | sed 's/\\n//g')
 json_payload=$(cat <<EOD
 {
     "contents": [
         {
             "parts": [
                 {
-                    "text": "$prompt_text"
+                    "text": $json_content
                 }
             ]
         }
@@ -270,12 +295,15 @@ if [ -z "$response" ]; then
     ai_prediction="Gemini API 응답을 받지 못했습니다. 네트워크 또는 API 문제일 수 있습니다."
 else
     # jq를 사용하여 'text' 필드 추출
-    ai_prediction=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null)
+    ai_prediction_raw=$(echo "$response" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null)
     
-    if [ -z "$ai_prediction" ] || [ "$ai_prediction" == "null" ]; then
+    if [ -z "$ai_prediction_raw" ] || [ "$ai_prediction_raw" == "null" ]; then
         # 오류 메시지 또는 API 응답 전문 저장
         error_message=$(echo "$response" | html2text)
         ai_prediction="AI 예측 실패. 응답 오류: $error_message"
+    else
+        # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
+        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
     fi
 fi
 
@@ -289,14 +317,15 @@ echo "3.4. AI 예측 완료."
 WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
 wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
-echo "4.1. index.html 파일 생성 시작 (토큰 치환)..."
+echo "4.1. index.html 파일 생성 시작 (토큰 치환, 구분자 '@' 사용)..."
 
 # index.html 파일 생성 및 변수 삽입
-# 긴 문자열 대신 짧은 토큰을 사용하여 sed 오류 방지
+# sed 구분자를 '@'로 변경하여 긴 HTML 문자열에 파이프 기호가 포함되어도 오류가 나지 않도록 합니다.
 cat template.html | \
-sed "s|__CHART_DATA__|${chart_data}|g" | \
-sed "s|__AI_PREDICTION__|${ai_prediction}|g" | \
-sed "s|__DAILY_TABLE_HTML__|${daily_table}|g" | \
-sed "s|__HOURLY_TABLE_HTML__|${hourly_table}|g" > index.html
+sed "s@__CHART_DATA__@${chart_data}@g" | \
+sed "s@__AI_PREDICTION__@${ai_prediction}@g" | \
+sed "s@__DAILY_TABLE_HTML__@${daily_table}@g" | \
+sed "s@__HOURLY_TABLE_HTML__@${hourly_table}@g" | \
+sed "s@__LAST_UPDATE_TIME__@${LAST_UPDATE_TIME}@g" > index.html
 
 echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
