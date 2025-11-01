@@ -599,11 +599,11 @@ cat << CHART_END > index.html
                     data: chartData,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.4)', 
-                    borderWidth: 3, 
+                    borderWidth: 1, // 선 두께를 1로 줄였습니다.
                     tension: 0.4,
-                    pointRadius: 4,
+                    pointRadius: 1, // 점 크기를 1로 줄였습니다.
                     pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 3, // 마우스 오버 시 점 크기도 줄였습니다.
                     fill: 'start'
                 }]
             },
@@ -618,7 +618,7 @@ cat << CHART_END > index.html
                             maxRotation: 45, 
                             minRotation: 45,
                             autoSkip: true,
-                            maxTicksLimit: 25,
+                            maxTicksLimit: 15, // X축 레이블 개수를 15개로 제한하여 러프하게 표시합니다.
                             font: { size: 12 }
                         }
                     },
