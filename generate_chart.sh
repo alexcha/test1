@@ -9,7 +9,6 @@ GEMINI_API_KEY="$GEMINI_API_KEY"
 # 오류 체크: API 키가 비어있는지 셸에서 사전 체크
 if [ -z "$GEMINI_API_KEY" ]; then
     echo "오류: 환경 변수 GEMINI_API_KEY가 설정되지 않았습니다. GitHub Actions의 Secret(GKEY) 및 env: 매핑을 확인하세요." >&2
-    # 스크립트 실행을 중단하지 않고, index.html의 JS 오류 메시지에 의존
 fi
 
 
@@ -291,7 +290,91 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 ' result.txt)
 
 
-# 5. HTML 파일 생성 (index.html)
+# --- 5. 🚨 AI 예측 로직 (스크립트 실행 시 자동 호출) ---
+
+MODEL="gemini-2.5-flash"
+API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}"
+
+# 현재 달의 마지막 날짜 계산 (YYYY-MM-DD)
+TARGET_DATE=$(date -d "last day of this month" +%Y-%m-%d) 
+
+# JSON 페이로드에 들어갈 내용을 이스케이프하는 함수
+escape_json() {
+    # 1. 백슬래시를 먼저 이스케이프 (JSON 문자열에서 백슬래시는 \\로 표현)
+    # 2. 큰따옴표를 이스케이프 (\"로 표현)
+    # 3. 개행 문자를 JSON 이스케이프 문자열로 변환 (\n으로 표현)
+    echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
+}
+
+SYSTEM_PROMPT="당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(${TARGET_DATE})**까지의 기간을 고려하여 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."
+USER_QUERY="다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **${TARGET_DATE}**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
+
+JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
+JSON_USER_QUERY=$(escape_json "$USER_QUERY")
+
+PAYLOAD='{
+    "contents": [{ "parts": [{ "text": "'"$JSON_USER_QUERY"'" }] }],
+    "systemInstruction": { "parts": [{ "text": "'"$JSON_SYSTEM_PROMPT"'" }] },
+    "tools": [{ "google_search": {} }]
+}'
+
+PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (목표: ${TARGET_DATE})"
+PREDICTION_TEXT_EMBED='<span style="color: #6c757d; font-weight: 600;">API 키가 없거나 예측을 건너뛰었습니다.</span>' # 기본값: 키 없음
+
+if [ -z "$GEMINI_API_KEY" ]; then
+    PREDICTION_TEXT_EMBED='<span style="color: #dc3545; font-weight: 600;">⚠️ 오류: 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</span>'
+else
+    # curl 호출 및 응답 획득 (출력은 stderr로 리다이렉트)
+    API_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" -H "Accept: application/json" "$API_URL" -d "$PAYLOAD" 2>/dev/null)
+    CURL_STATUS=$?
+
+    if [ $CURL_STATUS -ne 0 ]; then
+        PREDICTION_TEXT_EMBED="<span style=\"color: #dc3545; font-weight: 600;\">❌ API 호출 중 오류 발생 (Curl 실패: $CURL_STATUS). 네트워크 연결 또는 API 서버 상태를 확인하세요.</span>"
+        PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (오류)"
+    elif echo "$API_RESPONSE" | grep -q '"error":'; then
+        # API 오류 메시지 추출
+        ERROR_MESSAGE=$(echo "$API_RESPONSE" | grep -o '"message": "[^"]*"' | head -n 1 | sed 's/"message": "//; s/"$//')
+        PREDICTION_TEXT_EMBED="<span style=\"color: #dc3545; font-weight: 600;\">⚠️ 예측 결과를 가져오는 데 실패했습니다 (API 오류): ${ERROR_MESSAGE}</span>"
+        PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (API 오류)"
+    else
+        # 텍스트 내용 추출
+        # 'text' 필드의 값만 추출 (JSON 이스케이프 상태)
+        RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | awk -F'"text":"' '{print $2}' | awk -F'"' '{print $1}' | head -n 1)
+        
+        if [ -z "$RAW_TEXT_CONTENT" ]; then
+            PREDICTION_TEXT_EMBED="<span style=\"color: #dc3545; font-weight: 600;\">⚠️ API 응답에서 예측 텍스트를 파싱할 수 없습니다. 응답 구조를 확인하세요.</span>"
+            PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (파싱 오류)"
+        else
+            # JSON 이스케이프 문자열을 HTML 포맷으로 변환
+            # 1. 이스케이프된 개행 문자(\n)를 HTML <br> 태그로 변환하기 위해 임시 플레이스홀더로 치환
+            # 2. 백슬래시 이스케이프 처리 제거 (\\n -> \n, \\" -> ", \\\\ -> \)
+            CLEAN_TEXT=$(echo "$RAW_TEXT_CONTENT" | sed 's/\\n/###NEWLINE###/g' | sed 's/\\t/    /g' | sed 's/\\//g')
+            
+            # 3. 플레이스홀더를 <br>로 치환
+            FORMATTED_TEXT=$(echo "$CLEAN_TEXT" | sed 's/###NEWLINE###/<br>/g')
+
+            # 4. 출처/Grounding 정보 추출 (간소화)
+            SOURCES_JSON=$(echo "$API_RESPONSE" | grep -o '"groundingAttributions": \[[^]]*\]' | head -n 1)
+            SOURCES_HTML=""
+
+            if [ ! -z "$SOURCES_JSON" ]; then
+                URI=$(echo "$SOURCES_JSON" | grep -o '"uri": "[^"]*"' | head -n 1 | sed 's/"uri": "//; s/"$//')
+                TITLE=$(echo "$SOURCES_JSON" | grep -o '"title": "[^"]*"' | head -n 1 | sed 's/"title": "//; s/"$//')
+
+                if [ ! -z "$URI" ] && [ ! -z "$TITLE" ]; then
+                    SOURCES_HTML="<div style=\"margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;\">
+                        <p style=\"font-size: 12px; color: #555; margin-bottom: 5px;\">출처 (Google Search):</p>
+                        <p style=\"font-size: 12px; margin: 2px 0;\"><a href=\"${URI}\" target=\"_blank\" style=\"color: #007bff; text-decoration: none;\">${TITLE}</a></p>
+                    </div>"
+                fi
+            fi
+            
+            PREDICTION_TEXT_EMBED="<div style=\"text-align: left; line-height: 1.6;\">${FORMATTED_TEXT}${SOURCES_HTML}</div>"
+        fi
+    fi
+fi
+
+# 6. HTML 파일 생성 (index.html)
 cat << CHART_END > index.html
 <!DOCTYPE html>
 <html>
@@ -335,7 +418,7 @@ cat << CHART_END > index.html
         #daily-chart-header {
             margin-top: 60px !important; 
         }
-        /* New styles for Prediction Section */
+        /* Prediction Section (버튼 제거, 결과 자동 표시) */
         .prediction-section {
             padding: 20px;
             margin-bottom: 40px;
@@ -351,27 +434,6 @@ cat << CHART_END > index.html
             padding-bottom: 0;
             font-size: 24px;
         }
-        #predictButton {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
-            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
-            margin-top: 15px;
-        }
-        #predictButton:hover:not(:disabled) {
-            background-color: #0056b3;
-            transform: translateY(-1px);
-        }
-        #predictButton:disabled {
-            background-color: #a0c9f8;
-            cursor: not-allowed;
-        }
         #predictionResult {
             margin-top: 20px;
             padding: 15px;
@@ -379,14 +441,9 @@ cat << CHART_END > index.html
             border: 1px solid #ccc;
             border-radius: 8px;
             text-align: left;
-            white-space: pre-wrap;
             min-height: 50px;
             font-size: 15px;
             line-height: 1.6;
-        }
-        .loading-text {
-            color: #007bff;
-            font-weight: 600;
         }
     </style>
 </head>
@@ -396,13 +453,10 @@ cat << CHART_END > index.html
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <div class="prediction-section">
-            <h2 id="prediction-header">AI 기반 누적 값 예측</h2>
-            <p>제공된 데이터를 기반으로 **현재 달의 마지막 날까지의 예상 누적 값**을 예측합니다.</p>
-            <button id="predictButton" onclick="predictData()">
-                월말 누적 예측 시작
-            </button>
+            <h2 id="prediction-header">${PREDICTION_HEADER_EMBED}</h2>
+            <p>제공된 데이터를 기반으로 **${TARGET_DATE}까지의 예상 누적 값**을 예측한 결과입니다.</p>
             <div id="predictionResult">
-                결과가 여기에 표시됩니다. 예측 버튼을 눌러주세요.
+                ${PREDICTION_TEXT_EMBED}
             </div>
         </div>
         
@@ -440,13 +494,6 @@ cat << CHART_END > index.html
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
-    // AI 예측에 사용되는 원본 데이터 문자열 (프롬프트에 삽입)
-    const RAW_DATA_STRING = "${RAW_DATA_PROMPT_CONTENT}"; 
-
-    // 셸 스크립트에서 주입된 API 키 (GEMINI_API_KEY)
-    const GEMINI_API_KEY = "${GEMINI_API_KEY}";
-
-
     // 1. 시간별 상세 기록 데이터 (빨간색 차트)
     const chartData = [${JS_VALUES}];
     const chartLabels = [${JS_LABELS}]; 
@@ -483,142 +530,6 @@ cat << CHART_END > index.html
         }
         return label;
     };
-
-
-    /**
-     * Exponential backoff을 구현하여 API 호출을 재시도합니다.
-     */
-    async function fetchWithBackoff(apiUrl, options, maxRetries = 5, initialDelay = 1000) {
-        let delay = initialDelay;
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const response = await fetch(apiUrl, options);
-                if (response.status !== 429 && response.ok) {
-                    return response;
-                }
-                
-                if (attempt < maxRetries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2; 
-                } else {
-                    throw new Error(\`API request failed after \${maxRetries} attempts with status \${response.status}\`);
-                }
-            } catch (error) {
-                if (attempt < maxRetries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
-                } else {
-                    throw new Error(\`API request failed after \${maxRetries} attempts: \${error.message}\`);
-                }
-            }
-        }
-    }
-
-    /**
-     * 현재 달의 마지막 날짜(YYYY-MM-DD)를 계산합니다.
-     */
-    function getLastDayOfMonth() {
-        const now = new Date();
-        // 현재 달의 다음 달 0일을 얻어와서, 이는 곧 현재 달의 마지막 날짜가 됩니다.
-        const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        
-        const year = lastDayDate.getFullYear();
-        const month = String(lastDayDate.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
-        const day = String(lastDayDate.getDate()).padStart(2, '0');
-        
-        return \`\${year}-\${month}-\${day}\`;
-    }
-
-
-    /**
-     * Gemini API를 호출하여 데이터 누적 값을 예측합니다.
-     */
-    async function predictData() {
-        const button = document.getElementById('predictButton');
-        const resultDiv = document.getElementById('predictionResult'); 
-        
-        const targetDate = getLastDayOfMonth(); // 🌟 월말 날짜 계산
-
-        // API 키가 비어있는지 확인
-        if (!GEMINI_API_KEY || GEMINI_API_KEY === "") {
-             // GitHub Actions로 변경했으므로, GitLab GKEY 대신 GEMINI_API_KEY를 확인하라고 메시지 변경
-             resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">⚠️ 오류: API 키가 설정되지 않았습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수(GEMINI_API_KEY) 매핑을 확인해주세요.</span>';
-             return;
-        } 
-
-        button.disabled = true;
-        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 \${targetDate}까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
-        
-        // 🌟 수정된 시스템 프롬프트: '10월 28일 오픈', '180개국 글로벌 서비스' 정보 추가 반영
-        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(\${targetDate})**까지의 기간을 고려하여 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
-
-        // 사용자 쿼리는 예측 날짜 정보만 포함하여 간결하게 유지
-        const userQuery = \`다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **\${targetDate}**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n\${RAW_DATA_STRING}\`;
-        
-        // 무료 버전을 고려하여 gemini-2.5-flash 모델 사용
-        const model = "gemini-2.5-flash"; 
-        const apiUrl = \`https://generativelanguage.googleapis.com/v1beta/models/\${model}:generateContent?key=\${GEMINI_API_KEY}\`;
-
-
-        const payload = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            // 정보 출처를 위해 Google Search Tool 사용
-            tools: [{ "google_search": {} }], 
-        }; 
-
-        try {
-            const response = await fetchWithBackoff(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }); 
-
-            const result = await response.json();
-            const candidate = result.candidates?.[0]; 
-
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                const text = candidate.content.parts[0].text;
-                
-                let sourcesHtml = '';
-                const groundingMetadata = candidate.groundingMetadata;
-                if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                    const sources = groundingMetadata.groundingAttributions
-                        .map(attribution => ({
-                            uri: attribution.web?.uri,
-                            title: attribution.web?.title,
-                        }))
-                        .filter(source => source.uri && source.title); 
-
-                    if (sources.length > 0) {
-                        sourcesHtml = '<div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">';
-                        sourcesHtml += '<p style="font-size: 12px; color: #555; margin-bottom: 5px;">출처 (Google Search):</p>';
-                        sources.forEach((source, index) => {
-                            sourcesHtml += \`<p style="font-size: 12px; margin: 2px 0;"><a href="\${source.uri}" target="_blank" style="color: #007bff; text-decoration: none;">\${source.title}</a></p>\`;
-                        });
-                        sourcesHtml += '</div>';
-                    }
-                } 
-
-                resultDiv.innerHTML = text + sourcesHtml; 
-
-            } else {
-                 const errorMessage = result.error?.message || '알 수 없는 오류가 발생했습니다.';
-                 resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">⚠️ 예측 결과를 가져오는 데 실패했습니다: ' + errorMessage + '</span>';
-                 console.error("API response missing text content or error:", result);
-            } 
-
-        } catch (error) {
-            resultDiv.innerHTML = '<span style="color: #dc3545; font-weight: 600;">❌ API 호출 중 오류 발생: ' + error.message + '</span>';
-            console.error("Prediction Error:", error);
-        } finally {
-            button.disabled = false;
-            // 예측 헤더 텍스트 업데이트 (버튼 누른 후 예측 날짜 명시)
-            document.getElementById('prediction-header').innerHTML = 'AI 기반 누적 값 예측 (목표: ' + targetDate + ')';
-            document.querySelector('.prediction-section p').innerHTML = '제공된 데이터를 기반으로 **' + targetDate + '까지의 예상 누적 값**을 예측합니다.';
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
 
 
     // ---------------------------------------------
