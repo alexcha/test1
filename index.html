@@ -98,13 +98,13 @@
 <body>
     <div class="container">
         <h1>데이터 변화 추이</h1>
-        <p class="update-time">최근 업데이트 시간: 2025-11-01 19:12:11 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-01 19:20:31 KST</p>
         
         <div class="prediction-section">
-            <h2>AI 기반 누적 값 예측</h2>
-            <p>제공된 데이터를 기반으로 **1개월(30일) 후의 예상 누적 값**을 예측합니다.</p>
+            <h2 id="prediction-header">AI 기반 누적 값 예측</h2>
+            <p>제공된 데이터를 기반으로 **현재 달의 마지막 날까지의 예상 누적 값**을 예측합니다.</p>
             <button id="predictButton" onclick="predictData()">
-                1개월 누적 예측 시작
+                월말 누적 예측 시작
             </button>
             <div id="predictionResult">
                 결과가 여기에 표시됩니다. 예측 버튼을 눌러주세요.
@@ -146,6 +146,7 @@
             <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
 <thead><tr>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>            <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>        </tr></thead>
 <tbody>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 19:20:31 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,569,900</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 19:12:11 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,569,900</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 19:00:28 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,569,900</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+24,800</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 18:53:55 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,545,100</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
@@ -202,15 +203,15 @@
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
     // AI 예측에 사용되는 원본 데이터 문자열 (프롬프트에 삽입)
-    const RAW_DATA_STRING = "2025-10-30 22:40:45 KST : 2,170,400\n2025-10-30 23:55:42 KST : 2,201,000\n2025-10-31 00:13:31 KST : 2,234,700\n2025-10-31 01:39:00 KST : 2,262,900\n2025-10-31 02:35:25 KST : 2,260,800\n2025-10-31 03:40:33 KST : 2,277,900\n2025-10-31 04:23:41 KST : 2,294,800\n2025-10-31 05:30:59 KST : 2,318,400\n2025-10-31 06:03:38 KST : 2,339,900\n2025-10-31 06:25:29 KST : 2,339,900\n2025-10-31 07:29:41 KST : 2,361,700\n2025-10-31 08:25:34 KST : 2,388,000\n2025-10-31 10:51:59 KST : 2,463,300\n2025-10-31 11:09:16 KST : 2,499,800\n2025-10-31 12:50:56 KST : 2,532,300\n2025-10-31 13:34:59 KST : 2,568,000\n2025-10-31 14:30:56 KST : 2,648,400\n2025-10-31 15:43:02 KST : 2,677,100\n2025-10-31 16:27:07 KST : 2,666,900\n2025-10-31 17:36:16 KST : 2,690,800\n2025-10-31 18:30:51 KST : 2,708,200\n2025-10-31 19:32:49 KST : 2,739,200\n2025-10-31 20:24:04 KST : 2,769,600\n2025-10-31 21:58:17 KST : 2,835,900\n2025-10-31 22:39:15 KST : 2,848,500\n2025-10-31 23:31:45 KST : 2,893,100\n2025-11-01 00:30:13 KST : 2,925,600\n2025-11-01 01:38:05 KST : 2,965,100\n2025-11-01 02:28:21 KST : 3,039,400\n2025-11-01 03:41:27 KST : 3,087,000\n2025-11-01 04:23:18 KST : 3,150,300\n2025-11-01 05:32:33 KST : 3,179,000\n2025-11-01 06:09:05 KST : 3,201,000\n2025-11-01 07:43:10 KST : 3,216,000\n2025-11-01 08:25:36 KST : 3,235,300\n2025-11-01 10:02:47 KST : 3,280,000\n2025-11-01 11:11:03 KST : 3,298,800\n2025-11-01 14:30:00 KST : 3,388,600\n2025-11-01 15:37:06 KST : 3,446,400\n2025-11-01 16:56:10 KST : 3,475,700\n2025-11-01 17:17:10 KST : 3,501,400\n2025-11-01 17:34:14 KST : 3,501,400\n2025-11-01 18:27:55 KST : 3,545,100\n2025-11-01 18:46:59 KST : 3,545,100\n2025-11-01 18:53:55 KST : 3,545,100\n2025-11-01 19:00:28 KST : 3,569,900\n2025-11-01 19:12:11 KST : 3,569,900"; 
+    const RAW_DATA_STRING = "2025-10-30 22:40:45 KST : 2,170,400\n2025-10-30 23:55:42 KST : 2,201,000\n2025-10-31 00:13:31 KST : 2,234,700\n2025-10-31 01:39:00 KST : 2,262,900\n2025-10-31 02:35:25 KST : 2,260,800\n2025-10-31 03:40:33 KST : 2,277,900\n2025-10-31 04:23:41 KST : 2,294,800\n2025-10-31 05:30:59 KST : 2,318,400\n2025-10-31 06:03:38 KST : 2,339,900\n2025-10-31 06:25:29 KST : 2,339,900\n2025-10-31 07:29:41 KST : 2,361,700\n2025-10-31 08:25:34 KST : 2,388,000\n2025-10-31 10:51:59 KST : 2,463,300\n2025-10-31 11:09:16 KST : 2,499,800\n2025-10-31 12:50:56 KST : 2,532,300\n2025-10-31 13:34:59 KST : 2,568,000\n2025-10-31 14:30:56 KST : 2,648,400\n2025-10-31 15:43:02 KST : 2,677,100\n2025-10-31 16:27:07 KST : 2,666,900\n2025-10-31 17:36:16 KST : 2,690,800\n2025-10-31 18:30:51 KST : 2,708,200\n2025-10-31 19:32:49 KST : 2,739,200\n2025-10-31 20:24:04 KST : 2,769,600\n2025-10-31 21:58:17 KST : 2,835,900\n2025-10-31 22:39:15 KST : 2,848,500\n2025-10-31 23:31:45 KST : 2,893,100\n2025-11-01 00:30:13 KST : 2,925,600\n2025-11-01 01:38:05 KST : 2,965,100\n2025-11-01 02:28:21 KST : 3,039,400\n2025-11-01 03:41:27 KST : 3,087,000\n2025-11-01 04:23:18 KST : 3,150,300\n2025-11-01 05:32:33 KST : 3,179,000\n2025-11-01 06:09:05 KST : 3,201,000\n2025-11-01 07:43:10 KST : 3,216,000\n2025-11-01 08:25:36 KST : 3,235,300\n2025-11-01 10:02:47 KST : 3,280,000\n2025-11-01 11:11:03 KST : 3,298,800\n2025-11-01 14:30:00 KST : 3,388,600\n2025-11-01 15:37:06 KST : 3,446,400\n2025-11-01 16:56:10 KST : 3,475,700\n2025-11-01 17:17:10 KST : 3,501,400\n2025-11-01 17:34:14 KST : 3,501,400\n2025-11-01 18:27:55 KST : 3,545,100\n2025-11-01 18:46:59 KST : 3,545,100\n2025-11-01 18:53:55 KST : 3,545,100\n2025-11-01 19:00:28 KST : 3,569,900\n2025-11-01 19:12:11 KST : 3,569,900\n2025-11-01 19:20:31 KST : 3,569,900"; 
 
     // 셸 스크립트에서 주입된 API 키 (GEMINI_API_KEY)
     const GEMINI_API_KEY = "AIzaSyCJBPKGt4N2YL6VQvDpaTEuHJeELl5Iirc";
 
 
     // 1. 시간별 상세 기록 데이터 (빨간색 차트)
-    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3216000, 3235300, 3280000, 3298800, 3388600, 3446400, 3475700, 3501400, 3501400, 3545100, 3545100, 3545100, 3569900, 3569900];
-    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:56", "17:17", "17:34", "18:27", "18:46", "18:53", "19:00", "19:12"]; 
+    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3216000, 3235300, 3280000, 3298800, 3388600, 3446400, 3475700, 3501400, 3501400, 3545100, 3545100, 3545100, 3569900, 3569900, 3569900];
+    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:56", "17:17", "17:34", "18:27", "18:46", "18:53", "19:00", "19:12", "19:20"]; 
 
     // 2. 일별 최종 값 데이터 (파란색 차트)
     const jsDailyValues = [2201000, 2893100, 3569900];
@@ -275,6 +276,21 @@
         }
     }
 
+    /**
+     * 현재 달의 마지막 날짜(YYYY-MM-DD)를 계산합니다.
+     */
+    function getLastDayOfMonth() {
+        const now = new Date();
+        // 현재 달의 다음 달 0일을 얻어와서, 이는 곧 현재 달의 마지막 날짜가 됩니다.
+        const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const year = lastDayDate.getFullYear();
+        const month = String(lastDayDate.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
+        const day = String(lastDayDate.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    }
+
 
     /**
      * Gemini API를 호출하여 데이터 누적 값을 예측합니다.
@@ -282,6 +298,8 @@
     async function predictData() {
         const button = document.getElementById('predictButton');
         const resultDiv = document.getElementById('predictionResult'); 
+        
+        const targetDate = getLastDayOfMonth(); // 🌟 월말 날짜 계산
 
         // API 키가 비어있는지 확인
         if (!GEMINI_API_KEY || GEMINI_API_KEY === "") {
@@ -291,13 +309,13 @@
         } 
 
         button.disabled = true;
-        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 예측하는 중입니다... 잠시만 기다려주세요.</span>';
+        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 ${targetDate}까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
         
-        // 🌟 수정된 시스템 프롬프트: '매출' 대신 '핵심 누적 값'으로 변경하여 일반화
-        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **오픈 3일차인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)**을 나타냅니다. 이 데이터를 분석하고, 서비스 초기 성장세(롤아웃 효과, 초기 급등/하락 등)를 고려하여 1개월(30일) 후의 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
+        // 🌟 수정된 시스템 프롬프트: '10월 28일 오픈', '180개국 글로벌 서비스' 정보 추가 반영
+        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(${targetDate})**까지의 기간을 고려하여 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
 
-        // 🌟 수정된 사용자 쿼리: '누적 매출 데이터' 대신 '시계열 누적 데이터'로 변경하여 일반화
-        const userQuery = `다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 1개월(30일) 후의 예상 누적 값을 예측해주세요.\n\n데이터:\n${RAW_DATA_STRING}`;
+        // 사용자 쿼리는 예측 날짜 정보만 포함하여 간결하게 유지
+        const userQuery = `다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **${targetDate}**까지의 예상 누적 값을 예측해주세요.\n\n데이터:\n${RAW_DATA_STRING}`;
         
         // 무료 버전을 고려하여 gemini-2.5-flash 모델 사용
         const model = "gemini-2.5-flash"; 
@@ -357,6 +375,9 @@
             console.error("Prediction Error:", error);
         } finally {
             button.disabled = false;
+            // 예측 헤더 텍스트 업데이트 (버튼 누른 후 예측 날짜 명시)
+            document.getElementById('prediction-header').innerHTML = 'AI 기반 누적 값 예측 (목표: ' + targetDate + ')';
+            document.querySelector('.prediction-section p').innerHTML = '제공된 데이터를 기반으로 **' + targetDate + '까지의 예상 누적 값**을 예측합니다.';
             resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
