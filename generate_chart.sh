@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate_chart.sh (MMORPG 매출 분석 최종 수정본)
+# generate_chart.sh (최종 수정본 - 그래프 값 오류 해결)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인 (불필요한 경로 오류 방지)
 if [ ! -d ".git" ]; then
@@ -43,7 +43,9 @@ while IFS=' : ' read -r datetime value; do
     # 쉼표 제거 및 값만 추출
     clean_value=$(echo "$value" | sed 's/,//g')
 
-    LABELS+=("$(echo "$datetime")") # 날짜와 시간 전체 (툴팁에 표시)
+    # LABELS에는 전체 날짜+시간 문자열 사용 (툴팁용)
+    LABELS+=("$(echo "$datetime")")
+    # VALUES에는 순수 숫자 값만 사용 (그래프 데이터용)
     VALUES+=("$clean_value")
 done < "$DATA_LINES"
 
@@ -57,9 +59,11 @@ while IFS=' : ' read -r datetime value; do
 done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
-# 차트가 데이터 전체를 로드하도록 수정
+# Chart.js 레이블 (시간+날짜 전체)
 chart_labels=$(printf '"%s", ' "${LABELS[@]}" | sed 's/, $//')
+# Chart.js 값 (쉼표 없는 순수 숫자만)
 chart_values=$(IFS=','; echo "${VALUES[*]}")
+
 
 # RAW_DATA_STRING (AI 예측에 사용될 원본 데이터 문자열)
 # 개행 문자를 \n으로 이스케이프 처리
