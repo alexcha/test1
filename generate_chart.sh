@@ -318,7 +318,8 @@ PAYLOAD='{
     "tools": [{ "google_search": {} }]
 }'
 
-PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (목표: ${TARGET_DATE})"
+# AI 예측 헤더에서 '(목표: )' 문구 제거 및 콜론으로 변경
+PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측: ${TARGET_DATE}"
 # 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
 PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
@@ -480,7 +481,7 @@ cat << CHART_END > index.html
         
         <div class="prediction-section">
             <h2 id="prediction-header">${PREDICTION_HEADER_EMBED}</h2>
-            <p>제공된 데이터를 기반으로 **${TARGET_DATE}까지의 예상 누적 값**을 예측한 결과입니다.</p>
+            <!-- 이전에 있던 설명 문구는 사용자 요청에 따라 제거되었습니다. -->
             <div id="predictionResult">
                 ${PREDICTION_TEXT_EMBED}
             </div>
