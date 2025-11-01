@@ -91,12 +91,12 @@
 <body>
     <div class="container">
         <h1>데이터 변화 추이 대시보드</h1>
-        <p class="update-time">최근 업데이트 시간: 2025-11-02 00:53:17 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-02 00:58:47 KST</p>
         
         <div class="prediction-section">
             <h2 id="prediction-header">AI 기반 추이 분석 및 예측: 2025-11-03 및 2025-11-30</h2>
             <div id="predictionResult">
-                <div class="success-message">제공된 데이터를 분석한 결과, 일별 누적 값은 분명한 상승세를 보이며 그 증가폭 또한 가속화되고 있습니다. 이러한 추세에 따라 2025-11-03의 예상 최종 누적 값은 약 5,633,000 달러이며, 2025-11-30까지는 약 75,085,100 달러에 도달할 것으로 추정됩니다. 제시된 값들은 현재 데이터에 기반한 추정치임을 알려드립니다.</div>
+                <div class="success-message">일별 누적 값은 지속적으로 상승하는 추세이며, 최근 데이터에서 일일 증가폭이 가속화되고 있습니다. 이러한 추세를 바탕으로 2025-11-03의 예상 최종 누적 값은 약 5,467,100 달러로 추정됩니다. 가속화된 일별 증가율이 점진적으로 완화되어 평균 약 890,000 달러 수준을 유지한다고 가정할 때, 2025-11-30의 예상 최종 누적 값은 약 29,497,100 달러로 추정됩니다.</div>
             </div>
         </div>
         
@@ -136,6 +136,7 @@
             <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
 <thead><tr>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>            <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>        </tr></thead>
 <tbody>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-02 00:58:47 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,743,100</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-02 00:53:17 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,743,100</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+47,300</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 23:13:16 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,695,800</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+21,900</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 22:06:47 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,673,900</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+47,000</td>            </tr>
@@ -192,8 +193,8 @@
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
     // 1. 시간별 상세 기록 데이터 (빨간색 차트)
-    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3216000, 3235300, 3280000, 3298800, 3388600, 3446400, 3475700, 3501400, 3545100, 3600600, 3626900, 3673900, 3695800, 3743100];
-    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:56", "17:17", "18:27", "20:04", "21:01", "22:06", "23:13", "00:53"]; 
+    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3216000, 3235300, 3280000, 3298800, 3388600, 3446400, 3475700, 3501400, 3545100, 3600600, 3626900, 3673900, 3695800, 3743100, 3743100];
+    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:56", "17:17", "18:27", "20:04", "21:01", "22:06", "23:13", "00:53", "00:58"]; 
 
     // 2. 일별 최종 값 데이터 (파란색 차트)
     const jsDailyValues = [2201000, 2893100, 3695800, 3743100];
