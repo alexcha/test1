@@ -1,10 +1,11 @@
-name: Streaming list update
+Name: Streaming list update
 
 on: 
   push:
+    branches: [ main ]
   schedule:
     # 🚨 3시간에 한 번 실행 (0시, 3시, 6시, 9시, 12시, 15시, 18시, 21시 UTC의 0분에 실행)
-    - cron: '5 * * * *' 
+    - cron: '0 0,3,6,9,12,15,18,21 * * *' 
   
 jobs:
   build:
@@ -20,85 +21,58 @@ jobs:
     - name: Get Unittest Result
       run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
       
-    - name: Run Script, Generate Chart, and Commit (Result.txt DEBUG)
+    - name: Run Script, Generate Chart, and Commit
+      # 🚨 Secret GKEY를 GEMINI_API_KEY 환경 변수로 셸 스크립트에 전달
+      env:
+        GEMINI_API_KEY: ${{ secrets.GKEY }}
       run: |
-        echo "--- 워크플로우 시작: result.txt 내용 확인 단계 추가 ---"
+        echo "--- 워크플로우 시작: 환경 설정 및 실행 ---"
         
         # 1. 상수 정의
         WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
         WGET_CHART_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/generate_chart.sh"
         WGET_RESULT_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/result.txt"
 
-        # 2. 필수 패키지 설치
+        # 2. 필수 패키지 설치: html2text, jq, curl (AI 예측 및 파싱에 필요)
         sudo apt-get -y update
-        sudo apt-get -y install html2text
+        sudo apt-get -y install html2text jq curl
 
-        # 3. result.txt 다운로드 및 크기 확인
+        # 3. result.txt 다운로드 및 초기화
         echo "3. 기존 result.txt 다운로드 시도..."
-        wget "$WGET_RESULT_URL" -O result.txt || echo "result.txt not found, starting fresh."
+        wget "$WGET_RESULT_URL" -O result.txt || { touch result.txt && echo "result.txt not found, starting fresh."; }
         INITIAL_SIZE=$(wc -c < result.txt)
         echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
         
-        # 4. check.sh 및 generate_chart.sh 다운로드
-        echo "4. check.sh 및 generate_chart.sh 다운로드..."
+        # 4. check.sh 및 generate_chart.sh 다운로드 및 실행 권한 부여
+        echo "4. 스크립트 다운로드 및 권한 부여..."
         wget "$WGET_CHECK_URL" -O check.sh || { echo "ERROR: check.sh 다운로드 실패" >&2; exit 1; }
         wget "$WGET_CHART_URL" -O generate_chart.sh || { echo "ERROR: generate_chart.sh 다운로드 실패" >&2; exit 1; }
-
-        # 5. 실행 권한 부여
         chmod +x check.sh generate_chart.sh
         
-        # 6. check.sh 실행 및 result.txt에 데이터 추가
-        echo "6-1. check.sh 스크립트 내용 확인:"
-        echo "--------------------------"
-        cat check.sh
-        echo "--------------------------"
-        
-        echo "6-2. check.sh 실행 및 result.txt에 새로운 데이터 추가 (Bash Debug ON)"
-        
-        # 🚨 Bash 디버깅 모드 ON
-        set -x 
+        # 5. check.sh 실행 및 result.txt 업데이트
+        echo "5. check.sh 실행 및 result.txt에 새로운 데이터 추가"
         ./check.sh | tee -a result.txt
-        set +x # 디버깅 모드 OFF
         
-        echo "cat result.txt !!"
-        cat result.txt
-        echo "--------------------------"
-        
-        # 7. result.txt 파일 내용 (최근 5줄) 확인:
-        echo "7. result.txt 파일 내용 (최근 5줄) 확인:"
-        tail -n 5 result.txt
-        echo "--------------------------"
-
-        # 8. check.sh 실행 후 파일 크기 확인 및 비교
+        # 6. check.sh 실행 후 파일 크기 확인 및 비교
         FINAL_SIZE=$(wc -c < result.txt)
-        echo "8. check.sh 실행 후 result.txt 크기: $FINAL_SIZE 바이트"
-
+        echo "6. check.sh 실행 후 result.txt 크기: $FINAL_SIZE 바이트"
         if [ "$INITIAL_SIZE" -eq "$FINAL_SIZE" ]; then
-            echo "🚨 경고: result.txt 파일 크기에 변화가 없습니다. check.sh가 새 데이터를 출력하지 않았거나 오류가 발생했을 수 있습니다."
+            echo "🚨 경고: result.txt 파일 크기에 변화가 없습니다. check.sh가 새 데이터를 출력하지 않았을 수 있습니다."
         else
             echo "✅ 확인: result.txt가 성공적으로 업데이트되었습니다. (+$((FINAL_SIZE - INITIAL_SIZE)) 바이트)"
         fi
         
-        # 9. generate_chart.sh 실행 (index.html 생성)
-        echo "9. generate_chart.sh 실행 및 index.html 생성..."
+        # 7. generate_chart.sh 실행 (index.html 생성 및 AI 예측 실행)
+        # 🚨 GEMINI_API_KEY가 env 섹션을 통해 환경 변수로 전달됨
+        echo "7. generate_chart.sh 실행 및 index.html 생성..."
         ./generate_chart.sh
         
-        # 10. 생성 파일 확인 및 Git 커밋/푸시
-        echo "--- File Status Check ---"
-        if [ -f index.html ]; then
-            echo "index.html이 성공적으로 생성되었습니다. 크기:"
-            ls -lh index.html
-        else
-            echo "🚨 FATAL ERROR: index.html 생성이 실패했습니다!" >&2
-            exit 1
-        fi
-        echo "-------------------------"
-
-        echo "11. Git 커밋 및 푸시..."
+        # 8. Git 커밋 및 푸시
+        echo "8. Git 커밋 및 푸시..."
         git add result.txt index.html
         
-        git config --global user.email test@local
-        git config --global user.name test
+        git config --global user.email "github-actions-bot@example.com"
+        git config --global user.name "GitHub Actions Bot"
 
         if git diff --cached --exit-code; then
           echo "No changes to commit."
@@ -106,11 +80,6 @@ jobs:
           echo "Committing changes..."
           git commit -m "Automated update: data and index.html (chart)"
           git branch -M main
-          git push
+          # 🚨 GITHUB_TOKEN을 사용하여 안전하게 푸시 (별도 토큰 생성 불필요)
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
         fi
-        
-    - name: Push changes
-      if: false 
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.ETC_KEY }}
