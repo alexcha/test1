@@ -99,7 +99,7 @@
 <body>
     <div class="container">
         <h1>데이터 변화 추이</h1>
-        <p class="update-time">최근 업데이트 시간: 2025-11-01 16:32:13 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-01 16:35:40 KST</p>
         
         <!-- 🚨 1. AI 예측 섹션 추가 -->
         <div class="prediction-section">
@@ -152,6 +152,7 @@
             <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
 <thead><tr>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>            <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>        </tr></thead>
 <tbody>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 16:35:40 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,475,700</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 16:32:13 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,475,700</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 16:28:35 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,475,700</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-01 16:19:23 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,475,700</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+29,300</td>            </tr>
@@ -203,11 +204,11 @@
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
     // AI 예측에 사용되는 원본 데이터 문자열 (프롬프트에 삽입)
-    const RAW_DATA_STRING = "2025-10-30 22:40:45 KST : 2,170,400\n2025-10-30 23:55:42 KST : 2,201,000\n2025-10-31 00:13:31 KST : 2,234,700\n2025-10-31 01:39:00 KST : 2,262,900\n2025-10-31 02:35:25 KST : 2,260,800\n2025-10-31 03:40:33 KST : 2,277,900\n2025-10-31 04:23:41 KST : 2,294,800\n2025-10-31 05:30:59 KST : 2,318,400\n2025-10-31 06:03:38 KST : 2,339,900\n2025-10-31 06:25:29 KST : 2,339,900\n2025-10-31 07:29:41 KST : 2,361,700\n2025-10-31 08:25:34 KST : 2,388,000\n2025-10-31 10:51:59 KST : 2,463,300\n2025-10-31 11:09:16 KST : 2,499,800\n2025-10-31 12:50:56 KST : 2,532,300\n2025-10-31 13:34:59 KST : 2,568,000\n2025-10-31 14:30:56 KST : 2,648,400\n2025-10-31 15:43:02 KST : 2,677,100\n2025-10-31 16:27:07 KST : 2,666,900\n2025-10-31 17:36:16 KST : 2,690,800\n2025-10-31 18:30:51 KST : 2,708,200\n2025-10-31 19:32:49 KST : 2,739,200\n2025-10-31 20:24:04 KST : 2,769,600\n2025-10-31 21:58:17 KST : 2,835,900\n2025-10-31 22:39:15 KST : 2,848,500\n2025-10-31 23:31:45 KST : 2,893,100\n2025-11-01 00:30:13 KST : 2,925,600\n2025-11-01 01:38:05 KST : 2,965,100\n2025-11-01 02:28:21 KST : 3,039,400\n2025-11-01 03:41:27 KST : 3,087,000\n2025-11-01 04:23:18 KST : 3,150,300\n2025-11-01 05:32:33 KST : 3,179,000\n2025-11-01 06:09:05 KST : 3,201,000\n2025-11-01 07:43:10 KST : 3,216,000\n2025-11-01 08:25:36 KST : 3,235,300\n2025-11-01 10:02:47 KST : 3,280,000\n2025-11-01 11:11:03 KST : 3,298,800\n2025-11-01 14:30:00 KST : 3,388,600\n2025-11-01 15:37:06 KST : 3,446,400\n2025-11-01 16:19:23 KST : 3,475,700\n2025-11-01 16:28:35 KST : 3,475,700\n2025-11-01 16:32:13 KST : 3,475,700";
+    const RAW_DATA_STRING = "2025-10-30 22:40:45 KST : 2,170,400\n2025-10-30 23:55:42 KST : 2,201,000\n2025-10-31 00:13:31 KST : 2,234,700\n2025-10-31 01:39:00 KST : 2,262,900\n2025-10-31 02:35:25 KST : 2,260,800\n2025-10-31 03:40:33 KST : 2,277,900\n2025-10-31 04:23:41 KST : 2,294,800\n2025-10-31 05:30:59 KST : 2,318,400\n2025-10-31 06:03:38 KST : 2,339,900\n2025-10-31 06:25:29 KST : 2,339,900\n2025-10-31 07:29:41 KST : 2,361,700\n2025-10-31 08:25:34 KST : 2,388,000\n2025-10-31 10:51:59 KST : 2,463,300\n2025-10-31 11:09:16 KST : 2,499,800\n2025-10-31 12:50:56 KST : 2,532,300\n2025-10-31 13:34:59 KST : 2,568,000\n2025-10-31 14:30:56 KST : 2,648,400\n2025-10-31 15:43:02 KST : 2,677,100\n2025-10-31 16:27:07 KST : 2,666,900\n2025-10-31 17:36:16 KST : 2,690,800\n2025-10-31 18:30:51 KST : 2,708,200\n2025-10-31 19:32:49 KST : 2,739,200\n2025-10-31 20:24:04 KST : 2,769,600\n2025-10-31 21:58:17 KST : 2,835,900\n2025-10-31 22:39:15 KST : 2,848,500\n2025-10-31 23:31:45 KST : 2,893,100\n2025-11-01 00:30:13 KST : 2,925,600\n2025-11-01 01:38:05 KST : 2,965,100\n2025-11-01 02:28:21 KST : 3,039,400\n2025-11-01 03:41:27 KST : 3,087,000\n2025-11-01 04:23:18 KST : 3,150,300\n2025-11-01 05:32:33 KST : 3,179,000\n2025-11-01 06:09:05 KST : 3,201,000\n2025-11-01 07:43:10 KST : 3,216,000\n2025-11-01 08:25:36 KST : 3,235,300\n2025-11-01 10:02:47 KST : 3,280,000\n2025-11-01 11:11:03 KST : 3,298,800\n2025-11-01 14:30:00 KST : 3,388,600\n2025-11-01 15:37:06 KST : 3,446,400\n2025-11-01 16:19:23 KST : 3,475,700\n2025-11-01 16:28:35 KST : 3,475,700\n2025-11-01 16:32:13 KST : 3,475,700\n2025-11-01 16:35:40 KST : 3,475,700";
 
     // 1. 시간별 상세 기록 데이터 (빨간색 차트)
-    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3216000, 3235300, 3280000, 3298800, 3388600, 3446400, 3475700, 3475700, 3475700];
-    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:19", "16:28", "16:32"];
+    const chartData = [2170400, 2201000, 2234700, 2262900, 2260800, 2277900, 2294800, 2318400, 2339900, 2339900, 2361700, 2388000, 2463300, 2499800, 2532300, 2568000, 2648400, 2677100, 2666900, 2690800, 2708200, 2739200, 2769600, 2835900, 2848500, 2893100, 2925600, 2965100, 3039400, 3087000, 3150300, 3179000, 3201000, 3216000, 3235300, 3280000, 3298800, 3388600, 3446400, 3475700, 3475700, 3475700, 3475700];
+    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:19", "16:28", "16:32", "16:35"];
 
     // 2. 일별 최종 값 데이터 (파란색 차트)
     const jsDailyValues = [2201000, 2893100, 3475700];
@@ -256,6 +257,7 @@
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 const response = await fetch(apiUrl, options);
+                // 403 Forbidden을 포함하여 실패 응답 코드를 여기서 확인
                 if (response.status !== 429 && response.ok) {
                     return response;
                 }
@@ -265,6 +267,7 @@
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2; // 지연 시간 두 배 증가
                 } else {
+                    // 마지막 시도 후에도 실패하면 에러를 발생시켜 catch 블록으로 전달
                     throw new Error(`API request failed after ${maxRetries} attempts with status ${response.status}`);
                 }
             } catch (error) {
@@ -298,10 +301,17 @@
         const apiKey = "";
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
+        // 🚨 디버깅을 위한 로그 추가
+        console.log("------------------------------------------");
+        console.log("API 호출을 시도합니다.");
+        console.log("사용 모델:", "gemini-2.5-flash-preview-09-2025");
+        console.log("요청 URL (키는 실행 환경에서 주입됨):", apiUrl);
+        console.log("------------------------------------------");
+
+
         const payload = {
             contents: [{ parts: [{ text: userQuery }] }],
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            // 시계열 예측에 필요한 정보가 있다면 검색 활용을 위해 tools 추가
             tools: [{ "google_search": {} }], 
         };
 
