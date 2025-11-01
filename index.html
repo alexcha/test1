@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 현황 및 AI 예측</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #212529; }
+        .container { max-width: 1000px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        h1 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 25px; }
+        h2 { color: #343a40; margin-top: 30px; margin-bottom: 15px; }
+        .chart-container { margin-bottom: 40px; }
+        /* 테이블 스타일 */
+        table { width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; }
+        thead th { padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333; }
+        tbody td { padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; color: #343a40; }
+        tbody tr:last-child td { border-bottom: none; }
+        .plus { color: #dc3545; font-weight: 600; }
+        .minus { color: #007bff; font-weight: 600; }
+        .zero { color: #6c757d; font-weight: 600; }
+        .first-col { text-align: left !important; color: #343a40; font-weight: normal; }
+        .value-col { font-weight: bold; color: #333; }
+        
+        /* AI 예측 스타일 */
+        .ai-box { white-space: pre-wrap; color: #007bff; font-weight: bold; padding: 15px; border: 1px dashed #007bff; border-radius: 6px; background-color: #f0f8ff; line-height: 1.6; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>자동 업데이트 데이터 차트 및 분석</h1>
+        <p>최종 업데이트 시간: <span id="update-time"></span></p>
+
+        <div class="chart-container">
+            <h2>데이터 추이 차트</h2>
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <h2>AI 예측 결과</h2>
+            <div class="ai-box">출시 5일차(10월 28일 오픈) MMORPG 게임의 매출 분석 결과입니다. 현재까지의 데이터를 종합해 볼 때, 게임은 출시 초기 MMORPG 특성에 부합하는 건강한 매출 성장세를 보이고 있습니다. 10월 31일 저녁 2,739,200KST에서 시작하여 11월 1일 저녁까지 3,600,600KST로 지속적으로 누적 매출이 증가했습니다. 이는 초기 유저들의 활발한 과금 참여와 신규 유저 유입이 잘 이루어지고 있음을 시사합니다. 다만, 2025년 11월 1일 20시 이후 매출 추정치가 3,600,600KST로 정체되는 현상이 관찰되었는데, 이는 데이터 집계 시스템의 일시적 문제일 가능성 또는 해당 시간대의 매출 증가세 둔화를 의미할 수 있어 면밀한 확인이 필요합니다. 현재 추세와 남은 시간을 고려하여 2025년 11월 1일 하루의 총 누적 예상 매출은 약 3,740,000으로 예측됩니다. 이 추세가 유지된다고 가정하고 MMORPG의 일반적인 매출 주기(초기 급증 후 점진적 안정화)를 반영하면, 11월 말까지의 총 누적 예상 매출은 약 19,100,000 수준이 될 것으로 전망됩니다.<br><br>다음 조치 제언으로는 첫째, 현재 매출 추정치 데이터가 정체되는 현상에 대한 원인을 즉시 파악하고 정확한 실시간 데이터 확보를 위한 시스템 점검이 가장 시급합니다. 둘째, 마케팅팀은 초기 매출 성장세를 유지하기 위해 신규 유저 유입 채널을 다각화하고, 특히 글로벌 서비스 지역의 시간대별 트래픽 및 과금 패턴을 분석하여 지역 맞춤형 마케팅 캠페인을 강화해야 합니다. 셋째, 운영팀은 출시 초반 유저들의 이탈을 방지하고 잔존율을 높이기 위한 인게임 이벤트, 커뮤니티 활성화 방안, 그리고 주간/월간 콘텐츠 업데이트 로드맵을 신속히 수립해야 합니다. 더불어, 안정적인 게임 플레이 환경을 지속적으로 제공하여 유저 이탈 리스크를 관리하는 것이 중요합니다.</div>
+        </div>
+        
+        <h2>일별 요약 데이터</h2>
+        <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;"><thead>    <tr>        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333;">날짜</th>        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>        <th style="padding: 14px; background-color: #f1f1f1; text-align: right; color: #333;">변화</th>    </tr></thead><tbody></tbody></table>
+
+        <h2 style="margin-top: 40px;">시간별 상세 데이터</h2>
+        <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;"><thead>    <tr>        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>        <th style="padding: 14px; background-color: #f1f1f1; text-align: right; color: #333;">변화</th>    </tr></thead><tbody></tbody></table>
+        
+        <script>
+            // 차트 데이터 삽입 (토큰 추가)
+            const dataSet = JSON.parse('{    "raw_data_string": "2025-10-31 19:32:49 KST : 2,739,200
+2025-10-31 20:24:04 KST : 2,769,600
+2025-10-31 21:58:17 KST : 2,835,900
+2025-10-31 22:39:15 KST : 2,848,500
+2025-10-31 23:31:45 KST : 2,893,100
+2025-11-01 00:30:13 KST : 2,925,600
+2025-11-01 01:38:05 KST : 2,965,100
+2025-11-01 02:28:21 KST : 3,039,400
+2025-11-01 03:41:27 KST : 3,087,000
+2025-11-01 04:23:18 KST : 3,150,300
+2025-11-01 05:32:33 KST : 3,179,000
+2025-11-01 06:09:05 KST : 3,201,000
+2025-11-01 07:43:10 KST : 3,216,000
+2025-11-01 08:25:36 KST : 3,235,300
+2025-11-01 10:02:47 KST : 3,280,000
+2025-11-01 11:11:03 KST : 3,298,800
+2025-11-01 14:30:00 KST : 3,388,600
+2025-11-01 15:37:06 KST : 3,446,400
+2025-11-01 16:56:10 KST : 3,475,700
+2025-11-01 17:17:10 KST : 3,501,400
+2025-11-01 18:27:55 KST : 3,545,100
+2025-11-01 20:04:13 KST : 3,600,600
+2025-11-01 20:10:32 KST : 3,600,600
+2025-11-01 20:18:51 KST : 3,600,600
+2025-11-01 20:22:54 KST : 3,600,600
+2025-11-01 20:27:11 KST : 3,600,600
+2025-11-01 20:31:29 KST : 3,600,600
+2025-11-01 20:36:13 KST : 3,600,600
+2025-11-01 20:45:21 KST : 3,600,600
+2025-11-01 20:54:42 KST : 3,600,600",    "labels": ["2025-10-31", "2025-10-31", "2025-10-31", "2025-10-31", "2025-10-31", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01", "2025-11-01"],    "values": [19:32:49 KST : 2739200,20:24:04 KST : 2769600,21:58:17 KST : 2835900,22:39:15 KST : 2848500,23:31:45 KST : 2893100,00:30:13 KST : 2925600,01:38:05 KST : 2965100,02:28:21 KST : 3039400,03:41:27 KST : 3087000,04:23:18 KST : 3150300,05:32:33 KST : 3179000,06:09:05 KST : 3201000,07:43:10 KST : 3216000,08:25:36 KST : 3235300,10:02:47 KST : 3280000,11:11:03 KST : 3298800,14:30:00 KST : 3388600,15:37:06 KST : 3446400,16:56:10 KST : 3475700,17:17:10 KST : 3501400,18:27:55 KST : 3545100,20:04:13 KST : 3600600,20:10:32 KST : 3600600,20:18:51 KST : 3600600,20:22:54 KST : 3600600,20:27:11 KST : 3600600,20:31:29 KST : 3600600,20:36:13 KST : 3600600,20:45:21 KST : 3600600,20:54:42 KST : 3600600]}');
+
+            // 마지막 업데이트 시간 표시
+            // 데이터셋 레이블에서 마지막 요소를 추출하여 업데이트 시간을 표시합니다.
+            const lastDataPoint = dataSet.labels[dataSet.labels.length - 1];
+            document.getElementById('update-time').textContent = lastDataPoint;
+
+            // Chart.js 설정
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: dataSet,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toLocaleString() + ' 원';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' 원';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+    </div>
+</body>
+</html>
