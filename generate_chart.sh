@@ -565,6 +565,7 @@ cat << CHART_END > index.html
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 const response = await fetch(apiUrl, options);
+                // 403 Forbidden을 포함하여 실패 응답 코드를 여기서 확인
                 if (response.status !== 429 && response.ok) {
                     return response;
                 }
@@ -574,6 +575,7 @@ cat << CHART_END > index.html
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2; // 지연 시간 두 배 증가
                 } else {
+                    // 마지막 시도 후에도 실패하면 에러를 발생시켜 catch 블록으로 전달
                     throw new Error(\`API request failed after \${maxRetries} attempts with status \${response.status}\`);
                 }
             } catch (error) {
@@ -607,10 +609,17 @@ cat << CHART_END > index.html
         const apiKey = "";
         const apiUrl = \`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${apiKey}\`;
 
+        // 🚨 디버깅을 위한 로그 추가
+        console.log("------------------------------------------");
+        console.log("API 호출을 시도합니다.");
+        console.log("사용 모델:", "gemini-2.5-flash-preview-09-2025");
+        console.log("요청 URL (키는 실행 환경에서 주입됨):", apiUrl);
+        console.log("------------------------------------------");
+
+
         const payload = {
             contents: [{ parts: [{ text: userQuery }] }],
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            // 시계열 예측에 필요한 정보가 있다면 검색 활용을 위해 tools 추가
             tools: [{ "google_search": {} }], 
         };
 
