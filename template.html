@@ -37,80 +37,74 @@
 <body>
     <div class="container">
         <h1>자동 업데이트 데이터 차트 및 분석</h1>
-        <!-- 쉘 스크립트 치환 영역 -->
         <p>최종 업데이트 시간: <span id="update-time">__LAST_UPDATE_TIME__</span></p>
-        <!-- /쉘 스크립트 치환 영역 -->
 
         <div class="chart-container">
-            <h2>데이터 추이 차트</h2>
+            <h2>데이터 추이 차트 (최근 30개 항목)</h2>
             <canvas id="myChart"></canvas>
         </div>
 
         <div style="margin-bottom: 20px;">
             <h2>AI 예측 결과</h2>
-            <!-- 쉘 스크립트 치환 영역 -->
             <div class="ai-box">__AI_PREDICTION__</div>
-            <!-- /쉘 스크립트 치환 영역 -->
         </div>
         
         <h2>일별 요약 데이터</h2>
-        <!-- JS에서 동적으로 테이블이 채워질 예정 -->
         <div id="daily-table-container" class="data-table-wrapper">
-             <p style="text-align: center; color: #6c757d;">데이터를 처리 중입니다...</p>
+             __DAILY_TABLE_HTML__
         </div>
 
         <h2 style="margin-top: 40px;">시간별 상세 데이터 (최근 30개 항목)</h2>
-        <!-- JS에서 동적으로 테이블이 채워질 예정 -->
         <div id="hourly-table-container" class="data-table-wrapper">
-             <p style="text-align: center; color: #6c757d;">데이터를 처리 중입니다...</p>
+             __HOURLY_TABLE_HTML__
         </div>
         
         <script>
-            // 쉘 스크립트에서 치환된 JSON 데이터 문자열을 로드합니다.
-            // 이 문자열은 쉘 스크립트 실행 시 실제 데이터로 치환됩니다.
-            const chartDataString = '__CHART_DATA__';
+            // 쉘 스크립트에 의해 원시 데이터 문자열이 **직접** 삽입될 영역입니다.
+            // **AWK에 의해 치환됩니다.**
+            const RAW_DATA_CONTENT = `RAW_DATA_PLACEHOLDER_FOR_JS`;
             
             // 데이터 포맷팅 유틸리티 (천 단위 쉼표)
             function formatNumber(num) {
+                if (typeof num !== 'number') return num; 
                 return num.toLocaleString('en-US');
             }
 
-            // 모든 데이터를 파싱하고 데이터셋을 준비하는 메인 함수
+            // 모든 데이터를 파싱하고 차트를 렌더링하는 메인 함수
             function processDataAndRender() {
-                let dataSetRaw;
-                try {
-                    // 쉘 스크립트에서 주입된 JSON 문자열 파싱
-                    dataSetRaw = JSON.parse(chartDataString);
-                } catch (e) {
-                    console.error("Error parsing chart data JSON:", e);
-                    // 오류 메시지 표시 후 종료
-                    document.getElementById('daily-table-container').innerHTML = "<p style='text-align: center; color: #dc3545;'>데이터 로드 오류: 원시 JSON 문자열을 파싱할 수 없습니다.</p>";
+                const rawData = RAW_DATA_CONTENT;
+
+                // PLACEHOLDER가 그대로 남아 있다면 오류 메시지를 출력하고 종료
+                if (rawData.includes("RAW_DATA_PLACEHOLDER_FOR_JS") || rawData.trim().length === 0) {
+                    console.error("데이터 로드 실패: 쉘 스크립트가 PLACEHOLDER를 치환하지 못했습니다.");
+                    
+                    const errorMsg = "<p style='text-align: center; color: #dc3545; font-weight: bold;'>데이터 로드 오류: 스크립트 치환 실패. 쉘 스크립트를 확인하세요.</p>";
+                    document.getElementById('daily-table-container').innerHTML = errorMsg;
                     document.getElementById('hourly-table-container').innerHTML = "";
+                    
+                    const ctx = document.getElementById('myChart').getContext('2d');
+                    ctx.canvas.height = 300; 
+                    ctx.font = "16px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillStyle = "#dc3545";
+                    ctx.fillText("데이터 로드 실패: 스크립트 치환 오류", ctx.canvas.width / 2, ctx.canvas.height / 2);
                     return;
                 }
-
-                const rawData = dataSetRaw.raw_data_string;
-                if (!rawData) {
-                    document.getElementById('daily-table-container').innerHTML = "<p style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</p>";
-                    document.getElementById('hourly-table-container').innerHTML = "";
-                    return;
-                }
-
+                
                 // 1. 데이터 파싱
                 const lines = rawData.split('\n').filter(line => line.trim() !== '');
-                const allData = []; // { datetime: string, value: number, date: string, time: string }
+                const allData = []; 
 
                 for (const line of lines) {
                     const parts = line.split(' : ');
                     if (parts.length === 2) {
                         const datetimeRaw = parts[0].trim();
-                        const valueRaw = parts[1].trim().replace(/,/g, '');
+                        const valueRaw = parts[1].trim().replace(/,/g, ''); 
                         const value = parseInt(valueRaw, 10);
                         
                         if (!isNaN(value)) {
-                            // datetimeRaw: "2025-11-01 22:13:08 KST"
-                            const datePart = datetimeRaw.substring(0, 10); // "YYYY-MM-DD"
-                            const timePart = datetimeRaw.substring(11, 16); // "HH:MM"
+                            const datePart = datetimeRaw.substring(0, 10); 
+                            const timePart = datetimeRaw.substring(11, 16); 
 
                             allData.push({ 
                                 datetime: datetimeRaw, 
@@ -119,33 +113,26 @@
                                 time: timePart
                             });
                         }
-                    }
+                    } 
                 }
                 
                 // 차트 데이터 (최근 30개 항목만 사용)
                 const chartData = allData.slice(-30);
                 
-                // 2. 차트 렌더링
+                // 2. 차트 렌더링 (이전 HTML 파일의 renderChart 함수 로직과 동일)
                 renderChart(chartData);
-
-                // 3. 테이블 렌더링
-                renderHourlyTable(chartData);
-                renderDailyTable(allData);
             }
 
-            // ====================================================================
             // 차트 렌더링 함수
-            // ====================================================================
-
             function renderChart(data) {
                 const ctx = document.getElementById('myChart').getContext('2d');
                 
                 if (data.length === 0) {
+                    ctx.canvas.height = 300; 
                     ctx.font = "16px sans-serif";
                     ctx.textAlign = "center";
-                    // 캔버스 중앙에 텍스트를 출력하기 위해 캔버스 크기를 설정
-                    ctx.canvas.height = 300; 
-                    ctx.fillText("차트 데이터를 불러올 수 없습니다.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    ctx.fillStyle = "#6c757d";
+                    ctx.fillText("차트 데이터를 불러올 수 없습니다. 데이터가 부족합니다.", ctx.canvas.width / 2, ctx.canvas.height / 2);
                     return;
                 }
 
@@ -155,7 +142,6 @@
                 new Chart(ctx, {
                     type: 'line',
                     data: {
-                        // 라벨에서 시간 부분(HH:MM)만 잘라서 표시
                         labels: data.map(d => d.time), 
                         datasets: [{
                             label: '매출 추정치 ($)',
@@ -176,166 +162,21 @@
                             legend: { display: false },
                             tooltip: {
                                 callbacks: {
-                                    label: function(context) {
-                                        return formatNumber(context.parsed.y) + ' 달러($)'; 
-                                    },
-                                    title: function(context) {
-                                        // 전체 시간 레이블 사용
-                                        if (context.length > 0) {
-                                            return labels[context[0].dataIndex];
-                                        }
-                                        return '';
-                                    }
+                                    label: function(context) { return formatNumber(context.parsed.y) + ' 달러($)'; },
+                                    title: function(context) { return context.length > 0 ? labels[context[0].dataIndex] : ''; }
                                 }
                             }
                         },
                         scales: {
-                            x: {
-                                title: { display: true, text: '시간대' },
-                                ticks: { maxRotation: 45, minRotation: 45 }
-                            },
+                            x: { title: { display: true, text: '시간대' }, ticks: { maxRotation: 45, minRotation: 45 } },
                             y: {
                                 beginAtZero: false,
-                                ticks: {
-                                    callback: function(value) {
-                                        return formatNumber(value) + ' $';
-                                    }
-                                },
+                                ticks: { callback: function(value) { return formatNumber(value) + ' $'; } },
                                 title: { display: true, text: '매출 ($)' }
                             }
                         }
                     }
                 });
-            }
-
-            // ====================================================================
-            // 시간별 테이블 렌더링 함수
-            // ====================================================================
-
-            function renderHourlyTable(data) {
-                let rows = '';
-                // 최신 데이터가 위에 오도록 역순으로 순회
-                for (let i = data.length - 1; i >= 0; i--) {
-                    const current = data[i];
-                    const previous = (i > 0) ? data[i - 1] : null;
-                    
-                    let change = '---';
-                    let className = 'zero';
-
-                    if (previous && current.value !== undefined && previous.value !== undefined) {
-                        const diff = current.value - previous.value;
-                        const formattedDiff = formatNumber(Math.abs(diff));
-                        
-                        if (diff > 0) {
-                            change = `+${formattedDiff}`;
-                            className = 'plus';
-                        } else if (diff < 0) {
-                            change = `-${formattedDiff}`;
-                            className = 'minus';
-                        } else {
-                            change = '0';
-                            className = 'zero';
-                        }
-                    }
-
-                    rows += `
-                        <tr>
-                            <td class="first-col">${current.datetime}</td>
-                            <td class="value-col right-align">${formatNumber(current.value)}</td>
-                            <td class="${className} right-align">${change}</td>
-                        </tr>
-                    `;
-                }
-
-                const tableHTML = `
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="header-col">시간</th>
-                                <th class="header-col right-align">값</th>
-                                <th class="header-col right-align">변화</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows.trim() || "<tr><td colspan='3' style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</td></tr>"}
-                        </tbody>
-                    </table>
-                `;
-                document.getElementById('hourly-table-container').innerHTML = tableHTML;
-            }
-
-            // ====================================================================
-            // 일별 테이블 렌더링 함수
-            // ====================================================================
-
-            function renderDailyTable(data) {
-                // 일별 최종값(마지막 값)을 저장
-                const dailyFinalValues = {}; // { 'YYYY-MM-DD': finalValue }
-                for (const d of data) {
-                    dailyFinalValues[d.date] = d.value;
-                }
-
-                const dates = Object.keys(dailyFinalValues).sort(); // 오름차순 정렬
-
-                let rows = '';
-                let previousValue = null;
-
-                // 날짜 오름차순으로 순회하며 변화량 계산
-                for (let i = 0; i < dates.length; i++) {
-                    const date = dates[i];
-                    const currentValue = dailyFinalValues[date];
-                    
-                    let change = '---';
-                    let className = 'zero';
-
-                    if (previousValue !== null && currentValue !== undefined) {
-                        const diff = currentValue - previousValue;
-                        const formattedDiff = formatNumber(Math.abs(diff));
-                        
-                        if (diff > 0) {
-                            change = `+${formattedDiff}`;
-                            className = 'plus';
-                        } else if (diff < 0) {
-                            change = `-${formattedDiff}`;
-                            className = 'minus';
-                        } else {
-                            change = '0';
-                            className = 'zero';
-                        }
-                    }
-
-                    // 최신 날짜가 위로 오도록 역순으로 문자열 추가
-                    rows = `
-                        <tr>
-                            <td class="first-col">${date}</td>
-                            <td class="value-col right-align">${formatNumber(currentValue)}</td>
-                            <td class="${className} right-align">${change}</td>
-                        </tr>
-                    ` + rows; 
-                    
-                    previousValue = currentValue;
-                }
-
-                if (dates.length === 0) {
-                    document.getElementById('daily-table-container').innerHTML = "<p style='text-align: center; color: #6c757d;'>데이터를 찾을 수 없습니다.</p>";
-                    return;
-                }
-
-                const tableHTML = `
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="header-col">날짜</th>
-                                <th class="header-col right-align">값</th>
-                                <th class="header-col right-align">변화</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                        </tbody>
-                    </table>
-                `;
-                document.getElementById('daily-table-container').innerHTML = tableHTML;
             }
             
             // 페이지 로드 시 데이터 처리 및 렌더링 시작
