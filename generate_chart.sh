@@ -272,6 +272,75 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     }
 ' result.txt)
 
+# --- NEW AWK BLOCKS FOR DAILY CHART DATA ---
+
+# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES)
+# NOTE: 각 날짜의 마지막 값을 추출하여 시간 순서대로 정렬 (YYYY-MM-DD)
+JS_DAILY_VALUES=$(awk -F ' : ' '
+    {
+        numeric_value = $2;
+        gsub(/,/, "", numeric_value);
+        date = substr($1, 1, 10);
+        last_value[date] = numeric_value + 0;
+        if (!(date in added_dates)) {
+            dates_arr[num_dates++] = date;
+            added_dates[date] = 1;
+        }
+    }
+    END {
+        # Sort chronologically (Oldest -> Newest)
+        for (i = 0; i < num_dates; i++) {
+            for (j = i + 1; j < num_dates; j++) {
+                if (dates_arr[i] > dates_arr[j]) {
+                    temp = dates_arr[i];
+                    dates_arr[i] = dates_arr[j];
+                    dates_arr[j] = temp;
+                }
+            }
+        }
+        
+        # Collect values in chronological order
+        for (i = 0; i < num_dates; i++) {
+            printf "%s", last_value[dates_arr[i]]
+            if (i < num_dates - 1) {
+                printf ", "
+            }
+        }
+    }
+' result.txt)
+
+# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS)
+# NOTE: 정렬된 날짜를 따옴표로 감싸서 추출
+JS_DAILY_LABELS=$(awk -F ' : ' '
+    {
+        date = substr($1, 1, 10);
+        if (!(date in added_dates)) {
+            dates_arr[num_dates++] = date;
+            added_dates[date] = 1;
+        }
+    }
+    END {
+        # Sort chronologically (Oldest -> Newest)
+        for (i = 0; i < num_dates; i++) {
+            for (j = i + 1; j < num_dates; j++) {
+                if (dates_arr[i] > dates_arr[j]) {
+                    temp = dates_arr[i];
+                    dates_arr[i] = dates_arr[j];
+                    dates_arr[j] = temp;
+                }
+            }
+        }
+        
+        # Collect labels in chronological order
+        for (i = 0; i < num_dates; i++) {
+            printf "\"%s\"", dates_arr[i]
+            if (i < num_dates - 1) {
+                printf ", "
+            }
+        }
+    }
+' result.txt)
+
 
 # 4. HTML 파일 생성 (index.html)
 
@@ -290,13 +359,12 @@ cat << CHART_END > index.html
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 26px; font-weight: 700; }
         p.update-time { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
         /* 차트 컨테이너가 모바일에서 너무 작아지지 않도록 최소 높이 설정 */
-        #chartContainer { 
+        .chart-container { 
             margin-bottom: 50px; 
             border: 1px solid #eee; 
             border-radius: 8px; 
             padding: 15px; 
             background: #fff; 
-            /* 반응형 높이를 위해 vh 사용 */
             height: 40vh; 
             min-height: 300px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -316,8 +384,8 @@ cat << CHART_END > index.html
             margin-left: auto;
             margin-right: auto;
         }
-        /* 일일 집계 (상단) 제목을 위한 마진 조정 */
-        .summary-header-black {
+        /* 일일 집계 차트 제목 마진 조정 */
+        #daily-chart-header {
             margin-top: 60px !important; 
         }
     </style>
@@ -327,20 +395,32 @@ cat << CHART_END > index.html
         <h1>데이터 변화 추이</h1>
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
-        <!-- 차트 영역 -->
-        <div id="chartContainer">
-            <canvas id="simpleChart"></canvas>
+        <!-- 🚨 일일 집계 차트 영역 (새로 추가) -->
+        <div style="text-align: center;">
+            <h2 id="daily-chart-header">일일 집계 추이</h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="dailyChart"></canvas>
         </div>
         
-        <!-- 🚨 일일 집계 테이블 영역 (외곽 테두리 색상 통일) -->
+        <!-- 데이터 기록 차트 영역 -->
         <div style="text-align: center;">
-            <h2 class="summary-header-black">일일 집계</h2>
+            <h2>기록 시간별 변화 추이</h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="simpleChart"></canvas>
+        </div>
+
+        
+        <!-- 🚨 일일 집계 테이블 영역 -->
+        <div style="text-align: center;">
+            <h2>일일 집계 기록 (최신순)</h2>
         </div>
         <div>
             ${DAILY_SUMMARY_TABLE}
         </div>
 
-        <!-- 🚨 데이터 기록 표 영역 (외곽 테두리 색상 통일) -->
+        <!-- 🚨 데이터 기록 표 영역 -->
         <div style="text-align: center;">
             <h2>데이터 기록 (최신순)</h2>
         </div>
@@ -352,33 +432,70 @@ cat << CHART_END > index.html
     
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
+    
+    // 1. 시간별 상세 기록 데이터 (빨간색 차트)
     const chartData = [${JS_VALUES}];
     const chartLabels = [${JS_LABELS}];
 
-    console.log("Chart Data Array:", chartData);
-    console.log("Chart Labels Array:", chartLabels);
+    // 2. 일별 최종 값 데이터 (파란색 차트)
+    const jsDailyValues = [${JS_DAILY_VALUES}];
+    const jsDailyLabels = [${JS_DAILY_LABELS}];
+
+    const formatYAxisTick = function(value) {
+        if (value === 0) return '0';
+        
+        const absValue = Math.abs(value);
+        let formattedValue;
+
+        if (absValue >= 1000000000) {
+            formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+        } else if (absValue >= 1000000) {
+            formattedValue = (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        } else if (absValue >= 1000) {
+            formattedValue = (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+        } else {
+            formattedValue = new Intl.NumberFormat('ko-KR').format(value);
+        }
+        return formattedValue;
+    };
+    
+    const formatTooltip = function(context) {
+        let label = context.dataset.label || '';
+        if (label) {
+            label += ': ';
+        }
+        if (context.parsed.y !== null) {
+            label += new Intl.NumberFormat('ko-KR').format(context.parsed.y);
+        }
+        return label;
+    };
+
+
+    // ---------------------------------------------
+    // 1. 시간별 상세 기록 차트 (simpleChart - 빨간색)
+    // ---------------------------------------------
 
     const ctx = document.getElementById('simpleChart').getContext('2d');
     
     if (chartData.length === 0) {
-        console.error("Chart data is empty. Cannot render chart.");
-        document.getElementById('chartContainer').innerHTML = "<p style='text-align: center; color: #dc3545; padding: 50px; font-size: 16px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
+        console.error("Chart data is empty. Cannot render simpleChart.");
+        document.getElementById('simpleChart').parentNode.innerHTML = "<p style='text-align: center; color: #dc3545; padding: 50px; font-size: 16px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
     } else {
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: chartLabels,
                 datasets: [{
-                    label: '값 변화 추이',
+                    label: '기록 값',
                     data: chartData,
-                    borderColor: 'rgba(255, 99, 132, 1)', 
+                    borderColor: 'rgba(255, 99, 132, 1)', /* Red */
                     backgroundColor: 'rgba(255, 99, 132, 0.4)', 
                     borderWidth: 3, 
-                    tension: 0.5, 
+                    tension: 0.4, /* 곡선 설정 */
                     pointRadius: 4,
                     pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
                     pointHoverRadius: 6,
-                    fill: false 
+                    fill: 'start' /* 채우기 옵션 */
                 }]
             },
             options: {
@@ -399,60 +516,82 @@ cat << CHART_END > index.html
                     y: {
                         title: { display: true, text: '값', font: { size: 14, weight: 'bold' } },
                         beginAtZero: false,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)',
-                        },
-                        ticks: {
-                            // Y축 값에 K, M, B 축약 포맷 적용
-                            callback: function(value) {
-                                if (value === 0) return '0';
-                                
-                                const absValue = Math.abs(value);
-                                let formattedValue;
-
-                                if (absValue >= 1000000000) {
-                                    // 10억 이상 (Billion)
-                                    formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
-                                } else if (absValue >= 1000000) {
-                                    // 100만 이상 (Million)
-                                    formattedValue = (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-                                } else if (absValue >= 1000) {
-                                    // 1천 이상 (Kilo)
-                                    formattedValue = (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-                                } else {
-                                    // 1천 미만은 기존 쉼표 포맷 유지
-                                    formattedValue = new Intl.NumberFormat('ko-KR').format(value);
-                                }
-                                return formattedValue;
-                            }
-                        }
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { callback: formatYAxisTick }
                     }
                 },
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
                         bodyFont: { size: 14 },
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    // 툴팁 값은 전체 숫자에 쉼표 포맷 적용
-                                    label += new Intl.NumberFormat('ko-KR').format(context.parsed.y);
-                                }
-                                return label;
-                            }
-                        }
+                        callbacks: { label: formatTooltip }
                     },
                     title: {
                         display: true,
-                        text: '값 변화 추이 (Chart.js)',
+                        text: '시간별 상세 기록 (HH:MM)',
+                        font: { size: 18, weight: 'bold' },
+                        padding: { top: 10, bottom: 10 }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---------------------------------------------
+    // 2. 일일 집계 차트 (dailyChart - 파란색)
+    // ---------------------------------------------
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+
+    if (jsDailyValues.length === 0) {
+        console.error("Daily chart data is empty. Cannot render dailyChart.");
+        document.getElementById('dailyChart').parentNode.innerHTML = "<p style='text-align: center; color: #007bff; padding: 50px; font-size: 16px;'>일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>";
+    } else {
+        new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: jsDailyLabels,
+                datasets: [{
+                    label: '일일 최종 값',
+                    data: jsDailyValues,
+                    borderColor: 'rgba(0, 123, 255, 1)', /* Blue */
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)', 
+                    borderWidth: 4, 
+                    tension: 0.3, 
+                    pointRadius: 6, /* 일별이라 포인트를 더 크게 설정 */
+                    pointBackgroundColor: 'rgba(0, 123, 255, 1)', 
+                    pointHoverRadius: 8,
+                    fill: 'start' 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'category', 
+                        title: { display: true, text: '날짜', font: { size: 14, weight: 'bold' } },
+                        ticks: { font: { size: 12 } }
+                    },
+                    y: {
+                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
+                        beginAtZero: false,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { callback: formatYAxisTick }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        bodyFont: { size: 14 },
+                        callbacks: { label: formatTooltip }
+                    },
+                    title: {
+                        display: true,
+                        text: '일별 최종 값 변화 추이 (YYYY-MM-DD)',
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
