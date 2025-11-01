@@ -272,8 +272,6 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     }
 ' result.txt)
 
-# --- NEW AWK BLOCKS FOR DAILY CHART DATA ---
-
 # 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES)
 # NOTE: 각 날짜의 마지막 값을 추출하여 시간 순서대로 정렬 (YYYY-MM-DD)
 JS_DAILY_VALUES=$(awk -F ' : ' '
@@ -395,7 +393,7 @@ cat << CHART_END > index.html
         <h1>데이터 변화 추이</h1>
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
-        <!-- 🚨 일일 집계 차트 영역 (새로 추가) -->
+        <!-- 1. 일일 집계 차트 영역 -->
         <div style="text-align: center;">
             <h2 id="daily-chart-header">일일 집계 추이</h2>
         </div>
@@ -403,7 +401,15 @@ cat << CHART_END > index.html
             <canvas id="dailyChart"></canvas>
         </div>
         
-        <!-- 데이터 기록 차트 영역 -->
+        <!-- 2. 일일 집계 테이블 영역 (위치 이동) -->
+        <div style="text-align: center;">
+            <h2>일일 집계 기록 (최신순)</h2>
+        </div>
+        <div>
+            ${DAILY_SUMMARY_TABLE}
+        </div>
+
+        <!-- 3. 데이터 기록 차트 영역 -->
         <div style="text-align: center;">
             <h2>기록 시간별 변화 추이</h2>
         </div>
@@ -412,15 +418,7 @@ cat << CHART_END > index.html
         </div>
 
         
-        <!-- 🚨 일일 집계 테이블 영역 -->
-        <div style="text-align: center;">
-            <h2>일일 집계 기록 (최신순)</h2>
-        </div>
-        <div>
-            ${DAILY_SUMMARY_TABLE}
-        </div>
-
-        <!-- 🚨 데이터 기록 표 영역 -->
+        <!-- 4. 데이터 기록 표 영역 -->
         <div style="text-align: center;">
             <h2>데이터 기록 (최신순)</h2>
         </div>
