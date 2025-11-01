@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 
+
 # 🚨 1. 환경 변수 설정 (GitLab CI/CD 환경에서 GKEY 변수를 사용)
 # GitLab Variables: $GKEY (API 키)
 GEMINI_API_KEY="$GKEY"
