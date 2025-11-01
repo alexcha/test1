@@ -1,6 +1,5 @@
 #!/bin/bash
-#
-
+# 이 스크립트는 result.txt 파일을 읽어 HTML 대시보드를 생성합니다.
 
 # 🚨 1. 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
 # GitHub Actions의 ${{ secrets.GKEY }}가 env: GEMINI_API_KEY로 매핑되어 전달됩니다.
@@ -319,57 +318,53 @@ PAYLOAD='{
 }'
 
 PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (목표: ${TARGET_DATE})"
-PREDICTION_TEXT_EMBED='<span style="color: #6c757d; font-weight: 600;">API 키가 없거나 예측을 건너뛰었습니다.</span>' # 기본값: 키 없음
+# 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
+PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
-if [ -z "$GEMINI_API_KEY" ]; then
-    PREDICTION_TEXT_EMBED='<span style="color: #dc3545; font-weight: 600;">⚠️ 오류: 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</span>'
-else
+if [ -n "$GEMINI_API_KEY" ]; then
     # curl 호출 및 응답 획득 (출력은 stderr로 리다이렉트)
     API_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" -H "Accept: application/json" "$API_URL" -d "$PAYLOAD" 2>/dev/null)
     CURL_STATUS=$?
 
     if [ $CURL_STATUS -ne 0 ]; then
-        PREDICTION_TEXT_EMBED="<span style=\"color: #dc3545; font-weight: 600;\">❌ API 호출 중 오류 발생 (Curl 실패: $CURL_STATUS). 네트워크 연결 또는 API 서버 상태를 확인하세요.</span>"
-        PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (오류)"
+        PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">❌ API 호출 실패.</span> Curl 상태 코드: $CURL_STATUS. 네트워크 연결 또는 API 서버 상태를 확인하세요.</div>"
+        PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (Curl 오류)"
     elif echo "$API_RESPONSE" | grep -q '"error":'; then
         # API 오류 메시지 추출
         ERROR_MESSAGE=$(echo "$API_RESPONSE" | grep -o '"message": "[^"]*"' | head -n 1 | sed 's/"message": "//; s/"$//')
-        PREDICTION_TEXT_EMBED="<span style=\"color: #dc3545; font-weight: 600;\">⚠️ 예측 결과를 가져오는 데 실패했습니다 (API 오류): ${ERROR_MESSAGE}</span>"
+        PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 예측 결과 실패.</span> API 오류: ${ERROR_MESSAGE}</div>"
         PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (API 오류)"
     else
         # 텍스트 내용 추출
-        # 'text' 필드의 값만 추출 (JSON 이스케이프 상태)
         RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | awk -F'"text":"' '{print $2}' | awk -F'"' '{print $1}' | head -n 1)
         
         if [ -z "$RAW_TEXT_CONTENT" ]; then
-            PREDICTION_TEXT_EMBED="<span style=\"color: #dc3545; font-weight: 600;\">⚠️ API 응답에서 예측 텍스트를 파싱할 수 없습니다. 응답 구조를 확인하세요.</span>"
+            PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 파싱 실패.</span> API 응답에서 예측 텍스트를 파싱할 수 없습니다. 응답 구조를 확인하세요.</div>"
             PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (파싱 오류)"
         else
             # JSON 이스케이프 문자열을 HTML 포맷으로 변환
-            # 1. 이스케이프된 개행 문자(\n)를 HTML <br> 태그로 변환하기 위해 임시 플레이스홀더로 치환
-            # 2. 백슬래시 이스케이프 처리 제거 (\\n -> \n, \\" -> ", \\\\ -> \)
             CLEAN_TEXT=$(echo "$RAW_TEXT_CONTENT" | sed 's/\\n/###NEWLINE###/g' | sed 's/\\t/    /g' | sed 's/\\//g')
-            
-            # 3. 플레이스홀더를 <br>로 치환
             FORMATTED_TEXT=$(echo "$CLEAN_TEXT" | sed 's/###NEWLINE###/<br>/g')
 
-            # 4. 출처/Grounding 정보 추출 (간소화)
+            # 출처/Grounding 정보 추출 (간소화)
             SOURCES_JSON=$(echo "$API_RESPONSE" | grep -o '"groundingAttributions": \[[^]]*\]' | head -n 1)
             SOURCES_HTML=""
 
             if [ ! -z "$SOURCES_JSON" ]; then
+                # 첫 번째 출처만 추출
                 URI=$(echo "$SOURCES_JSON" | grep -o '"uri": "[^"]*"' | head -n 1 | sed 's/"uri": "//; s/"$//')
                 TITLE=$(echo "$SOURCES_JSON" | grep -o '"title": "[^"]*"' | head -n 1 | sed 's/"title": "//; s/"$//')
 
                 if [ ! -z "$URI" ] && [ ! -z "$TITLE" ]; then
-                    SOURCES_HTML="<div style=\"margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;\">
+                    SOURCES_HTML="<div class=\"sources-container\">
                         <p style=\"font-size: 12px; color: #555; margin-bottom: 5px;\">출처 (Google Search):</p>
                         <p style=\"font-size: 12px; margin: 2px 0;\"><a href=\"${URI}\" target=\"_blank\" style=\"color: #007bff; text-decoration: none;\">${TITLE}</a></p>
                     </div>"
                 fi
             fi
             
-            PREDICTION_TEXT_EMBED="<div style=\"text-align: left; line-height: 1.6;\">${FORMATTED_TEXT}${SOURCES_HTML}</div>"
+            # 성공 메시지 (success-message 클래스 사용)
+            PREDICTION_TEXT_EMBED="<div class=\"success-message\">${FORMATTED_TEXT}${SOURCES_HTML}</div>"
         fi
     fi
 fi
@@ -418,11 +413,12 @@ cat << CHART_END > index.html
         #daily-chart-header {
             margin-top: 60px !important; 
         }
-        /* Prediction Section (버튼 제거, 결과 자동 표시) */
+        
+        /* --- AI 예측 섹션 스타일 개선 --- */
         .prediction-section {
             padding: 20px;
             margin-bottom: 40px;
-            background-color: #e9f7ff;
+            background-color: #f0f8ff; /* Light blue background for success section */
             border: 2px solid #007bff;
             border-radius: 12px;
             text-align: center;
@@ -434,16 +430,34 @@ cat << CHART_END > index.html
             padding-bottom: 0;
             font-size: 24px;
         }
-        #predictionResult {
+        /* 오류 메시지 스타일 */
+        .error-message {
+            text-align: left;
+            padding: 15px;
+            background-color: #fcebeb; /* Light red for error */
+            border: 1px solid #dc3545; /* Red border */
+            color: #dc3545; /* Red text */
+            border-radius: 8px;
+            line-height: 1.6;
+            font-size: 15px;
             margin-top: 20px;
+        }
+        /* 성공 메시지 컨테이너 */
+        .success-message {
+            text-align: left;
             padding: 15px;
             background-color: white;
             border: 1px solid #ccc;
             border-radius: 8px;
-            text-align: left;
             min-height: 50px;
             font-size: 15px;
             line-height: 1.6;
+            margin-top: 20px;
+        }
+        .sources-container {
+             margin-top: 20px; 
+             border-top: 1px solid #eee; 
+             padding-top: 10px;
         }
     </style>
 </head>
@@ -664,3 +678,4 @@ cat << CHART_END > index.html
 </body>
 </html>
 CHART_END
+
