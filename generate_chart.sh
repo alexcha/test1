@@ -396,10 +396,10 @@ cat << CHART_END > index.html
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <div class="prediction-section">
-            <h2>AI 기반 누적 값 예측</h2>
-            <p>제공된 데이터를 기반으로 **1개월(30일) 후의 예상 누적 값**을 예측합니다.</p>
+            <h2 id="prediction-header">AI 기반 누적 값 예측</h2>
+            <p>제공된 데이터를 기반으로 **현재 달의 마지막 날까지의 예상 누적 값**을 예측합니다.</p>
             <button id="predictButton" onclick="predictData()">
-                1개월 누적 예측 시작
+                월말 누적 예측 시작
             </button>
             <div id="predictionResult">
                 결과가 여기에 표시됩니다. 예측 버튼을 눌러주세요.
@@ -514,6 +514,21 @@ cat << CHART_END > index.html
         }
     }
 
+    /**
+     * 현재 달의 마지막 날짜(YYYY-MM-DD)를 계산합니다.
+     */
+    function getLastDayOfMonth() {
+        const now = new Date();
+        // 현재 달의 다음 달 0일을 얻어와서, 이는 곧 현재 달의 마지막 날짜가 됩니다.
+        const lastDayDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const year = lastDayDate.getFullYear();
+        const month = String(lastDayDate.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 +1
+        const day = String(lastDayDate.getDate()).padStart(2, '0');
+        
+        return \`\${year}-\${month}-\${day}\`;
+    }
+
 
     /**
      * Gemini API를 호출하여 데이터 누적 값을 예측합니다.
@@ -521,6 +536,8 @@ cat << CHART_END > index.html
     async function predictData() {
         const button = document.getElementById('predictButton');
         const resultDiv = document.getElementById('predictionResult'); 
+        
+        const targetDate = getLastDayOfMonth(); // 🌟 월말 날짜 계산
 
         // API 키가 비어있는지 확인
         if (!GEMINI_API_KEY || GEMINI_API_KEY === "") {
@@ -530,13 +547,13 @@ cat << CHART_END > index.html
         } 
 
         button.disabled = true;
-        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 예측하는 중입니다... 잠시만 기다려주세요.</span>';
+        resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 \${targetDate}까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
         
-        // 🌟 수정된 시스템 프롬프트: '매출' 대신 '핵심 누적 값'으로 변경하여 일반화
-        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **오픈 3일차인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)**을 나타냅니다. 이 데이터를 분석하고, 서비스 초기 성장세(롤아웃 효과, 초기 급등/하락 등)를 고려하여 1개월(30일) 후의 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
+        // 🌟 수정된 시스템 프롬프트: '10월 28일 오픈', '180개국 글로벌 서비스' 정보 추가 반영
+        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(\${targetDate})**까지의 기간을 고려하여 최종 누적 값을 예측하세요. 응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
 
-        // 🌟 수정된 사용자 쿼리: '누적 매출 데이터' 대신 '시계열 누적 데이터'로 변경하여 일반화
-        const userQuery = \`다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 1개월(30일) 후의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n\${RAW_DATA_STRING}\`;
+        // 사용자 쿼리는 예측 날짜 정보만 포함하여 간결하게 유지
+        const userQuery = \`다음은 'YYYY-MM-DD HH:MM:SS : 값' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **\${targetDate}**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n\${RAW_DATA_STRING}\`;
         
         // 무료 버전을 고려하여 gemini-2.5-flash 모델 사용
         const model = "gemini-2.5-flash"; 
@@ -596,6 +613,9 @@ cat << CHART_END > index.html
             console.error("Prediction Error:", error);
         } finally {
             button.disabled = false;
+            // 예측 헤더 텍스트 업데이트 (버튼 누른 후 예측 날짜 명시)
+            document.getElementById('prediction-header').innerHTML = 'AI 기반 누적 값 예측 (목표: ' + targetDate + ')';
+            document.querySelector('.prediction-section p').innerHTML = '제공된 데이터를 기반으로 **' + targetDate + '까지의 예상 누적 값**을 예측합니다.';
             resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
