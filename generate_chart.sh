@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 
+
 # 🚨 1. 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
 # GitHub Actions의 ${{ secrets.GKEY }}가 env: GEMINI_API_KEY로 매핑되어 전달됩니다.
 GEMINI_API_KEY="$GEMINI_API_KEY" 
@@ -291,7 +292,8 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 
 
 # 5. HTML 파일 생성 (index.html)
-cat << CHART_END > index.html
+# 🌟 변경: CHART_END 앞에 백슬래시(\)를 사용하여 HEREDOC 내부의 Bash 변수 확장/명령 치환을 비활성화합니다.
+cat << \CHART_END > index.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -549,10 +551,10 @@ cat << CHART_END > index.html
         resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 ' + targetDate + '까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
         
         // 🌟 최종 수정된 시스템 프롬프트: 성장세 분석 및 일일 분석 요청 추가
-        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, 다음 사항을 포함하여 응답하세요:\n\n1. **일일 증가분**을 기반으로 현재 **전체적인 성장 분위기**를 언급하고, 매출이 **성장하고 있는지, 둔화하고 있는지, 혹은 정체하고 있는지** 명확히 분석하세요.\n2. **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(" + targetDate + ")**까지의 기간을 고려하여 최종 누적 값을 예측하세요.\n\n응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
+        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, 다음 사항을 포함하여 응답하세요:\\n\\n1. **일일 증가분**을 기반으로 현재 **전체적인 성장 분위기**를 언급하고, 매출이 **성장하고 있는지, 둔화하고 있는지, 혹은 정체하고 있는지** 명확히 분석하세요.\\n2. **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(" + targetDate + ")**까지의 기간을 고려하여 최종 누적 값을 예측하세요.\\n\\n응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
 
         // 사용자 쿼리: targetDate 변수 값 반영
-        const userQuery = '다음은 \'YYYY-MM-DD HH:MM:SS : 값\' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **' + targetDate + '**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n' + RAW_DATA_STRING;
+        const userQuery = '다음은 \\'YYYY-MM-DD HH:MM:SS : 값\\' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **' + targetDate + '**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n' + RAW_DATA_STRING;
         
         // 무료 버전을 고려하여 gemini-2.5-flash 모델 사용
         const model = "gemini-2.5-flash"; 
