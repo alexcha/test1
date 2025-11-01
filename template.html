@@ -3,24 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>데이터 현황 및 AI 예측</title>
+    <title>자동 업데이트 데이터 현황 및 AI 예측</title>
+    <!-- Chart.js 라이브러리 로드 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <style>
+        /* 기본 스타일 설정 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #212529; }
         .container { max-width: 1000px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
         h1 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 25px; }
         h2 { color: #343a40; margin-top: 30px; margin-bottom: 15px; }
         .chart-container { margin-bottom: 40px; }
+        
         /* 테이블 스타일 */
+        /* 이 스타일은 쉘 스크립트에서 삽입되는 테이블에 적용됩니다. */
         table { width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; }
         thead th { padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333; }
         tbody td { padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; color: #343a40; }
         tbody tr:last-child td { border-bottom: none; }
-        .plus { color: #dc3545; font-weight: 600; }
-        .minus { color: #007bff; font-weight: 600; }
-        .zero { color: #6c757d; font-weight: 600; }
+        
+        /* 변화량 색상 (쉘 스크립트에서 이 클래스를 사용해 생성) */
+        .plus { color: #dc3545; font-weight: 600; } 
+        .minus { color: #007bff; font-weight: 600; } 
+        .zero { color: #6c757d; font-weight: 600; } 
+        
         .first-col { text-align: left !important; color: #343a40; font-weight: normal; }
         .value-col { font-weight: bold; color: #333; }
+        .right-align { text-align: right !important; }
         
         /* AI 예측 스타일 */
         .ai-box { white-space: pre-wrap; color: #007bff; font-weight: bold; padding: 15px; border: 1px dashed #007bff; border-radius: 6px; background-color: #f0f8ff; line-height: 1.6; margin-bottom: 20px; }
@@ -29,7 +37,8 @@
 <body>
     <div class="container">
         <h1>자동 업데이트 데이터 차트 및 분석</h1>
-        <p>최종 업데이트 시간: <span id="update-time"></span></p>
+        <!-- 쉘 스크립트에서 __LAST_UPDATE_TIME__으로 치환됩니다. -->
+        <p>최종 업데이트 시간: <span id="update-time">__LAST_UPDATE_TIME__</span></p>
 
         <div class="chart-container">
             <h2>데이터 추이 차트</h2>
@@ -38,51 +47,101 @@
 
         <div style="margin-bottom: 20px;">
             <h2>AI 예측 결과</h2>
+            <!-- 쉘 스크립트에서 Gemini API 응답인 __AI_PREDICTION__으로 치환됩니다. -->
             <div class="ai-box">__AI_PREDICTION__</div>
         </div>
         
         <h2>일별 요약 데이터</h2>
-        __DAILY_TABLE_HTML__
+        <!-- 쉘 스크립트에서 생성된 일별 테이블 HTML인 __DAILY_TABLE_HTML__로 치환됩니다. -->
+        <div id="daily-table-container">
+            __DAILY_TABLE_HTML__
+        </div>
 
         <h2 style="margin-top: 40px;">시간별 상세 데이터</h2>
-        __HOURLY_TABLE_HTML__
+        <!-- 쉘 스크립트에서 생성된 시간별 테이블 HTML인 __HOURLY_TABLE_HTML__로 치환됩니다. -->
+        <div id="hourly-table-container">
+            __HOURLY_TABLE_HTML__
+        </div>
         
         <script>
-            // 차트 데이터 삽입 (토큰 추가)
-            const dataSet = JSON.parse('__CHART_DATA__');
+            // 쉘 스크립트에서 파싱된 JSON 문자열인 __CHART_DATA__로 치환됩니다.
+            // sed 명령어가 싱글 쿼트(')로 감싸서 데이터를 삽입할 것을 가정합니다.
+            const chartDataString = '__CHART_DATA__';
+            let dataSet = { labels: [], values: [] };
 
-            // 마지막 업데이트 시간 표시
-            // 데이터셋 레이블에서 마지막 요소를 추출하여 업데이트 시간을 표시합니다.
-            const lastDataPoint = dataSet.labels[dataSet.labels.length - 1];
-            document.getElementById('update-time').textContent = lastDataPoint;
+            try {
+                // 싱글 쿼트 제거 후 JSON 파싱
+                dataSet = JSON.parse(chartDataString);
+            } catch (e) {
+                console.error("Error parsing chart data JSON:", e);
+                // 데이터 파싱 실패 시 기본값 사용
+                dataSet = { 
+                    labels: ["데이터 오류"], 
+                    values: [0] ,
+                    raw_data_string: chartDataString
+                };
+            }
 
             // Chart.js 설정
             const ctx = document.getElementById('myChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
-                data: dataSet,
+                data: {
+                    // 라벨에서 시간 부분(HH:MM)만 잘라서 표시
+                    labels: dataSet.labels.map(label => label.substring(11, 16)), 
+                    datasets: [{
+                        label: '매출 추정치 ($)',
+                        data: dataSet.values,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.3, 
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: true
+                    }]
+                },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false, 
+                    layout: {
+                        padding: { top: 10 }
+                    },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
+                                // 툴팁 통화 단위를 달러($)로 표시
                                 label: function(context) {
-                                    return context.parsed.y.toLocaleString() + ' 원';
+                                    // 값이 null이거나 숫자가 아니면 처리하지 않음
+                                    if (typeof context.parsed.y !== 'number' || isNaN(context.parsed.y)) {
+                                        return context.dataset.label + ': ' + context.parsed.y;
+                                    }
+                                    return context.parsed.y.toLocaleString('en-US') + ' 달러($)'; 
+                                },
+                                title: function(context) {
+                                    // 전체 시간 레이블 사용
+                                    if (context.length > 0) {
+                                        return dataSet.labels[context[0].dataIndex];
+                                    }
+                                    return '';
                                 }
                             }
                         }
                     },
                     scales: {
+                        x: {
+                            title: { display: true, text: '시간대' },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        },
                         y: {
                             beginAtZero: false,
                             ticks: {
+                                // Y축 통화 단위를 달러($)로 표시
                                 callback: function(value) {
-                                    return value.toLocaleString() + ' 원';
+                                    return value.toLocaleString('en-US') + ' $';
                                 }
-                            }
+                            },
+                            title: { display: true, text: '매출 ($)' }
                         }
                     }
                 }
@@ -91,3 +150,4 @@
     </div>
 </body>
 </html>
+
