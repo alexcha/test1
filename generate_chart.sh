@@ -1,8 +1,8 @@
 #!/bin/bash
-# generate_chart.sh (CRITICAL FIX 버전: JSON 이스케이프 로직 강화)
+# generate_chart.sh (구문 오류 및 최종 안정화 버전)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인
-if [ ! -d ".git" ]; then then
+if [ ! -d ".git" ]; then
     echo "ERROR: 이 스크립트는 Git 저장소 디렉토리 내에서 실행되어야 합니다." >&2
     exit 1
 fi
@@ -41,8 +41,7 @@ while IFS=' : ' read -r datetime value; do
     
     # 데이터가 유효한지 확인
     if [[ -n "$clean_value" && "$clean_value" =~ ^[0-9]+$ ]]; then
-        # 라벨에 포함될 수 있는 모든 특수문자를 제거하거나 인코딩하는 것은 비효율적이므로, 
-        # 나중에 JSON.parse에 전달할 때 안전하도록 처리합니다.
+        # 라벨은 JSON에서 문자열로 안전하게 처리
         LABELS+=("$(echo "$datetime")")
         VALUES+=("$clean_value")
     fi
@@ -84,7 +83,7 @@ EOD
 
 chart_data_single_line=$(echo "$chart_data_raw" | tr -d '\n')
 
-# CRITICAL FIX (핵심 수정):
+# CRITICAL FIX:
 # 1. JSON 문자열이 HTML의 JS에서 싱글 쿼트('...')로 감싸지므로, 내부의 모든 싱글 쿼트를 이스케이프(\')해야 합니다.
 # 2. sed 구분자 ~도 이스케이프합니다.
 chart_data=$(echo "$chart_data_single_line" | sed "s/'/\\\'/g" | sed 's/\~/\\~/g')
@@ -102,7 +101,7 @@ escape_for_sed() {
     echo "$1" | tr -d '\n' | sed 's/\~/\\~/g' | sed 's/\&/\\&/g'
 }
 
-# 2.1. 일별 테이블 HTML 생성 함수 (로직은 동일)
+# 2.1. 일별 테이블 HTML 생성 함수
 generate_daily_table() {
     local data_lines=()
     for date in "${!DAILY_DATA[@]}"; do
@@ -180,7 +179,7 @@ EOD
     echo "$(escape_for_sed "$daily_table_html")"
 }
 
-# 2.2. 시간별 테이블 HTML 생성 함수 (로직은 동일)
+# 2.2. 시간별 테이블 HTML 생성 함수
 generate_hourly_table() {
     local table_rows=""
     local previous_value_int=0 
@@ -259,7 +258,7 @@ hourly_table=$(generate_hourly_table)
 # 3. AI 예측 및 분석 (Gemini API 사용)
 # ====================================================================
 
-# AI 예측 로직... (이 부분은 안정적임)
+# AI 예측 로직...
 API_ENDPOINT="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
 analysis_data=$(cat "$DATA_LINES")
 CURRENT_DATE=$(date +"%Y-%m-%d")
