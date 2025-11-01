@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate_chart.sh (그래프/표 출력 안정화 최종 수정본)
+# generate_chart.sh (Sed 치환 방식 도입 최종 수정본)
 
 # 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인
 if [ ! -d ".git" ]; then
@@ -28,7 +28,8 @@ sed -i '/^$/d' result.txt
 tail -n 30 result.txt > /tmp/recent_data.txt
 DATA_LINES="/tmp/recent_data.txt"
 
-LAST_UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}')
+# 최종 업데이트 시간 추출
+LAST_UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | sed 's/\//\\\//g') # sed 치환을 위해 / 이스케이프
 
 LABELS=()
 VALUES=()
@@ -41,7 +42,7 @@ while IFS=' : ' read -r datetime value; do
     VALUES+=("$clean_value")
 done < "$DATA_LINES"
 
-# 1.2. 일별 데이터 추출 (날짜별 마지막 값만)
+# 1.2. 일별 데이터 추출
 while IFS=' : ' read -r datetime value; do
     date_part=$(echo "$datetime" | awk '{print $1}')
     clean_value=$(echo "$value" | sed 's/,//g')
@@ -54,7 +55,6 @@ chart_values=$(IFS=','; echo "${VALUES[*]}")
 RAW_DATA_STRING=$(cat "$DATA_LINES" | sed -E ':a;N;$!ba;s/\n/\\n/g')
 
 
-# JSON 본문 생성
 chart_data_raw=$(cat <<EOD
 {
     "raw_data_string": "${RAW_DATA_STRING}",
@@ -63,12 +63,20 @@ chart_data_raw=$(cat <<EOD
 }
 EOD
 )
-# AWK 전달을 위해: 한 줄로 만들고 내부 큰따옴표를 역슬래시로 이스케이프
-chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/"/\\"/g') 
+# sed 치환을 위해: 한 줄로 만들고 내부 /를 이스케이프 처리
+chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/\//\\\//g') 
 
 # ====================================================================
-# 2. HTML 테이블 생성 함수 (간소화 및 안정화)
+# 2. HTML 테이블 생성 함수 (sed 치환을 위한 특수 문자 이스케이프 추가)
 # ====================================================================
+
+# HTML 테이블 생성 및 sed 치환을 위한 이스케이프 처리 함수
+escape_for_sed() {
+    # 1. 개행 문자를 제거
+    # 2. sed의 구분자로 사용될 / 문자를 이스케이프 (\/)
+    # 3. sed 치환 오류를 유발하는 & 문자를 이스케이프 (\&)
+    echo "$1" | tr -d '\n' | sed 's/\//\\\//g' | sed 's/\&/\\&/g'
+}
 
 # 2.1. 일별 테이블 HTML 생성 함수
 generate_daily_table() {
@@ -85,11 +93,8 @@ generate_daily_table() {
 
     while IFS=' : ' read -r date value_str; do
         if [ -z "$date" ]; then continue; fi
-
         current_value_int=$(echo "$value_str" | sed 's/,//g')
-        
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then continue; fi
-        
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
@@ -124,11 +129,10 @@ EOT
         previous_value_int=$current_value_int 
     done <<< "$sorted_daily_data"
 
-    # 테이블 행을 다시 역순으로 배치 (가장 오래된 데이터가 위로)
     table_rows=$(echo "$temp_rows" | tac)
 
 
-    daily_table=$(cat <<EOD
+    daily_table_html=$(cat <<EOD
 <table class="data-table">
 <thead>
     <tr>
@@ -143,8 +147,8 @@ $table_rows
 </table>
 EOD
 )
-    # AWK 전달을 위해: 모든 개행 문자 제거 후, 내부 큰따옴표를 역슬래시로 이스케이프
-    echo "$daily_table" | tr -d '\n' | sed 's/"/\\"/g'
+    # sed 치환을 위해 이스케이프 처리
+    echo "$(escape_for_sed "$daily_table_html")"
 }
 
 # 2.2. 시간별 테이블 HTML 생성 함수
@@ -156,11 +160,8 @@ generate_hourly_table() {
     local temp_rows=""
     while IFS=' : ' read -r datetime value_str; do
         if [ -z "$datetime" ]; then continue; fi
-
         current_value_int=$(echo "$value_str" | sed 's/,//g')
-
         if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then continue; fi
-
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
@@ -198,7 +199,7 @@ EOT
     table_rows=$(echo "$temp_rows" | tac)
 
 
-    hourly_table=$(cat <<EOD
+    hourly_table_html=$(cat <<EOD
 <table class="data-table">
 <thead>
     <tr>
@@ -213,8 +214,8 @@ $table_rows
 </table>
 EOD
 )
-    # AWK 전달을 위해: 모든 개행 문자 제거 후, 내부 큰따옴표를 역슬래시로 이스케이프
-    echo "$hourly_table" | tr -d '\n' | sed 's/"/\\"/g'
+    # sed 치환을 위해 이스케이프 처리
+    echo "$(escape_for_sed "$hourly_table_html")"
 }
 
 # 테이블 생성 실행
@@ -284,54 +285,36 @@ else
         error_message=$(echo "$response" | html2text)
         ai_prediction="AI 예측 실패. 응답 오류: ${error_message}"
     else
-        # 개행 문자를 <br>로 치환하여 HTML에서 줄바꿈 처리
-        # AWK 전달을 위해: 내부의 큰따옴표를 역슬래시로 이스케이프
-        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g' | sed 's/"/\\"/g')
+        # 개행 문자를 <br>로 치환
+        ai_prediction=$(echo "$ai_prediction_raw" | sed ':a;N;$!ba;s/\n/<br>/g')
     fi
 fi
+
+# sed 치환을 위해 이스케이프 처리
+ai_prediction=$(escape_for_sed "$ai_prediction")
 
 echo "3.4. AI 예측 완료."
 
 # ====================================================================
-# 4. 최종 index.html 파일 생성 및 변수 삽입 (AWK 스크립트 파일 사용)
+# 4. 최종 index.html 파일 생성 및 변수 삽입 (Sed 스크립트 파일 사용)
 # ====================================================================
 
 # 템플릿 다운로드
 WGET_TEMPLATE_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/template.html"
 wget "$WGET_TEMPLATE_URL" -O template.html || { echo "ERROR: template.html 다운로드 실패" >&2; exit 1; }
 
-echo "4.1. index.html 파일 생성 시작 (AWK 스크립트 파일 방식)..."
+echo "4.1. index.html 파일 생성 시작 (Sed 스크립트 방식)..."
 
-# 템플릿 파일을 임시 파일로 복사
-cp template.html /tmp/index_temp.html
+# 템플릿 파일 복사
+cp template.html index.html
 
-# AWK 스크립트 생성 (이스케이프된 변수를 안전하게 사용)
-cat > /tmp/replace.awk <<EOD
-BEGIN {
-    # 셸 변수를 AWK 변수로 가져오기. (내부 "가 \"로 이스케이프되어 있어 안전함)
-    # 변수 할당 시 끝에 세미콜론(;)이 붙어야 함.
-    chart_data = "$chart_data";
-    ai_prediction = "$ai_prediction";
-    daily_table = "$daily_table";
-    hourly_table = "$hourly_table";
-    last_update_time = "$LAST_UPDATE_TIME";
-}
-{
-    # AWK에서 치환은 gsub 함수를 사용
-    gsub(/__CHART_DATA__/, chart_data);
-    gsub(/__AI_PREDICTION__/, ai_prediction);
-    gsub(/__DAILY_TABLE_HTML__/, daily_table);
-    gsub(/__HOURLY_TABLE_HTML__/, hourly_table);
-    gsub(/__LAST_UPDATE_TIME__/, last_update_time);
-    print;
-}
-EOD
+# Sed를 사용하여 변수 치환 실행 (변수가 비어있더라도 치환 토큰 자체는 제거됨)
+# 4개의 치환을 한 번에 실행
 
-# AWK 스크립트 실행
-# AWK 실행이 실패하는 경우, 오류 메시지가 표시됩니다.
-awk -f /tmp/replace.awk /tmp/index_temp.html > index.html
-
-# 임시 파일 삭제
-rm /tmp/index_temp.html /tmp/replace.awk
+sed -i "s/__CHART_DATA__/$chart_data/g" index.html
+sed -i "s/__AI_PREDICTION__/$ai_prediction/g" index.html
+sed -i "s/__DAILY_TABLE_HTML__/$daily_table/g" index.html
+sed -i "s/__HOURLY_TABLE_HTML__/$hourly_table/g" index.html
+sed -i "s/__LAST_UPDATE_TIME__/$LAST_UPDATE_TIME/g" index.html
 
 echo "4.2. index.html 파일 생성 완료. 파일 크기: $(wc -c < index.html) 바이트"
