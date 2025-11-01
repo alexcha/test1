@@ -292,8 +292,9 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 
 
 # 5. HTML 파일 생성 (index.html)
-# 🌟 변경: CHART_END 앞에 백슬래시(\)를 사용하여 HEREDOC 내부의 Bash 변수 확장/명령 치환을 비활성화합니다.
-cat << \CHART_END > index.html
+# 🌟 최종 수정: CHART_END를 'CHART_END'로 변경하여 내부의 모든 문자를 리터럴(Bash 해석 X)로 취급하고, 
+# 셸 변수는 명시적으로 외부에서 삽입합니다. (가장 안전한 방법)
+cat > index.html << 'CHART_END'
 <!DOCTYPE html>
 <html>
 <head>
@@ -394,7 +395,7 @@ cat << \CHART_END > index.html
 <body>
     <div class="container">
         <h1>데이터 변화 추이</h1>
-        <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
+        <p class="update-time">최근 업데이트 시간: ${UPDATE_TIME}</p>
         
         <div class="prediction-section">
             <h2 id="prediction-header">AI 기반 누적 값 예측</h2>
@@ -502,14 +503,14 @@ cat << \CHART_END > index.html
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2; 
                 } else {
-                    throw new Error(\`API request failed after \${maxRetries} attempts with status \${response.status}\`);
+                    throw new Error(`API request failed after ${maxRetries} attempts with status ${response.status}`);
                 }
             } catch (error) {
                 if (attempt < maxRetries - 1) {
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2;
                 } else {
-                    throw new Error(\`API request failed after \${maxRetries} attempts: \${error.message}\`);
+                    throw new Error(`API request failed after ${maxRetries} attempts: ${error.message}`);
                 }
             }
         }
@@ -551,10 +552,10 @@ cat << \CHART_END > index.html
         resultDiv.innerHTML = '<span class="loading-text">데이터를 분석하고 ' + targetDate + '까지의 누적 값을 예측하는 중입니다... 잠시만 기다려주세요.</span>';
         
         // 🌟 최종 수정된 시스템 프롬프트: 성장세 분석 및 일일 분석 요청 추가
-        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, 다음 사항을 포함하여 응답하세요:\\n\\n1. **일일 증가분**을 기반으로 현재 **전체적인 성장 분위기**를 언급하고, 매출이 **성장하고 있는지, 둔화하고 있는지, 혹은 정체하고 있는지** 명확히 분석하세요.\\n2. **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(" + targetDate + ")**까지의 기간을 고려하여 최종 누적 값을 예측하세요.\\n\\n응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
+        const systemPrompt = "당신은 모바일 게임 산업의 전문 데이터 분석가이자 성장 예측 모델입니다. 제공된 시계열 누적 데이터는 **10월 28일에 오픈**하여 **180개국 글로벌 서비스** 중인 모바일 MMORPG 게임의 일별 핵심 누적 값 (단위: 달러)을 나타냅니다. 이 데이터를 분석하고, 다음 사항을 포함하여 응답하세요:\n\n1. **일일 증가분**을 기반으로 현재 **전체적인 성장 분위기**를 언급하고, 매출이 **성장하고 있는지, 둔화하고 있는지, 혹은 정체하고 있는지** 명확히 분석하세요.\n2. **글로벌 서비스 초기 성장세**와 **현재 달의 마지막 날(" + targetDate + ")**까지의 기간을 고려하여 최종 누적 값을 예측하세요.\n\n응답은 분석 결과와 예측 값을 간결하고 명확한 한국어 문단으로 제공해야 하며, 예측 값은 추정치임을 명시하세요."; 
 
         // 사용자 쿼리: targetDate 변수 값 반영
-        const userQuery = '다음은 \\'YYYY-MM-DD HH:MM:SS : 값\\' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **' + targetDate + '**까지의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n' + RAW_DATA_STRING;
+        const userQuery = '다음은 \'YYYY-MM-DD HH:MM:SS : 값\' 형식의 시계열 누적 데이터(단위: 달러)입니다. 이 데이터를 사용하여 **' + targetDate + '**까지의 예상 누적 값을 예측해주세요.\n\n데이터:\n' + RAW_DATA_STRING;
         
         // 무료 버전을 고려하여 gemini-2.5-flash 모델 사용
         const model = "gemini-2.5-flash"; 
@@ -754,3 +755,23 @@ cat << \CHART_END > index.html
 </body>
 </html>
 CHART_END
+EOC
+
+# 🌟 업데이트 시간과 셸 변수를 HTML 파일에 직접 삽입 (Herdoc에서 분리)
+UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}')
+sed -i "s|${UPDATE_TIME}|\$(tail -n 1 result.txt | awk -F ' : ' '{print \$1}')|" index.html 
+
+# 주의: 위에 있는 sed 명령어는 macOS와 Linux 환경에 따라 다르게 작동할 수 있습니다. 
+# 만약 오류가 발생하면, 워크플로우에 다음을 추가해 주세요.
+# if [[ "\$(uname)" == "Darwin" ]]; then SED_INPLACE_OPTION="-i \"\""; else SED_INPLACE_OPTION="-i"; fi
+# eval "sed \$SED_INPLACE_OPTION \"s|\${UPDATE_TIME}|$(tail -n 1 result.txt | awk -F ' : ' '{print \$1}')|\" index.html"
+
+
+# 🌟 안전한 방법으로 셸 변수 재삽입
+# HTML_TABLE_ROWS와 DAILY_SUMMARY_TABLE은 이미 셸 변수로 선언되어 있으므로, 
+# 'CHART_END' 구문 내부에서는 리터럴 텍스트로 존재하며, 
+# 이 변수들은 Herdoc의 끝인 EOC 이후에 sed를 사용하여 삽입해야 합니다.
+# 하지만 현재 스크립트 구조상 복잡해지므로, 아래 두 줄만 사용하여 최종적으로 변수를 삽입합니다.
+
+sed -i '' "s|${DAILY_SUMMARY_TABLE}|${DAILY_SUMMARY_TABLE}|" index.html 
+sed -i '' "s|${HTML_TABLE_ROWS}|${HTML_TABLE_ROWS}|" index.html 
