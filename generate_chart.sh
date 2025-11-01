@@ -335,25 +335,36 @@ if [ -n "$GEMINI_API_KEY" ]; then
         PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 예측 결과 실패.</span> API 오류: ${ERROR_MESSAGE}</div>"
         PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (API 오류)"
     else
-        # 텍스트 내용 추출
-        RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | awk -F'"text":"' '{print $2}' | awk -F'"' '{print $1}' | head -n 1)
-        
+        # 🚨 [수정된 부분] jq를 사용하여 안정적으로 JSON 파싱 및 텍스트 추출
+        # jq가 설치되어 있지 않은 경우, 이 로직은 작동하지 않을 수 있습니다.
+        RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // ""' 2>/dev/null)
+
         if [ -z "$RAW_TEXT_CONTENT" ]; then
-            PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 파싱 실패.</span> API 응답에서 예측 텍스트를 파싱할 수 없습니다. 응답 구조를 확인하세요.</div>"
-            PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (파싱 오류)"
+            # 텍스트가 비어있을 경우, 블록킹 사유를 확인하여 더 자세한 오류 메시지를 제공
+            BLOCK_REASON=$(echo "$API_RESPONSE" | jq -r '.candidates[0].finishReason // .promptFeedback.blockReason // ""' 2>/dev/null)
+            
+            if [ -n "$BLOCK_REASON" ]; then
+                 PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 필터링됨.</span> 응답 내용이 정책에 의해 차단되었거나 (Finish Reason: ${BLOCK_REASON}) 누락되었습니다.</div>"
+                 PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (차단 오류)"
+            else
+                 PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 응답 파싱 실패.</span> 예측 텍스트를 파싱할 수 없습니다. 이는 API 응답 구조가 예상과 다르거나, `jq` 명령어를 찾을 수 없을 때 발생합니다.</div>"
+                 PREDICTION_HEADER_EMBED="AI 기반 누적 값 예측 (파싱 오류)"
+            fi
         else
-            # JSON 이스케이프 문자열을 HTML 포맷으로 변환
-            CLEAN_TEXT=$(echo "$RAW_TEXT_CONTENT" | sed 's/\\n/###NEWLINE###/g' | sed 's/\\t/    /g' | sed 's/\\//g')
-            FORMATTED_TEXT=$(echo "$CLEAN_TEXT" | sed 's/###NEWLINE###/<br>/g')
+            # jq -r은 이스케이프를 자동으로 해제하므로, 실제 개행 문자(\n)를 HTML의 <br> 태그로 변환합니다.
+            # \n을 <br>로, \t를 공백으로 변환합니다.
+            FORMATTED_TEXT=$(echo "$RAW_TEXT_CONTENT" | sed ':a;N;$!ba;s/\n/<br>/g' | sed 's/\t/&nbsp;&nbsp;&nbsp;&nbsp;/g')
 
-            # 출처/Grounding 정보 추출 (간소화)
-            SOURCES_JSON=$(echo "$API_RESPONSE" | grep -o '"groundingAttributions": \[[^]]*\]' | head -n 1)
+            # 출처/Grounding 정보 추출 (jq 사용)
             SOURCES_HTML=""
-
-            if [ ! -z "$SOURCES_JSON" ]; then
-                # 첫 번째 출처만 추출
-                URI=$(echo "$SOURCES_JSON" | grep -o '"uri": "[^"]*"' | head -n 1 | sed 's/"uri": "//; s/"$//')
-                TITLE=$(echo "$SOURCES_JSON" | grep -o '"title": "[^"]*"' | head -n 1 | sed 's/"title": "//; s/"$//')
+            # groundingAttributions 배열에서 uri와 title을 TSV 형식으로 추출 (오류 무시)
+            SOURCES_ARRAY=$(echo "$API_RESPONSE" | jq -r '.candidates[0].groundingMetadata.groundingAttributions[] | select(.web) | [.web.uri, .web.title] | @tsv' 2>/dev/null)
+            
+            # 첫 번째 출처만 사용
+            if [ -n "$SOURCES_ARRAY" ]; then
+                FIRST_SOURCE=$(echo "$SOURCES_ARRAY" | head -n 1)
+                URI=$(echo "$FIRST_SOURCE" | awk '{print $1}')
+                TITLE=$(echo "$FIRST_SOURCE" | awk '{$1=""; print $0}' | xargs) # URI를 제외한 나머지를 제목으로 사용
 
                 if [ ! -z "$URI" ] && [ ! -z "$TITLE" ]; then
                     SOURCES_HTML="<div class=\"sources-container\">
