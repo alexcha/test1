@@ -1,7 +1,7 @@
 #!/bin/bash
-# generate_chart.sh (AI 분석값 달러 반영 최종 수정본)
+# generate_chart.sh (그래프/표 출력 안정화 최종 수정본)
 
-# 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인 (불필요한 경로 오류 방지)
+# 현재 디렉토리가 워크플로우 실행 디렉토리인지 확인
 if [ ! -d ".git" ]; then
     echo "ERROR: 이 스크립트는 Git 저장소 디렉토리 내에서 실행되어야 합니다." >&2
     exit 1
@@ -17,35 +17,27 @@ fi
 # 1. 데이터 파싱 및 가공
 # ====================================================================
 
-# result.txt 파일이 없으면 오류
 if [ ! -f "result.txt" ]; then
     echo "ERROR: result.txt 파일을 찾을 수 없습니다. check.sh를 먼저 실행해야 합니다." >&2
     exit 1
 fi
 
-# result.txt에서 공백 줄 제거 (파싱 오류 방지)
 sed -i '/^$/d' result.txt
 
-# 전체 데이터를 최신 30개 항목만 사용 (차트 부하 줄이기 및 최신 데이터 집중)
+# 전체 데이터를 최신 30개 항목만 사용
 tail -n 30 result.txt > /tmp/recent_data.txt
 DATA_LINES="/tmp/recent_data.txt"
 
-# 마지막 업데이트 시간 추출 (index.html에 표시용)
 LAST_UPDATE_TIME=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}')
 
-# 배열 초기화
 LABELS=()
 VALUES=()
-declare -A DAILY_DATA # 연관 배열 (일별 최종 값 저장)
+declare -A DAILY_DATA
 
 # 1.1. 차트 데이터 (시간별) 생성
 while IFS=' : ' read -r datetime value; do
-    # 쉼표 제거 및 값만 추출
     clean_value=$(echo "$value" | sed 's/,//g')
-
-    # LABELS에는 전체 날짜+시간 문자열 사용 (툴팁용)
     LABELS+=("$(echo "$datetime")")
-    # VALUES에는 순수 숫자 값만 사용 (그래프 데이터용)
     VALUES+=("$clean_value")
 done < "$DATA_LINES"
 
@@ -53,24 +45,16 @@ done < "$DATA_LINES"
 while IFS=' : ' read -r datetime value; do
     date_part=$(echo "$datetime" | awk '{print $1}')
     clean_value=$(echo "$value" | sed 's/,//g')
-
-    # key=날짜, value=값으로 저장. 나중에 입력된 값이 최종값
     DAILY_DATA["$date_part"]="$clean_value"
 done < result.txt
 
 # 1.3. Chart.js 데이터셋 JSON 생성
-# Chart.js 레이블 (시간+날짜 전체)
 chart_labels=$(printf '"%s", ' "${LABELS[@]}" | sed 's/, $//')
-# Chart.js 값 (쉼표 없는 순수 숫자만)
 chart_values=$(IFS=','; echo "${VALUES[*]}")
-
-
-# RAW_DATA_STRING (AI 예측에 사용될 원본 데이터 문자열)
-# 개행 문자를 \n으로 이스케이프 처리
 RAW_DATA_STRING=$(cat "$DATA_LINES" | sed -E ':a;N;$!ba;s/\n/\\n/g')
 
 
-# JSON 생성 시 jq를 사용하여 문자열을 안전하게 처리
+# JSON 본문 생성
 chart_data_raw=$(cat <<EOD
 {
     "raw_data_string": "${RAW_DATA_STRING}",
@@ -83,7 +67,7 @@ EOD
 chart_data=$(echo "$chart_data_raw" | tr -d '\n' | sed 's/"/\\"/g') 
 
 # ====================================================================
-# 2. HTML 테이블 생성 함수
+# 2. HTML 테이블 생성 함수 (간소화 및 안정화)
 # ====================================================================
 
 # 2.1. 일별 테이블 HTML 생성 함수
@@ -93,26 +77,23 @@ generate_daily_table() {
         data_lines+=("$date : ${DAILY_DATA[$date]}")
     done
     
-    # 날짜 기준 내림차순 정렬 (최신 날짜가 위로)
     sorted_daily_data=$(printf "%s\n" "${data_lines[@]}" | sort -r)
 
     local table_rows=""
     local previous_value_int=0 
-
     local temp_rows=""
+
     while IFS=' : ' read -r date value_str; do
         if [ -z "$date" ]; then continue; fi
 
         current_value_int=$(echo "$value_str" | sed 's/,//g')
         
-        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
-            continue
-        fi
+        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then continue; fi
         
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
-        local color="#6c757d" 
+        local class_name="zero" 
         
         if [ "$previous_value_int" -ne 0 ]; then
             change=$((current_value_int - previous_value_int))
@@ -120,13 +101,13 @@ generate_daily_table() {
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
-                color="#dc3545" 
+                class_name="plus" 
                 change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
-                color="#007bff" 
+                class_name="minus" 
                 change_str="-$formatted_change"
             else
-                color="#333"
+                class_name="zero"
                 change_str="0"
             fi
         fi
@@ -134,25 +115,26 @@ generate_daily_table() {
         temp_rows=$(cat <<EOT
 $temp_rows
 <tr>
-    <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">$date</td>
-    <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">$formatted_value</td>
-    <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: $color; font-weight: 600;">$change_str</td>
+    <td class="first-col">$date</td>
+    <td class="value-col">$formatted_value</td>
+    <td class="$class_name">$change_str</td>
 </tr>
 EOT
 )
         previous_value_int=$current_value_int 
     done <<< "$sorted_daily_data"
 
+    # 테이블 행을 다시 역순으로 배치 (가장 오래된 데이터가 위로)
     table_rows=$(echo "$temp_rows" | tac)
 
 
     daily_table=$(cat <<EOD
-<table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;">
+<table class="data-table">
 <thead>
     <tr>
-        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333;">날짜</th>
-        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
-        <th style="padding: 14px; background-color: #f1f1f1; text-align: right; color: #333;">변화</th>
+        <th class="header-col">날짜</th>
+        <th class="header-col right-align">값</th>
+        <th class="header-col right-align">변화</th>
     </tr>
 </thead>
 <tbody>
@@ -177,14 +159,12 @@ generate_hourly_table() {
 
         current_value_int=$(echo "$value_str" | sed 's/,//g')
 
-        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then
-            continue
-        fi
+        if ! [[ "$current_value_int" =~ ^[0-9]+$ ]]; then continue; fi
 
         formatted_value=$(echo "$current_value_int" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
         
         local change_str="---"
-        local color="#6c757d" 
+        local class_name="zero" 
         
         if [ "$previous_value_int" -ne 0 ]; then
             change=$((current_value_int - previous_value_int))
@@ -192,13 +172,13 @@ generate_hourly_table() {
             formatted_change=$(echo "$change_abs" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')
 
             if [ "$change" -gt 0 ]; then
-                color="#dc3545" 
+                class_name="plus" 
                 change_str="+$formatted_change"
             elif [ "$change" -lt 0 ]; then
-                color="#007bff" 
+                class_name="minus" 
                 change_str="-$formatted_change"
             else
-                color="#333"
+                class_name="zero"
                 change_str="0"
             fi
         fi
@@ -206,9 +186,9 @@ generate_hourly_table() {
         temp_rows=$(cat <<EOT
 $temp_rows
 <tr>
-    <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">$datetime</td>
-    <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">$formatted_value</td>
-    <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: $color; font-weight: 600;">$change_str</td>
+    <td class="first-col">$datetime</td>
+    <td class="value-col">$formatted_value</td>
+    <td class="$class_name">$change_str</td>
 </tr>
 EOT
 )
@@ -219,12 +199,12 @@ EOT
 
 
     hourly_table=$(cat <<EOD
-<table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
+<table class="data-table">
 <thead>
     <tr>
-        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
-        <th style="padding: 14px; background-color: #f1f1f1; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
-        <th style="padding: 14px; background-color: #f1f1f1; text-align: right; color: #333;">변화</th>
+        <th class="header-col">시간</th>
+        <th class="header-col right-align">값</th>
+        <th class="header-col right-align">변화</th>
     </tr>
 </thead>
 <tbody>
@@ -247,10 +227,8 @@ hourly_table=$(generate_hourly_table)
 
 # 3.1. 분석을 위한 데이터 준비
 analysis_data=$(cat "$DATA_LINES")
-# 현재 날짜 (스크립트 실행 시점 기준)
 CURRENT_DATE=$(date +"%Y-%m-%d")
 
-# 3.2. Gemini API 호출
 echo "3.2. Gemini API 호출 시작..."
 API_ENDPOINT="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}"
 
@@ -331,6 +309,7 @@ cp template.html /tmp/index_temp.html
 cat > /tmp/replace.awk <<EOD
 BEGIN {
     # 셸 변수를 AWK 변수로 가져오기. (내부 "가 \"로 이스케이프되어 있어 안전함)
+    # 변수 할당 시 끝에 세미콜론(;)이 붙어야 함.
     chart_data = "$chart_data";
     ai_prediction = "$ai_prediction";
     daily_table = "$daily_table";
@@ -349,6 +328,7 @@ BEGIN {
 EOD
 
 # AWK 스크립트 실행
+# AWK 실행이 실패하는 경우, 오류 메시지가 표시됩니다.
 awk -f /tmp/replace.awk /tmp/index_temp.html > index.html
 
 # 임시 파일 삭제
