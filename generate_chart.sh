@@ -38,12 +38,12 @@ JS_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# JS_LABELS: 따옴표로 감싸고 쉼표로 구분된 시간 (차트 레이블용 - 변경 없음)
+# JS_LABELS: 🚨 [수정됨] 따옴표로 감싸고 쉼표로 구분된 전체 시간 문자열 (YYYY-MM-DD HH:MM:SS)을 사용합니다.
 JS_LABELS=$(awk -F ' : ' '
     { 
-        match($1, /[0-9]{2}:[0-9]{2}/, short_label_arr);
-        short_label = short_label_arr[0];
-        labels[i++] = "\"" short_label "\""
+        # 전체 시간 문자열을 레이블로 사용
+        full_label = $1;
+        labels[i++] = "\"" full_label "\""
     }
     END {
         for (j=0; j<i; j++) {
@@ -511,6 +511,14 @@ cat << CHART_END > index.html
             <canvas id="dailyChart"></canvas>
         </div>
         
+        <!-- 사용자의 요청에 따라 '일일 집계 기록 (최신순)' 표를 일일 집계 차트 바로 아래로 이동했습니다. -->
+        <div style="text-align: center;">
+            <h2>일일 집계 기록 (최신순)</h2>
+        </div>
+        <div>
+            ${DAILY_SUMMARY_TABLE}
+        </div> 
+        
         <div style="text-align: center;">
             <h2>기록 시간별 변화 값 추이</h2>
         </div>
@@ -525,13 +533,6 @@ cat << CHART_END > index.html
         <div>
             ${HTML_TABLE_ROWS}
         </div>
-        
-        <div style="text-align: center;">
-            <h2>일일 집계 기록 (최신순)</h2>
-        </div>
-        <div>
-            ${DAILY_SUMMARY_TABLE}
-        </div> 
         
     </div>
     
@@ -613,7 +614,7 @@ cat << CHART_END > index.html
                 scales: {
                     x: {
                         type: 'category', 
-                        title: { display: true, text: '시간 (HH:MM)', font: { size: 14, weight: 'bold' } },
+                        title: { display: true, text: '시간 (YYYY-MM-DD HH:MM:SS)', font: { size: 14, weight: 'bold' } }, // 🚨 [수정됨] 제목에 날짜 포함
                         ticks: {
                             maxRotation: 45, 
                             minRotation: 45,
@@ -639,7 +640,7 @@ cat << CHART_END > index.html
                     },
                     title: {
                         display: true,
-                        text: '시간별 변화 값 추이 (HH:MM)', // 차트 제목 변경
+                        text: '시간별 변화 값 추이 (YYYY-MM-DD HH:MM:SS)', // 🚨 [수정됨] 차트 제목에 날짜 포함
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -681,7 +682,11 @@ cat << CHART_END > index.html
                     x: {
                         type: 'category', 
                         title: { display: true, text: '날짜', font: { size: 14, weight: 'bold' } },
-                        ticks: { font: { size: 12 } }
+                        ticks: { 
+                            font: { size: 12 },
+                            maxRotation: 45, // 🚨 [수정됨] 날짜 대각선 표시
+                            minRotation: 45  // 🚨 [수정됨] 날짜 대각선 표시
+                        }
                     },
                     y: {
                         title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
