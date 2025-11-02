@@ -91,12 +91,12 @@
 <body>
     <div class="container">
         <h1>데이터 변화 추이 대시보드</h1>
-        <p class="update-time">최근 업데이트 시간: 2025-11-02 08:57:41 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-02 09:10:45 KST</p>
         
         <div class="prediction-section">
             <h2 id="prediction-header">AI 기반 추이 분석 및 예측: 2025-11-03 및 2025-11-30</h2>
             <div id="predictionResult">
-                <div class="success-message">제공된 데이터 분석 결과, 현재 일별 누적 매출은 11월 2일 데이터에서 일시적인 정체 구간이 관찰되나 전반적으로 강한 상승 추이를 보이고 있습니다. 이러한 추세에 기반한 추정치로, 2025년 11월 3일의 예상 최종 누적 매출은 약 **5,260,000달러**가 될 것으로 보입니다. 이달 말인 2025년 11월 30일에는 약 **22,800,000달러**의 누적 매출을 기록할 것으로 추정됩니다.</div>
+                <div class="success-message">현재 데이터에 따르면 일별 누적 매출은 지속적으로 상승하는 추이를 보입니다. 이러한 추세로 볼 때, 2025년 11월 3일의 최종 누적 매출은 약 5,400,000달러로 추정됩니다. 또한, 2025년 11월 30일 이달 말의 최종 누적 매출은 약 28,400,000달러에 달할 것으로 예상됩니다.</div>
             </div>
         </div>
         
@@ -106,6 +106,21 @@
         <div class="chart-container">
             <canvas id="dailyChart"></canvas>
         </div>
+        
+        <!-- 사용자의 요청에 따라 '일일 집계 기록 (최신순)' 표를 일일 집계 차트 바로 아래로 이동했습니다. -->
+        <div style="text-align: center;">
+            <h2>일일 집계 기록 (최신순)</h2>
+        </div>
+        <div>
+            <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;">
+<thead><tr>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">날짜</th>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>            <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>        </tr></thead>
+<tbody>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-11-02</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">4,017,600</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+321,800</td>            </tr>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-11-01</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">3,695,800</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+802,700</td>            </tr>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-10-31</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">2,893,100</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+692,100</td>            </tr>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-10-30</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">2,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #6c757d;">---</td>            </tr>
+</tbody></table>
+        </div> 
         
         <div style="text-align: center;">
             <h2>기록 시간별 변화 값 추이</h2>
@@ -122,6 +137,7 @@
             <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;">
 <thead><tr>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>            <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>        </tr></thead>
 <tbody>
+<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-02 09:10:45 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">4,017,600</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+26,100</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-02 08:57:41 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,991,500</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-02 08:43:48 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,991,500</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;">2025-11-02 08:26:44 KST</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;">3,991,500</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+32,100</td>            </tr>
@@ -182,31 +198,17 @@
 </tbody></table>
         </div>
         
-        <div style="text-align: center;">
-            <h2>일일 집계 기록 (최신순)</h2>
-        </div>
-        <div>
-            <table style="width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;">
-<thead><tr>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">날짜</th>            <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>            <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>        </tr></thead>
-<tbody>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-11-02</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">3,991,500</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+295,700</td>            </tr>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-11-01</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">3,695,800</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+802,700</td>            </tr>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-10-31</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">2,893,100</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #dc3545; font-weight: 600;">+692,100</td>            </tr>
-<tr>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;">2025-10-30</td>                <td style="padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;">2,201,000</td>                <td style="padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; color: #6c757d;">---</td>            </tr>
-</tbody></table>
-        </div> 
-        
     </div>
     
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
     // 1. 시간별 상세 기록 데이터 (빨간색 차트 - 변화 값)
-    const chartData = [0, 30600, 33700, 28200, -2100, 17100, 16900, 23600, 21500, 0, 21800, 26300, 75300, 36500, 32500, 35700, 80400, 28700, -10200, 23900, 17400, 31000, 30400, 66300, 12600, 44600, 32500, 39500, 74300, 47600, 63300, 28700, 22000, 15000, 19300, 44700, 18800, 89800, 57800, 29300, 25700, 43700, 55500, 26300, 47000, 21900, 47300, 46300, 31400, 21100, 41700, 22400, 25100, 28300, 32100, 0, 0];
-    const chartLabels = ["22:40", "23:55", "00:13", "01:39", "02:35", "03:40", "04:23", "05:30", "06:03", "06:25", "07:29", "08:25", "10:51", "11:09", "12:50", "13:34", "14:30", "15:43", "16:27", "17:36", "18:30", "19:32", "20:24", "21:58", "22:39", "23:31", "00:30", "01:38", "02:28", "03:41", "04:23", "05:32", "06:09", "07:43", "08:25", "10:02", "11:11", "14:30", "15:37", "16:56", "17:17", "18:27", "20:04", "21:01", "22:06", "23:13", "00:53", "01:29", "02:39", "03:35", "04:21", "05:28", "06:23", "07:28", "08:26", "08:43", "08:57"]; 
+    const chartData = [0, 30600, 33700, 28200, -2100, 17100, 16900, 23600, 21500, 0, 21800, 26300, 75300, 36500, 32500, 35700, 80400, 28700, -10200, 23900, 17400, 31000, 30400, 66300, 12600, 44600, 32500, 39500, 74300, 47600, 63300, 28700, 22000, 15000, 19300, 44700, 18800, 89800, 57800, 29300, 25700, 43700, 55500, 26300, 47000, 21900, 47300, 46300, 31400, 21100, 41700, 22400, 25100, 28300, 32100, 0, 0, 26100];
+    const chartLabels = ["2025-10-30 22:40:45 KST", "2025-10-30 23:55:42 KST", "2025-10-31 00:13:31 KST", "2025-10-31 01:39:00 KST", "2025-10-31 02:35:25 KST", "2025-10-31 03:40:33 KST", "2025-10-31 04:23:41 KST", "2025-10-31 05:30:59 KST", "2025-10-31 06:03:38 KST", "2025-10-31 06:25:29 KST", "2025-10-31 07:29:41 KST", "2025-10-31 08:25:34 KST", "2025-10-31 10:51:59 KST", "2025-10-31 11:09:16 KST", "2025-10-31 12:50:56 KST", "2025-10-31 13:34:59 KST", "2025-10-31 14:30:56 KST", "2025-10-31 15:43:02 KST", "2025-10-31 16:27:07 KST", "2025-10-31 17:36:16 KST", "2025-10-31 18:30:51 KST", "2025-10-31 19:32:49 KST", "2025-10-31 20:24:04 KST", "2025-10-31 21:58:17 KST", "2025-10-31 22:39:15 KST", "2025-10-31 23:31:45 KST", "2025-11-01 00:30:13 KST", "2025-11-01 01:38:05 KST", "2025-11-01 02:28:21 KST", "2025-11-01 03:41:27 KST", "2025-11-01 04:23:18 KST", "2025-11-01 05:32:33 KST", "2025-11-01 06:09:05 KST", "2025-11-01 07:43:10 KST", "2025-11-01 08:25:36 KST", "2025-11-01 10:02:47 KST", "2025-11-01 11:11:03 KST", "2025-11-01 14:30:00 KST", "2025-11-01 15:37:06 KST", "2025-11-01 16:56:10 KST", "2025-11-01 17:17:10 KST", "2025-11-01 18:27:55 KST", "2025-11-01 20:04:13 KST", "2025-11-01 21:01:23 KST", "2025-11-01 22:06:47 KST", "2025-11-01 23:13:16 KST", "2025-11-02 00:53:17 KST", "2025-11-02 01:29:04 KST", "2025-11-02 02:39:13 KST", "2025-11-02 03:35:36 KST", "2025-11-02 04:21:45 KST", "2025-11-02 05:28:36 KST", "2025-11-02 06:23:46 KST", "2025-11-02 07:28:12 KST", "2025-11-02 08:26:44 KST", "2025-11-02 08:43:48 KST", "2025-11-02 08:57:41 KST", "2025-11-02 09:10:45 KST"]; 
 
     // 2. 일별 최종 값 데이터 (파란색 차트 - 누적 값)
-    const jsDailyValues = [2201000, 2893100, 3695800, 3991500];
+    const jsDailyValues = [2201000, 2893100, 3695800, 4017600];
     const jsDailyLabels = ["2025-10-30", "2025-10-31", "2025-11-01", "2025-11-02"]; 
 
     const formatYAxisTick = function(value) {
@@ -276,7 +278,7 @@
                 scales: {
                     x: {
                         type: 'category', 
-                        title: { display: true, text: '시간 (HH:MM)', font: { size: 14, weight: 'bold' } },
+                        title: { display: true, text: '시간 (YYYY-MM-DD HH:MM:SS)', font: { size: 14, weight: 'bold' } }, // 🚨 [수정됨] 제목에 날짜 포함
                         ticks: {
                             maxRotation: 45, 
                             minRotation: 45,
@@ -302,7 +304,7 @@
                     },
                     title: {
                         display: true,
-                        text: '시간별 변화 값 추이 (HH:MM)', // 차트 제목 변경
+                        text: '시간별 변화 값 추이 (YYYY-MM-DD HH:MM:SS)', // 🚨 [수정됨] 차트 제목에 날짜 포함
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -344,7 +346,11 @@
                     x: {
                         type: 'category', 
                         title: { display: true, text: '날짜', font: { size: 14, weight: 'bold' } },
-                        ticks: { font: { size: 12 } }
+                        ticks: { 
+                            font: { size: 12 },
+                            maxRotation: 45, // 🚨 [수정됨] 날짜 대각선 표시
+                            minRotation: 45  // 🚨 [수정됨] 날짜 대각선 표시
+                        }
                     },
                     y: {
                         title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
