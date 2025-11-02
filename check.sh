@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 # 🚨 수정: TZ 환경 변수를 'Asia/Seoul'로 설정하여 date 명령이 정확히 KST를 출력하도록 강제합니다.
 export TZ='Asia/Seoul'
 
