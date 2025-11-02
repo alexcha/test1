@@ -38,12 +38,12 @@ JS_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# JS_LABELS: 🚨 [수정됨] 따옴표로 감싸고 쉼표로 구분된 전체 시간 문자열 (YYYY-MM-DD HH:MM:SS)을 사용합니다.
+# JS_LABELS: 🚨 [수정됨] 시간 레이블을 "월-일 시" 형식 (MM-DD HH시)으로 포맷합니다.
 JS_LABELS=$(awk -F ' : ' '
     { 
-        # 전체 시간 문자열을 레이블로 사용
-        full_label = $1;
-        labels[i++] = "\"" full_label "\""
+        # $1 format is YYYY-MM-DD HH:MM:SS. Extract MM-DD HH시
+        formatted_label = substr($1, 6, 5) " " substr($1, 12, 2) "시";
+        labels[i++] = "\"" formatted_label "\""
     }
     END {
         for (j=0; j<i; j++) {
@@ -55,7 +55,7 @@ JS_LABELS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함 - 변경 없음)
+# 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
 HTML_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -78,7 +78,10 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
     } 
 
     {
-        times[NR] = $1;
+        # 🚨 [수정됨] $1 (YYYY-MM-DD HH:MM:SS)을 MM-DD HH시 형식으로 포맷합니다.
+        formatted_time = substr($1, 6, 5) " " substr($1, 12, 2) "시";
+        
+        times[NR] = formatted_time; 
         values_str[NR] = $2;
         gsub(/,/, "", $2); 
         values_num[NR] = $2 + 0; 
@@ -93,7 +96,7 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         print "<tbody>"; 
 
         for (i = NR; i >= 1; i--) {
-            time_str = times[i];
+            time_str = times[i]; # 이미 포맷된 시간 문자열 사용
             current_val_str = values_str[i]; 
             current_val_num = values_num[i]; 
 
@@ -300,7 +303,7 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 ' result.txt)
 
 
-# --- 5. 🚨 AI 예측 로직 (스크립트 실행 시 자동 호출 - 변경 없음) ---
+# --- 5. AI 예측 로직 (스크립트 실행 시 자동 호출 - 변경 없음) ---
 
 MODEL="gemini-2.5-flash"
 API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}"
@@ -541,7 +544,7 @@ cat << CHART_END > index.html
     
     // 1. 시간별 상세 기록 데이터 (빨간색 차트 - 변화 값)
     const chartData = [${JS_VALUES}];
-    const chartLabels = [${JS_LABELS}]; 
+    const chartLabels = [${JS_LABELS}]; // 🚨 [수정됨] MM-DD HH시 형식
 
     // 2. 일별 최종 값 데이터 (파란색 차트 - 누적 값)
     const jsDailyValues = [${JS_DAILY_VALUES}];
@@ -614,7 +617,7 @@ cat << CHART_END > index.html
                 scales: {
                     x: {
                         type: 'category', 
-                        title: { display: true, text: '시간 (YYYY-MM-DD HH:MM:SS)', font: { size: 14, weight: 'bold' } }, // 🚨 [수정됨] 제목에 날짜 포함
+                        title: { display: true, text: '시간 (MM-DD HH시)', font: { size: 14, weight: 'bold' } }, // 🚨 [수정됨] 제목 변경
                         ticks: {
                             maxRotation: 45, 
                             minRotation: 45,
@@ -640,7 +643,7 @@ cat << CHART_END > index.html
                     },
                     title: {
                         display: true,
-                        text: '시간별 변화 값 추이 (YYYY-MM-DD HH:MM:SS)', // 🚨 [수정됨] 차트 제목에 날짜 포함
+                        text: '시간별 변화 값 추이 (MM-DD HH시)', // 🚨 [수정됨] 차트 제목 변경
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
