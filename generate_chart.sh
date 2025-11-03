@@ -1,7 +1,6 @@
 #!/bin/bash
 # 이 스크립트는 result.txt 파일을 읽어 HTML 대시보드를 생성합니다.
 
-
 # 🚨 1. 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
 # GitHub Actions의 ${{ secrets.GKEY }}가 env: GEMINI_API_KEY로 매핑되어 전달됩니다.
 GEMINI_API_KEY="$GEMINI_API_KEY" 
