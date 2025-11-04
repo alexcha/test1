@@ -38,7 +38,7 @@ JS_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# JS_LABELS: 🚨 [수정됨] 시간 레이블을 "월-일 시" 형식 (MM-DD HH시)으로 포맷합니다.
+# JS_LABELS: 시간 레이블을 "월-일 시" 형식 (MM-DD HH시)으로 포맷합니다.
 JS_LABELS=$(awk -F ' : ' '
     { 
         # $1 format is YYYY-MM-DD HH:MM:SS. Extract MM-DD HH시
@@ -55,8 +55,9 @@ JS_LABELS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2. 메인 HTML 테이블 생성 (차이값 계산 및 역순 정렬 로직 포함)
-HTML_TABLE_ROWS=$(awk -F ' : ' '
+# 2. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
+# 데이터는 최신순(NR에서 1까지 역순)으로 정렬됩니다.
+RAW_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
         s = int(n);
@@ -68,17 +69,19 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         } else {
             sign = "";
         }
-        s = s ""; 
+        # 절대값 s를 쉼표 포맷
+        abs_s = (s < 0) ? -s : s;
+        abs_s_str = abs_s ""; 
         result = "";
-        while (s ~ /[0-9]{4}/) {
-            result = "," substr(s, length(s)-2) result;
-            s = substr(s, 1, length(s)-3);
+        while (abs_s_str ~ /[0-9]{4}/) {
+            result = "," substr(abs_s_str, length(abs_s_str)-2) result;
+            abs_s_str = substr(abs_s_str, 1, length(abs_s_str)-3);
         }
-        return sign s result;
+        return sign abs_s_str result;
     } 
 
     {
-        # 🚨 [수정됨] $1 (YYYY-MM-DD HH:MM:SS)을 MM-DD HH시 형식으로 포맷합니다.
+        # $1 format is YYYY-MM-DD HH:MM:SS
         formatted_time = substr($1, 6, 5) " " substr($1, 12, 2) "시";
         
         times[NR] = formatted_time; 
@@ -87,16 +90,9 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
         values_num[NR] = $2 + 0; 
     }
     END {
-        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden;\">";
-        print "<thead><tr>\
-            <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">시간</th>\
-            <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
-            <th style=\"padding: 14px; background-color: white; text-align: right; color: #333;\">변화</th>\
-        </tr></thead>";
-        print "<tbody>"; 
-
+        # NR: total number of records. Loop backwards (newest first).
         for (i = NR; i >= 1; i--) {
-            time_str = times[i]; # 이미 포맷된 시간 문자열 사용
+            time_str = times[i];
             current_val_str = values_str[i]; 
             current_val_num = values_num[i]; 
 
@@ -118,14 +114,13 @@ HTML_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
+            # Print only the <tr> tag, escaped quotes are handled by shell here-doc below
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
-        
-        print "</tbody></table>";
     }
 ' result.txt) 
 
@@ -326,10 +321,10 @@ escape_json() {
 }
 
 
-# 🚨 [수정된 부분] SYSTEM_PROMPT: CONTEXTUAL_PRIORITY와 모바일 게임 맥락을 모두 포함
+# SYSTEM_PROMPT: CONTEXTUAL_PRIORITY와 모바일 게임 맥락을 모두 포함
 SYSTEM_PROMPT="**핵심 고려 사항: ${CONTEXTUAL_PRIORITY}**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
 
-# 🚨 [수정된 부분] USER_QUERY: 불필요한 설명 제거 및 간소화
+# USER_QUERY: 불필요한 설명 제거 및 간소화
 USER_QUERY="다음은 시계열 누적 데이터입니다. 이 데이터를 분석하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
 
 JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
@@ -341,7 +336,7 @@ PAYLOAD='{
     "tools": [{ "google_search": {} }]
 }'
 
-# 🚨 [수정된 부분] AI 예측 헤더 업데이트
+# AI 예측 헤더 업데이트
 PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE} 및 ${END_OF_MONTH_DATE}"
 # 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
 PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
@@ -493,6 +488,52 @@ cat << CHART_END > index.html
              border-top: 1px solid #eee; 
              padding-top: 10px;
         }
+        
+        /* --- 페이지네이션 및 테이블 스타일 --- */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+            margin-bottom: 40px;
+            gap: 10px;
+        }
+        .pagination-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+            font-weight: 600;
+        }
+        .pagination-button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .pagination-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .page-info {
+            font-weight: 600;
+            color: #555;
+            font-size: 15px;
+        }
+        /* 데이터 테이블 Wrapper */
+        .data-table-wrapper {
+            width: 100%; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            border: 1px solid #ddd; 
+            font-size: 14px; 
+            min-width: 300px; 
+            border-radius: 8px; 
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -514,7 +555,7 @@ cat << CHART_END > index.html
             <canvas id="dailyChart"></canvas>
         </div>
         
-        <!-- 사용자의 요청에 따라 '일일 집계 기록 (최신순)' 표를 일일 집계 차트 바로 아래로 이동했습니다. -->
+        <!-- 일일 집계 기록 테이블 -->
         <div style="text-align: center;">
             <h2>일일 집계 기록 (최신순)</h2>
         </div>
@@ -522,6 +563,7 @@ cat << CHART_END > index.html
             ${DAILY_SUMMARY_TABLE}
         </div> 
         
+        <!-- 시간별 변화 값 차트 -->
         <div style="text-align: center;">
             <h2>기록 시간별 변화 값 추이</h2>
         </div>
@@ -530,11 +572,16 @@ cat << CHART_END > index.html
         </div> 
 
         
+        <!-- 데이터 기록 테이블 (페이지네이션 적용) -->
         <div style="text-align: center;">
             <h2>데이터 기록 (최신순)</h2>
         </div>
-        <div>
-            ${HTML_TABLE_ROWS}
+        
+        <div id="dataRecordsContainer">
+            <!-- 테이블은 JS에 의해 여기에 렌더링됩니다 -->
+        </div>
+        <div id="paginationControls" class="pagination-controls">
+            <!-- 페이지네이션 컨트롤은 JS에 의해 여기에 렌더링됩니다 -->
         </div>
         
     </div>
@@ -542,21 +589,107 @@ cat << CHART_END > index.html
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
-    // 1. 시간별 상세 기록 데이터 (빨간색 차트 - 변화 값)
+    // 1. 차트 데이터
     const chartData = [${JS_VALUES}];
-    const chartLabels = [${JS_LABELS}]; // 🚨 [수정됨] MM-DD HH시 형식
+    const chartLabels = [${JS_LABELS}]; 
 
-    // 2. 일별 최종 값 데이터 (파란색 차트 - 누적 값)
+    // 2. 일별 최종 값 데이터
     const jsDailyValues = [${JS_DAILY_VALUES}];
     const jsDailyLabels = [${JS_DAILY_LABELS}]; 
 
+    // 3. 페이지네이션을 위한 전체 ROW 데이터 (AWK에서 최신순으로 생성)
+    // 줄바꿈 문자로 분리하여 <tr> 태그 문자열 배열로 만듭니다.
+    const rawRowData = \`
+${RAW_TABLE_ROWS}
+\`.trim().split('\n').filter(row => row.trim() !== '');
+
+    const ROWS_PER_PAGE = 20;
+    let currentPage = 1;
+    const totalPages = Math.ceil(rawRowData.length / ROWS_PER_PAGE);
+
+    // --- 페이지네이션 로직 ---
+
+    function getPageRows(page) {
+        const start = (page - 1) * ROWS_PER_PAGE;
+        const end = start + ROWS_PER_PAGE;
+        return rawRowData.slice(start, end);
+    }
+
+    function renderTable(page) {
+        const rows = getPageRows(page);
+        const container = document.getElementById('dataRecordsContainer');
+        
+        // 테이블 구조 생성
+        const tableHtml = \`
+            <div class="data-table-wrapper">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
+                <thead>
+                    <tr>
+                        <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
+                        <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
+                        <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    \${rows.join('')}
+                </tbody>
+            </table>
+            </div>
+        \`;
+
+        container.innerHTML = tableHtml;
+        renderPaginationControls();
+    }
+
+    function renderPaginationControls() {
+        const controlsContainer = document.getElementById('paginationControls');
+        
+        if (totalPages <= 1) {
+            controlsContainer.innerHTML = '';
+            return;
+        }
+
+        controlsContainer.innerHTML = \`
+            <button class="pagination-button" onclick="goToPage(1)" \${currentPage === 1 ? 'disabled' : ''}>
+                &lt;&lt; 처음
+            </button>
+            <button class="pagination-button" onclick="goToPage(\${currentPage - 1})" \${currentPage === 1 ? 'disabled' : ''}>
+                &lt; 이전
+            </button>
+            <span class="page-info">\${currentPage} / \${totalPages} 페이지</span>
+            <button class="pagination-button" onclick="goToPage(\${currentPage + 1})" \${currentPage === totalPages ? 'disabled' : ''}>
+                다음 &gt;
+            </button>
+            <button class="pagination-button" onclick="goToPage(\${totalPages})" \${currentPage === totalPages ? 'disabled' : ''}>
+                마지막 &gt;&gt;
+            </button>
+        \`;
+    }
+
+    window.goToPage = function(page) {
+        if (page >= 1 && page <= totalPages && page !== currentPage) {
+            currentPage = page;
+            renderTable(currentPage);
+            // 테이블 영역으로 스크롤 이동
+            document.getElementById('dataRecordsContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+    
+    // 초기 렌더링
+    if (rawRowData.length > 0) {
+        renderTable(currentPage);
+    } else {
+        document.getElementById('dataRecordsContainer').innerHTML = "<p style='text-align: center; color: #6c757d; padding: 20px; font-size: 16px;'>데이터 기록이 존재하지 않습니다.</p>";
+        document.getElementById('paginationControls').innerHTML = '';
+    }
+
+    // --- 차트 공통 함수 ---
     const formatYAxisTick = function(value) {
         if (value === 0) return '0';
         
         const absValue = Math.abs(value);
         let formattedValue; 
 
-        // 음수와 양수 모두 처리하기 위해 절대값을 사용
         if (absValue >= 1000000000) {
             formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
         } else if (absValue >= 1000000) {
@@ -564,7 +697,8 @@ cat << CHART_END > index.html
         } else if (absValue >= 1000) {
             formattedValue = (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
         } else {
-            formattedValue = new Intl.NumberFormat('ko-KR').format(value);
+            // 정수형으로 포맷팅
+            formattedValue = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(value);
         }
         return formattedValue;
     };
@@ -576,7 +710,8 @@ cat << CHART_END > index.html
         }
         if (context.parsed.y !== null) {
             // 변화값은 부호를 포함하여 포맷팅
-            label += new Intl.NumberFormat('ko-KR', { signDisplay: context.dataset.label === '변화 값' ? 'always' : 'auto' }).format(context.parsed.y);
+            const isChangeValue = context.chart.options.plugins.title.text.includes('변화 값');
+            label += new Intl.NumberFormat('ko-KR', { signDisplay: isChangeValue ? 'always' : 'auto', maximumFractionDigits: 0 }).format(context.parsed.y);
         }
         return label;
     };
@@ -593,21 +728,19 @@ cat << CHART_END > index.html
         document.getElementById('simpleChart').parentNode.innerHTML = "<p style='text-align: center; color: #dc3545; padding: 50px; font-size: 16px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
     } else {
         new Chart(ctx, {
-            // 변화값은 막대 그래프(bar)로 표현하는 것이 일반적이나, 
-            // 기존과 동일한 line type을 유지하며 title/label만 변경합니다.
             type: 'line', 
             data: {
                 labels: chartLabels,
                 datasets: [{
-                    label: '변화 값', // 레이블 변경
+                    label: '변화 값', 
                     data: chartData,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.4)', 
-                    borderWidth: 1, // 선 두께를 1로 줄였습니다.
+                    borderWidth: 1, 
                     tension: 0.4,
-                    pointRadius: 1, // 점 크기를 1로 줄였습니다.
+                    pointRadius: 1, 
                     pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
-                    pointHoverRadius: 3, // 마우스 오버 시 점 크기도 줄였습니다.
+                    pointHoverRadius: 3, 
                     fill: 'start'
                 }]
             },
@@ -617,18 +750,18 @@ cat << CHART_END > index.html
                 scales: {
                     x: {
                         type: 'category', 
-                        title: { display: true, text: '시간 (MM-DD HH시)', font: { size: 14, weight: 'bold' } }, // 🚨 [수정됨] 제목 변경
+                        title: { display: true, text: '시간 (MM-DD HH시)', font: { size: 14, weight: 'bold' } }, 
                         ticks: {
                             maxRotation: 45, 
                             minRotation: 45,
                             autoSkip: true,
-                            maxTicksLimit: 15, // X축 레이블 개수를 15개로 제한하여 러프하게 표시합니다.
+                            maxTicksLimit: 15, 
                             font: { size: 12 }
                         }
                     },
                     y: {
-                        title: { display: true, text: '변화 값', font: { size: 14, weight: 'bold' } }, // Y축 제목 변경
-                        beginAtZero: true, // 변화 값은 0을 기준으로 보는 것이 중요
+                        title: { display: true, text: '변화 값', font: { size: 14, weight: 'bold' } }, 
+                        beginAtZero: true, 
                         grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { callback: formatYAxisTick }
                     }
@@ -643,7 +776,7 @@ cat << CHART_END > index.html
                     },
                     title: {
                         display: true,
-                        text: '시간별 변화 값 추이 (MM-DD HH시)', // 🚨 [수정됨] 차트 제목 변경
+                        text: '시간별 변화 값 추이 (MM-DD HH시)', 
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -687,8 +820,8 @@ cat << CHART_END > index.html
                         title: { display: true, text: '날짜', font: { size: 14, weight: 'bold' } },
                         ticks: { 
                             font: { size: 12 },
-                            maxRotation: 45, // 🚨 [수정됨] 날짜 대각선 표시
-                            minRotation: 45  // 🚨 [수정됨] 날짜 대각선 표시
+                            maxRotation: 45, 
+                            minRotation: 45 
                         }
                     },
                     y: {
