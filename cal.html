@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>손익률 계산기</title>
+    <title>주식 손익률 계산기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Tailwind CSS 설정 */
@@ -109,7 +109,7 @@
             font-weight: bold;
         }
         
-        /* 총 공제액 및 상세 항목 색상 (요청에 따라 파란색 계열로 변경) */
+        /* 총 공제액 및 상세 항목 색상 (파란색) */
         .deduction-color {
             color: #3498db; /* 파란색 */
             font-weight: bold;
@@ -438,7 +438,7 @@
         const totalQuantity = quantity;
 
         const grossSellAmount = sellPrice * totalQuantity; 
-        const totalSell = grossSellAmount - totalDeductions; // 순 회수 금액 (세후)
+        const totalSell = grossSellAmount - totalDeductions; // 매도 후 순회수액 (세후)
 
         const netProfitLoss = totalSell - totalBuyCost; // 순이익/손실 (세후)
         
@@ -497,6 +497,13 @@
                     <th style="padding-left: 20px;">ㄴ 총 거래세</th>
                     <td class="value-col">- ${formatCurrency(totalTax)} 원</td>
                 </tr>
+                
+                <!-- 요청하신 매도 후 순회수액 (세후) 항목 추가 -->
+                <tr class="bg-blue-50">
+                    <th>매도 후 순회수액 (세후)</th>
+                    <td class="value-col text-blue-800 font-extrabold">${formatCurrency(totalSell)} 원</td>
+                </tr>
+
                 <tr class="bg-gray-50">
                     <th>순이익/손실 (세후)</th>
                     <td class="value-col">
