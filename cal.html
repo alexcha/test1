@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기</title>
+    <title>주식 손익률 계산기 (기본값 0, 개별 초기화 전용)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Tailwind CSS 설정 */
@@ -145,8 +145,8 @@
     <div class="input-group">
         <label for="buyPrice">1. 매수 단가 (1주당 가격)</label>
         <div class="flex items-center space-x-2">
-            <input type="text" id="buyPrice" value="10,000" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
-            <button type="button" onclick="resetIndividualInput('buyPrice', 'stockBuyPrice', '10000', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+            <input type="text" id="buyPrice" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
+            <button type="button" onclick="resetIndividualInput('buyPrice', 'stockBuyPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
         </div>
     </div>
 
@@ -154,15 +154,15 @@
     <div class="input-group">
         <label for="quantity">2. 수량 (총 주식 수)</label>
         <div class="flex items-center space-x-2">
-            <input type="text" id="quantity" value="100" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
-            <button type="button" onclick="resetIndividualInput('quantity', 'stockQuantity', '100', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+            <input type="text" id="quantity" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
+            <button type="button" onclick="resetIndividualInput('quantity', 'stockQuantity', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
         </div>
     </div>
 
     <!-- 3. 매도 단가 (쿠키 미저장) -->
     <div class="input-group">
         <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
-        <input type="text" id="sellPrice" value="12,000" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric" class="w-full">
+        <input type="text" id="sellPrice" value="0" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric" class="w-full">
     </div>
     
     <!-- 4. 수수료율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
@@ -417,12 +417,8 @@
         const totalBuyCost = buyPrice * quantity;
         const totalQuantity = quantity;
 
-        if (totalQuantity <= 0) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = "<h3 class='text-center text-red-600 font-bold'>경고</h3><p class='text-center text-red-600'>수량은 0보다 커야 합니다.</p>";
-            resultDiv.style.display = 'block';
-            return;
-        }
+        // 수량이 0일 경우, 계산은 진행되지만, 투자 원금이 0이므로 별도의 경고 없이 결과는 0/0으로 처리됩니다.
+        // if (totalQuantity <= 0) { ... 경고 로직 제거 ... }
 
         const grossSellAmount = sellPrice * totalQuantity; 
         const totalSell = grossSellAmount - totalDeductions; // 순 회수 금액 (세후)
@@ -430,6 +426,7 @@
         const netProfitLoss = totalSell - totalBuyCost; // 순이익/손실 (세후)
         
         let profitRate = 0;
+        // 투자 원금(totalBuyCost)이 0보다 커야 손익률 계산 가능 (0 나누기 방지)
         if (totalBuyCost > 0) {
             profitRate = (netProfitLoss / totalBuyCost) * 100;
         }
@@ -494,19 +491,28 @@
         // 통화 관련 쿠키 로드
         const buyPriceInput = document.getElementById('buyPrice');
         const quantityInput = document.getElementById('quantity');
+        const sellPriceInput = document.getElementById('sellPrice');
         
         const storedPrice = getCookie('stockBuyPrice');
         const storedQuantity = getCookie('stockQuantity');
         
+        // 쿠키에 값이 있는 경우만 로드, 없으면 HTML에 설정된 기본값(0) 사용
         if (storedPrice !== null && storedPrice !== "") {
             buyPriceInput.value = storedPrice;
             window.parseAndFormatInput(buyPriceInput); 
+        } else {
+             buyPriceInput.value = formatCurrency(0);
         }
         
         if (storedQuantity !== null && storedQuantity !== "") {
             quantityInput.value = storedQuantity;
             window.parseAndFormatInput(quantityInput);
+        } else {
+            quantityInput.value = formatCurrency(0);
         }
+
+        // 매도단가도 기본값 0으로 설정
+        sellPriceInput.value = formatCurrency(0);
         
         // 세율 관련 쿠키 로드
         const feeRateInput = document.getElementById('feeRateInput');
