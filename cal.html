@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기</title>
+    <title>손익률 계산기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Tailwind CSS 설정 */
@@ -108,7 +108,12 @@
             text-align: right;
             font-weight: bold;
         }
-        /* 공제액 상세 표시를 위한 스타일 */
+        
+        /* 총 공제액 및 상세 항목 색상 (요청에 따라 파란색 계열로 변경) */
+        .deduction-color {
+            color: #3498db; /* 파란색 */
+            font-weight: bold;
+        }
         .deduction-detail th, .deduction-detail td {
             padding-top: 4px;
             padding-bottom: 4px;
@@ -116,24 +121,39 @@
             font-weight: normal;
         }
         .deduction-detail .value-col {
-            color: #e74c3c;
+            color: #3498db; /* 상세 공제액도 파란색 */
             font-weight: 500;
         }
 
 
-        /* 손익률 표시 스타일 */
+        /* 손익/손실 색상 정의 (수익: 빨강, 손실: 파랑) */
         .profit {
-            color: #2ecc71; /* 상승 (초록) */
+            color: #e74c3c; /* 수익 (빨간색) */
             font-size: 1.2em;
         }
         .loss {
-            color: #e74c3c; /* 하락 (빨강) */
+            color: #3498db; /* 손실 (파란색) */
             font-size: 1.2em;
         }
         .neutral {
             color: #34495e; /* 중립 (회색) */
             font-size: 1.2em;
         }
+
+        /* 순이익/손실 (세후) 항목에 대한 스타일 */
+        .net-result.profit-text {
+            color: #e74c3c; /* 수익 (빨간색) */
+            font-weight: bold;
+        }
+        .net-result.loss-text {
+            color: #3498db; /* 손실 (파란색) */
+            font-weight: bold;
+        }
+        .net-result.neutral-text {
+            color: #34495e; /* 중립 (회색) */
+            font-weight: bold;
+        }
+
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
@@ -417,9 +437,6 @@
         const totalBuyCost = buyPrice * quantity;
         const totalQuantity = quantity;
 
-        // 수량이 0일 경우, 계산은 진행되지만, 투자 원금이 0이므로 별도의 경고 없이 결과는 0/0으로 처리됩니다.
-        // if (totalQuantity <= 0) { ... 경고 로직 제거 ... }
-
         const grossSellAmount = sellPrice * totalQuantity; 
         const totalSell = grossSellAmount - totalDeductions; // 순 회수 금액 (세후)
 
@@ -433,12 +450,25 @@
 
         // 5. 결과 출력 (테이블 형식)
         const profitRateText = profitRate.toFixed(2) + '%';
+
+        // 순이익/손실 (세후) 텍스트 스타일 결정 (수익: 빨강, 손실: 파랑)
+        let netResultClass = 'net-result neutral-text';
+        if (netProfitLoss > 0) {
+            netResultClass = 'net-result profit-text'; 
+        } else if (netProfitLoss < 0) {
+            netResultClass = 'net-result loss-text'; 
+        } else {
+            netResultClass = 'net-result neutral-text';
+        }
+
+        // 최종 손익률 텍스트 스타일 결정 (수익: 빨강, 손실: 파랑)
         let rateClass = 'neutral';
         if (netProfitLoss > 0) {
             rateClass = 'profit';
         } else if (netProfitLoss < 0) {
             rateClass = 'loss';
         }
+
 
         const tableHTML = `
             <thead>
@@ -456,8 +486,8 @@
                     <td class="value-col">${formatCurrency(grossSellAmount)} 원</td>
                 </tr>
                 <tr>
-                    <th><span class="text-red-600">총 공제액 (수수료+세금)</span></th>
-                    <td class="value-col text-red-600 font-bold">- ${formatCurrency(totalDeductions)} 원</td>
+                    <th><span class="deduction-color">총 공제액 (수수료+세금)</span></th>
+                    <td class="value-col deduction-color">- ${formatCurrency(totalDeductions)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
                     <th style="padding-left: 20px;">ㄴ 총 수수료</th>
@@ -469,7 +499,9 @@
                 </tr>
                 <tr class="bg-gray-50">
                     <th>순이익/손실 (세후)</th>
-                    <td class="value-col">${formatCurrency(netProfitLoss)} 원</td>
+                    <td class="value-col">
+                        <span class="${netResultClass}">${formatCurrency(netProfitLoss)} 원</span>
+                    </td>
                 </tr>
                 <tr class="font-bold text-lg bg-yellow-100">
                     <th><span class="text-blue-600">최종 손익률</span></th>
