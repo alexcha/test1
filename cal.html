@@ -78,7 +78,8 @@
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 15px;
-            font-size: 0.95em;
+            /* 폰트 크기 한 단계 축소: 0.95em -> 0.9em */
+            font-size: 0.9em; 
             /* 표가 넘어가지 않도록 강제 설정 */
             table-layout: fixed; 
         }
@@ -117,7 +118,8 @@
         .deduction-detail th, .deduction-detail td {
             padding-top: 4px;
             padding-bottom: 4px;
-            font-size: 0.9em;
+            /* 상세 항목 폰트 크기 축소: 0.9em -> 0.85em */
+            font-size: 0.85em; 
             font-weight: normal;
         }
         .deduction-detail .value-col {
@@ -129,22 +131,26 @@
         .net-proceeds-color {
             color: #6c5ce7; /* 짙은 보라색 */
             font-weight: 800; /* Extra bold */
-            font-size: 1.1em; /* 크기 약간 키움 */
+            /* 폰트 크기 축소: 1.1em -> 1.05em */
+            font-size: 1.05em; 
         }
 
 
         /* 손익/손실 색상 정의 (수익: 빨강, 손실: 파랑) */
         .profit {
             color: #e74c3c; /* 수익 (빨간색) */
-            font-size: 1.2em;
+            /* 폰트 크기 축소: 1.2em -> 1.15em */
+            font-size: 1.15em; 
         }
         .loss {
             color: #3498db; /* 손실 (파란색) */
-            font-size: 1.2em;
+            /* 폰트 크기 축소: 1.2em -> 1.15em */
+            font-size: 1.15em; 
         }
         .neutral {
             color: #34495e; /* 중립 (회색) */
-            font-size: 1.2em;
+            /* 폰트 크기 축소: 1.2em -> 1.15em */
+            font-size: 1.15em; 
         }
 
         /* 순이익/손실 (세후) 항목에 대한 스타일 */
@@ -211,19 +217,16 @@
     <!-- 4. 매매 수수료율 입력 -->
     <div class="input-group">
         <label for="feeRateInput">4. 매매 수수료율 (%) 
-            <!-- 4-1 항목을 제거하며 레이블을 간결하게 유지 -->
         </label>
         <div class="flex items-center space-x-2">
             <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
             <button type="button" onclick="resetIndividualInput('feeRateInput', 'stockFeeRate', '0.015', 'rate')" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
         </div>
     </div>
-    <!-- 4-1. 계산된 총 수수료 금액 (제거됨) -->
 
     <!-- 5. 거래세율 입력 -->
     <div class="input-group">
         <label for="taxRateInput">5. 매도 거래세율 (%) 
-            <!-- 5-1 항목을 제거하며 레이블을 간결하게 유지 -->
         </label>
         <div class="flex items-center space-x-2">
             <!-- 기본값 0.15% -->
@@ -232,7 +235,6 @@
             <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.15', 'rate')" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
         </div>
     </div>
-    <!-- 5-1. 계산된 거래세 금액 (제거됨) -->
     
     <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
         <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
