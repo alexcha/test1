@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기 (자동 계산)</title>
+    <title>주식 손익률 계산기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Tailwind CSS 설정 */
@@ -15,7 +15,8 @@
             max-width: 500px;
             margin: 20px auto;
             background: #ffffff;
-            padding: 25px;
+            /* 모바일 최적화를 위해 패딩을 16px에서 12px로 축소 */
+            padding: 16px 12px; 
             border-radius: 12px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
@@ -71,23 +72,34 @@
             color: #2c3e50;
         }
         
-        /* 결과 테이블 스타일 */
+        /* 결과 테이블 스타일 - 모바일 최적화 */
         .result-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 15px;
             font-size: 0.95em;
+            /* 표가 넘어가지 않도록 강제 설정 */
+            table-layout: fixed; 
         }
         .result-table th, .result-table td {
-            padding: 12px;
+            /* 모바일 화면 밀림 방지를 위해 패딩을 8px로 축소 */
+            padding: 8px; 
             border-bottom: 1px solid #ecf0f1;
             text-align: left;
+            /* 긴 숫자가 화면을 밀어내는 것을 방지하기 위해 단어 줄바꿈 허용 */
+            word-break: break-word; 
         }
         .result-table th {
             background-color: #f8f9fa;
             color: #2c3e50;
             font-weight: 600;
+            /* 첫 번째 열이 텍스트를 담을 수 있도록 너비 조정 */
+            width: 60%;
+        }
+        .result-table td {
+             /* 두 번째 열이 숫자를 담을 수 있도록 너비 조정 */
+            width: 40%;
         }
         .result-table tr:last-child td {
             border-bottom: none;
@@ -550,15 +562,18 @@
                     <td class="value-col">${formatCurrency(grossSellAmount)} 원</td>
                 </tr>
                 <tr>
-                    <th><span class="deduction-color">총 공제액 (매수/매도 수수료 + 거래세)</span></th>
+                    <!-- 텍스트 길이 축소: 총 공제액 (매수/매도 수수료 + 거래세) -> 총 공제액 -->
+                    <th><span class="deduction-color">총 공제액</span></th>
                     <td class="value-col deduction-color">- ${formatCurrency(totalDeductions)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
-                    <th style="padding-left: 20px;">ㄴ 총 매매 수수료 (매수/매도 합산)</th>
+                    <!-- 텍스트 길이 축소: ㄴ 총 매매 수수료 (매수/매도 합산) -> ㄴ 매매 수수료 (총액) -->
+                    <th style="padding-left: 20px;">ㄴ 매매 수수료 (총액)</th>
                     <td class="value-col">- ${formatCurrency(totalFee)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
-                    <th style="padding-left: 20px;">ㄴ 총 거래세 (매도 시)</th>
+                    <!-- 텍스트 길이 축소: ㄴ 총 거래세 (매도 시) -> ㄴ 거래세 -->
+                    <th style="padding-left: 20px;">ㄴ 거래세</th>
                     <td class="value-col">- ${formatCurrency(totalTax)} 원</td>
                 </tr>
                 
@@ -574,16 +589,16 @@
                         <span class="${netResultClass}">${formatCurrency(netProfitLoss)} 원</span>
                     </td>
                 </tr>
-                <!-- 최종 손익률 강조 및 설명 수정 (더 간결하게) -->
+                <!-- 텍스트 길이 축소: 최종 손익률 (세후 순수익률) -> 최종 손익률 (세후) -->
                 <tr class="font-bold text-lg bg-yellow-100">
-                    <th><span class="text-blue-600">최종 손익률 (세후 순수익률)</span></th>
+                    <th><span class="text-blue-600">최종 손익률 (세후)</span></th>
                     <td class="value-col">
                         <span class="${rateClass}">${profitRateText}</span>
                     </td>
                 </tr>
-                <!-- 참고용 단순 매매차익률 수정 (더 간결하게) -->
+                <!-- 텍스트 길이 축소: 참고: 단순 수익률 (비용 미반영) -> 참고: 단순 수익률 (세전) -->
                 <tr>
-                    <th>참고: 단순 수익률 (비용 미반영)</th>
+                    <th>참고: 단순 수익률 (세전)</th>
                     <td class="value-col">
                         <span class="${rateClass}">${simpleProfitRateText}</span>
                     </td>
