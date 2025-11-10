@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주식 손익률 계산기 (세율 수정 및 쿠키 저장)</title>
+    <style>
+        /* 기본 스타일 설정 */
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        /* 계산기 컨테이너 스타일 */
+        .calculator {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #34495e;
+            font-size: 0.95em;
+        }
+        .rate-info {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            font-weight: normal;
+        }
+        /* 입력 필드 그룹 */
+        .input-group {
+            margin-bottom: 15px;
+        }
+        /* 입력 필드 스타일 */
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            text-align: right;
+        }
+        input[type="text"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        /* Readonly 필드 스타일 */
+        input[readonly] {
+            background-color: #ecf0f1;
+            color: #7f8c8d;
+            cursor: default;
+        }
+        /* 버튼 스타일 */
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 30px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.1s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:active {
+            transform: scale(0.99);
+        }
+        /* 결과 영역 스타일 */
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px solid #2ecc71;
+            border-radius: 10px;
+            background-color: #e8f8f5;
+            text-align: center;
+        }
+        .result h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .result p {
+            margin: 8px 0;
+            font-size: 1em;
+        }
+        /* 손익률 표시 스타일 */
+        .profit {
+            color: #2ecc71; /* 상승 (초록) */
+            font-size: 1.6em;
+            font-weight: bold;
+        }
+        .loss {
+            color: #e74c3c; /* 하락 (빨강) */
+            font-size: 1.6em;
+            font-weight: bold;
+        }
+        .neutral {
+            color: #34495e; /* 중립 (회색) */
+            font-size: 1.6em;
+            font-weight: bold;
+        }
+        /* 방문자 카운터 스타일 */
+        .visitor-counter {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #555;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+        /* 모바일 최적화 */
+        @media (max-width: 500px) {
+            .calculator {
+                padding: 15px;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator">
+    <h2>📈 주식 거래 손익률 계산기</h2>
+
+    <!-- 매수 정보 섹션 (쿠키 저장) -->
+    <div class="input-group">
+        <label for="buyPrice">1. 매수 단가 (1주당 가격)</label>
+        <input type="text" id="buyPrice" value="10,000" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric">
+    </div>
+
+    <div class="input-group">
+        <label for="quantity">2. 수량 (총 주식 수)</label>
+        <input type="text" id="quantity" value="100" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric">
+    </div>
+
+    <!-- 매도 정보 섹션 -->
+    <div class="input-group">
+        <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
+        <input type="text" id="sellPrice" value="12,000" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric">
+    </div>
+    
+    <!-- 4. 수수료율 입력 및 계산 금액 표시 -->
+    <div class="input-group">
+        <label for="feeRateInput">4. 매도 수수료율 <span class="rate-info">(총 매도 금액 대비, 예: 0.015)</span></label>
+        <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal">
+    </div>
+    <div class="input-group">
+        <label for="calculatedFeeAmount">4-1. 계산된 수수료 금액 (원)</label>
+        <input type="text" id="calculatedFeeAmount" value="0" required readonly>
+    </div>
+
+    <!-- 5. 거래세율 입력 및 계산 금액 표시 -->
+    <div class="input-group">
+        <label for="taxRateInput">5. 매도 거래세율 <span class="rate-info">(총 매도 금액 대비, 예: 0.2)</span></label>
+        <input type="text" id="taxRateInput" value="0.2" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal">
+    </div>
+    <div class="input-group">
+        <label for="calculatedTaxAmount">5-1. 계산된 거래세 금액 (원)</label>
+        <input type="text" id="calculatedTaxAmount" value="0" required readonly>
+    </div>
+    
+    <button id="calculateButton">손익률 계산하기</button>
+
+    <div id="result" class="result" style="display: none;">
+        <h3>📊 계산 결과</h3>
+        
+        <p>총 매수 비용 (원금): <span id="totalBuy"></span>원</p>
+        <p>총 회수 금액 (수수료/세금 차감): <span id="totalSell"></span>원</p>
+        <p>순이익/손실: <span id="netProfit"></span>원</p>
+        <p>최종 손익률:</p>
+        <div id="profitRateContainer">
+            <span id="profitRate" class="neutral"></span>
+        </div>
+    </div>
+
+    <!-- 방문자 카운터 -->
+    <div class="visitor-counter">
+        오늘 방문자 수: <span id="visitorCount">0</span>명
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot, query, where, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firestore 및 App ID 설정
+    let db;
+    let auth;
+    let appId;
+    const DAILY_VISITORS_COLLECTION = "daily_visits";
+    const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
+    const DEFAULT_TAX_RATE = 0.2;   // 기본 거래세율 %
+
+
+    // --- Cookie Helper Functions ---
+
+    /**
+     * 쿠키에서 지정된 이름의 값을 가져옵니다.
+     * @param {string} name 쿠키 이름
+     * @returns {string|null} 쿠키 값 또는 null
+     */
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i=0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+
+    /**
+     * 쿠키에 값을 설정합니다. (만료일 30일 설정)
+     * @param {string} name 쿠키 이름
+     * @param {string} value 저장할 값
+     */
+    function setCookie(name, value) {
+        const date = new Date();
+        date.setTime(date.getTime() + (30*24*60*60*1000)); // 30 days expiration
+        const expires = "; expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
+    }
+
+    // --- Format & Input Handlers ---
+
+    /**
+     * 금액을 한국 통화 형식으로 포맷합니다. (세 자리마다 쉼표 추가)
+     * @param {number} amount - 금액
+     * @param {number} [precision=0] - 소수점 이하 자릿수 (기본값: 0, 정수)
+     * @returns {string} 포맷된 문자열
+     */
+    function formatCurrency(amount, precision = 0) {
+        if (typeof amount !== 'number' || isNaN(amount)) {
+            amount = 0;
+        }
+        const fixedAmount = amount.toFixed(precision);
+        const parts = fixedAmount.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return formattedIntegerPart + decimalPart;
+    }
+
+    /**
+     * 입력 필드의 숫자를 세 자리마다 쉼표(,)로 포맷하고 커서 위치를 유지합니다. (매도 단가용)
+     */
+    window.parseAndFormatInput = function(input) {
+        const cursorStart = input.selectionStart;
+        const oldValue = input.value;
+        let rawValue = oldValue.replace(/[^0-9]/g, ''); 
+
+        if (rawValue === '') {
+            input.value = '';
+            return; 
+        }
+
+        const newValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        input.value = newValue;
+
+        const diff = newValue.length - oldValue.length;
+        let newCursorStart = cursorStart + diff;
+
+        if (newValue.length > oldValue.length) {
+            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
+                newCursorStart = cursorStart + 1;
+            }
+        }
+        
+        newCursorStart = Math.min(newCursorStart, newValue.length);
+        input.setSelectionRange(newCursorStart, newCursorStart);
+    }
+    
+    /**
+     * 금액 입력(매수 단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 수수료 필드를 업데이트합니다.
+     * @param {HTMLInputElement} input 입력 요소
+     * @param {string} cookieName 저장할 쿠키 이름
+     */
+    window.handleCurrencyInputAndSave = function(input, cookieName) {
+        // 1. 포맷팅 및 커서 위치 유지
+        const cursorStart = input.selectionStart;
+        const oldValue = input.value;
+        let rawValue = oldValue.replace(/[^0-9]/g, ''); 
+
+        if (rawValue === '') {
+            input.value = '';
+            setCookie(cookieName, '');
+            updateFeeAndTaxFields();
+            return; 
+        }
+
+        const newValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        input.value = newValue;
+
+        const diff = newValue.length - oldValue.length;
+        let newCursorStart = cursorStart + diff;
+
+        if (newValue.length > oldValue.length) {
+            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
+                newCursorStart = cursorStart + 1;
+            }
+        }
+        
+        newCursorStart = Math.min(newCursorStart, newValue.length);
+        input.setSelectionRange(newCursorStart, newCursorStart);
+        
+        // 2. 쿠키 저장 (쉼표 없는 원시 값을 저장)
+        setCookie(cookieName, rawValue);
+
+        // 3. 수수료 필드 업데이트
+        updateFeeAndTaxFields();
+    }
+    
+    /**
+     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장하고, 수수료 필드를 업데이트합니다.
+     * @param {HTMLInputElement} input 입력 요소
+     * @param {string} cookieName 저장할 쿠키 이름
+     */
+    window.handleRateInputAndSave = function(input, cookieName) {
+        // 쉼표만 제거하고 실수 그대로 저장
+        const rawValue = input.value.replace(/,/g, ''); 
+        
+        // 유효한 숫자인 경우만 저장
+        if (!isNaN(parseFloat(rawValue))) {
+            setCookie(cookieName, rawValue);
+        }
+        
+        // 수수료 필드 업데이트
+        updateFeeAndTaxFields();
+    }
+
+
+    // --- Calculation Logic ---
+
+    /**
+     * 입력된 매수 수량, 매도 단가, 세율을 기반으로 계산된 수수료와 거래세 금액을 업데이트합니다.
+     */
+    window.updateFeeAndTaxFields = function() {
+        // 1. 필요 값 가져오기
+        const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
+        const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
+
+        // 세율 가져오기 (입력값이 없으면 0으로 간주)
+        const feeRateInput = document.getElementById('feeRateInput').value.replace(/,/g, '');
+        const taxRateInput = document.getElementById('taxRateInput').value.replace(/,/g, '');
+        
+        const feeRate = parseFloat(feeRateInput) || 0;
+        const taxRate = parseFloat(taxRateInput) || 0;
+        
+        // 2. 총 매도 금액 계산
+        const grossSellAmount = sellPrice * quantity;
+        
+        // 3. 수수료 및 세금 계산 (사용자가 입력한 값은 퍼센트(%)이므로 100으로 나눔)
+        const calculatedFee = grossSellAmount * (feeRate / 100);
+        const calculatedTax = grossSellAmount * (taxRate / 100);
+        
+        // 4. 읽기 전용 필드 업데이트 (정수로 포맷)
+        document.getElementById('calculatedFeeAmount').value = formatCurrency(calculatedFee);
+        document.getElementById('calculatedTaxAmount').value = formatCurrency(calculatedTax);
+    }
+
+    /**
+     * 주식 거래의 손익률을 계산하고 결과를 화면에 표시합니다.
+     */
+    window.calculateProfitLoss = function() {
+        updateFeeAndTaxFields(); // 필드가 최신 값인지 확인하기 위해 재실행
+        
+        // 1. 입력 값 가져오기 (계산에 필요한 순수 숫자 값)
+        const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
+        const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
+        const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
+        
+        // 계산된 수수료/세금 금액 (읽기 전용 필드에서 가져옴)
+        const totalFee = parseFloat(document.getElementById('calculatedFeeAmount').value.replace(/,/g, '')) || 0;
+        const totalTax = parseFloat(document.getElementById('calculatedTaxAmount').value.replace(/,/g, '')) || 0;
+
+        // 2. 총 매수 원금 계산
+        const totalBuyCost = buyPrice * quantity;
+        const totalQuantity = quantity;
+
+        // 유효성 검사
+        if (totalQuantity <= 0) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = "<h3>경고</h3><p style='color:#e74c3c;'>수량은 0보다 커야 합니다.</p>";
+            resultDiv.style.display = 'block';
+            return;
+        }
+
+        // 3. 총 매도 금액 계산 (수수료/세금 차감)
+        const grossSellAmount = sellPrice * totalQuantity; 
+        const totalSell = grossSellAmount - (totalFee + totalTax); 
+
+        // 4. 순이익/손실 및 손익률 계산
+        const netProfitLoss = totalSell - totalBuyCost;
+        
+        let profitRate = 0;
+        if (totalBuyCost > 0) {
+            profitRate = (netProfitLoss / totalBuyCost) * 100;
+        }
+
+        // 5. 결과 출력
+        document.getElementById('totalBuy').textContent = formatCurrency(totalBuyCost);
+        document.getElementById('totalSell').textContent = formatCurrency(totalSell);
+        document.getElementById('netProfit').textContent = formatCurrency(netProfitLoss);
+        
+        const profitRateElement = document.getElementById('profitRate');
+        profitRateElement.textContent = profitRate.toFixed(2) + '%';
+        
+        // 색상 및 클래스 변경
+        profitRateElement.classList.remove('profit', 'loss', 'neutral');
+        
+        if (netProfitLoss > 0) {
+            profitRateElement.classList.add('profit');
+        } else if (netProfitLoss < 0) {
+            profitRateElement.classList.add('loss');
+        } else {
+            profitRateElement.classList.add('neutral');
+        }
+
+        document.getElementById('result').style.display = 'block';
+    }
+    
+    /**
+     * 쿠키에 저장된 매수 단가, 수량, 세율을 불러와 입력 필드에 채웁니다.
+     */
+    function loadFromCookies() {
+        // 통화 관련 쿠키 로드
+        const buyPriceInput = document.getElementById('buyPrice');
+        const quantityInput = document.getElementById('quantity');
+        
+        const storedPrice = getCookie('stockBuyPrice');
+        const storedQuantity = getCookie('stockQuantity');
+        
+        if (storedPrice !== null && storedPrice !== "") {
+            buyPriceInput.value = storedPrice;
+            window.parseAndFormatInput(buyPriceInput); 
+        }
+        
+        if (storedQuantity !== null && storedQuantity !== "") {
+            quantityInput.value = storedQuantity;
+            window.parseAndFormatInput(quantityInput);
+        }
+        
+        // 세율 관련 쿠키 로드
+        const feeRateInput = document.getElementById('feeRateInput');
+        const taxRateInput = document.getElementById('taxRateInput');
+
+        const storedFeeRate = getCookie('stockFeeRate');
+        const storedTaxRate = getCookie('stockTaxRate');
+        
+        if (storedFeeRate !== null && storedFeeRate !== "") {
+            feeRateInput.value = storedFeeRate;
+        } else {
+            feeRateInput.value = DEFAULT_FEE_RATE;
+        }
+
+        if (storedTaxRate !== null && storedTaxRate !== "") {
+            taxRateInput.value = storedTaxRate;
+        } else {
+            taxRateInput.value = DEFAULT_TAX_RATE;
+        }
+        
+        // 쿠키 로드 후 수수료/세금 필드 업데이트 (금액 계산)
+        updateFeeAndTaxFields();
+    }
+
+
+    /**
+     * Firebase를 초기화하고 오늘 접속자 카운터를 실시간으로 업데이트합니다.
+     */
+    async function initializeFirebaseAndCounter() {
+        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        if (Object.keys(firebaseConfig).length === 0) {
+            console.error("Firebase config is missing. Counter will not work.");
+            return;
+        }
+        
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayDateKey = today.toISOString().split('T')[0];
+        
+        try {
+            const userCredential = initialAuthToken 
+                ? await signInWithCustomToken(auth, initialAuthToken) 
+                : await signInAnonymously(auth);
+            
+            const userId = userCredential.user.uid;
+            
+            const visitRef = doc(db, `artifacts/${appId}/public/data/${DAILY_VISITORS_COLLECTION}`, userId);
+            
+            await setDoc(visitRef, {
+                visitTime: serverTimestamp(),
+                dateKey: todayDateKey, 
+                userId: userId 
+            }, { merge: true });
+
+            const visitorsCollectionRef = collection(db, `artifacts/${appId}/public/data/${DAILY_VISITORS_COLLECTION}`);
+            
+            const q = query(
+                visitorsCollectionRef, 
+                where("dateKey", "==", todayDateKey)
+            );
+
+            onSnapshot(q, (snapshot) => {
+                const uniqueDailyVisitors = snapshot.size;
+                document.getElementById('visitorCount').textContent = formatCurrency(uniqueDailyVisitors);
+            }, (error) => {
+                console.error("Firestore onSnapshot error:", error);
+                document.getElementById('visitorCount').textContent = 'Error';
+            });
+
+        } catch (error) {
+            console.error("Firebase Authentication Error:", error);
+        }
+    }
+
+    // 초기화 및 이벤트 리스너 등록
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFromCookies(); // 1. 쿠키에서 모든 값 불러오기
+        initializeFirebaseAndCounter(); // 2. Firebase 및 카운터 초기화
+
+        document.getElementById('calculateButton').addEventListener('click', calculateProfitLoss);
+    });
+
+</script>
+</body>
+</html>
+
