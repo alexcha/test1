@@ -208,23 +208,22 @@
         </div>
     </div>
     
-    <!-- 4. 수수료율 입력 및 계산 금액 표시 -->
+    <!-- 4. 매매 수수료율 입력 -->
     <div class="input-group">
         <label for="feeRateInput">4. 매매 수수료율 (%) 
+            <!-- 4-1 항목을 제거하며 레이블을 간결하게 유지 -->
         </label>
         <div class="flex items-center space-x-2">
             <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
             <button type="button" onclick="resetIndividualInput('feeRateInput', 'stockFeeRate', '0.015', 'rate')" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
         </div>
     </div>
-    <div class="input-group">
-        <label for="calculatedFeeAmount">4-1. 계산된 총 수수료 금액</label>
-        <input type="text" id="calculatedFeeAmount" value="0" required readonly class="w-full">
-    </div>
+    <!-- 4-1. 계산된 총 수수료 금액 (제거됨) -->
 
-    <!-- 5. 거래세율 입력 및 계산 금액 표시 -->
+    <!-- 5. 거래세율 입력 -->
     <div class="input-group">
         <label for="taxRateInput">5. 매도 거래세율 (%) 
+            <!-- 5-1 항목을 제거하며 레이블을 간결하게 유지 -->
         </label>
         <div class="flex items-center space-x-2">
             <!-- 기본값 0.15% -->
@@ -233,10 +232,7 @@
             <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.15', 'rate')" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
         </div>
     </div>
-    <div class="input-group">
-        <label for="calculatedTaxAmount">5-1. 계산된 거래세 금액 (원)</label>
-        <input type="text" id="calculatedTaxAmount" value="0" required readonly class="w-full">
-    </div>
+    <!-- 5-1. 계산된 거래세 금액 (제거됨) -->
     
     <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
         <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
@@ -334,7 +330,7 @@
     }
     
     /**
-     * 금액 입력(매수 단가/수량/매도 단가)을 포맷하고, 해당 값을 쿠키에 저장하며, 수수료 필드를 업데이트하고, 계산을 실행합니다.
+     * 금액 입력(매수 단가/수량/매도 단가)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
      * @param {HTMLInputElement} input 입력 요소
      * @param {string} cookieName 저장할 쿠키 이름 (예: 'stockSellPrice')
      */
@@ -347,7 +343,6 @@
         if (rawValue === '') {
             input.value = '';
             setCookie(cookieName, '');
-            updateFeeAndTaxFields();
             calculateProfitLoss(); // 입력값 없을 때도 계산 실행 (결과 숨김 처리용)
             return; 
         }
@@ -370,15 +365,12 @@
         // 2. 쿠키 저장 (쉼표 없는 원시 값을 저장)
         setCookie(cookieName, rawValue);
 
-        // 3. 수수료 필드 업데이트
-        updateFeeAndTaxFields();
-
-        // 4. 자동 계산 실행 (모든 통화 입력 변경 시)
+        // 3. 자동 계산 실행 (모든 통화 입력 변경 시)
         calculateProfitLoss(); 
     }
     
     /**
-     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장하고, 수수료 필드를 업데이트하고, 계산을 실행합니다.
+     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장하고, 계산을 실행합니다.
      * @param {HTMLInputElement} input 입력 요소
      * @param {string} cookieName 저장할 쿠키 이름
      */
@@ -391,9 +383,6 @@
             setCookie(cookieName, rawValue);
         }
         
-        // 수수료 필드 업데이트
-        updateFeeAndTaxFields();
-
         // 자동 계산 실행 (비율 입력 변경 시)
         calculateProfitLoss(); 
     }
@@ -419,10 +408,7 @@
             setCookie(cookieName, defaultValue);
         }
         
-        // 2. 매도 단가와 수량만 초기화되면 수수료/거래세 금액이 0이 될 수 있으므로 계산 필드 업데이트
-        updateFeeAndTaxFields();
-        
-        // 3. 자동 계산 실행 (모든 초기화 시)
+        // 2. 자동 계산 실행 (모든 초기화 시)
         calculateProfitLoss();
     };
 
@@ -430,9 +416,10 @@
     // --- Calculation Logic ---
 
     /**
-     * 입력된 매수 수량, 매도 단가, 세율을 기반으로 계산된 수수료와 거래세 금액을 업데이트합니다.
+     * 입력된 매수 수량, 매도 단가, 세율을 기반으로 수수료와 거래세 금액을 계산하여 반환합니다.
+     * @returns {{totalFee: number, totalTax: number}} 계산된 총 수수료와 거래세 금액
      */
-    window.updateFeeAndTaxFields = function() {
+    window.calculateFeesAndTaxes = function() {
         const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
         const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
@@ -466,15 +453,16 @@
         const taxRateFactor = taxRate / 100; // 0.15 -> 0.0015 (비율)
         const calculatedTax = grossSellAmount * taxRateFactor;
         
-        document.getElementById('calculatedFeeAmount').value = formatCurrency(totalCalculatedFee);
-        document.getElementById('calculatedTaxAmount').value = formatCurrency(calculatedTax);
+        // 필드가 제거되었으므로, 값을 반환합니다.
+        return { totalFee: totalCalculatedFee, totalTax: calculatedTax };
     }
 
     /**
      * 주식 거래의 손익률을 계산하고 결과를 화면에 표시합니다.
      */
     window.calculateProfitLoss = function() {
-        updateFeeAndTaxFields(); // 최신 수수료/세금 금액 계산
+        // 새로운 함수를 호출하여 값을 직접 가져옵니다.
+        const { totalFee, totalTax } = window.calculateFeesAndTaxes(); 
 
         const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
         const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
@@ -485,10 +473,7 @@
             document.getElementById('result').style.display = 'none';
             return;
         }
-
-        // 계산된 수수료와 거래세 금액을 포맷되지 않은 숫자로 가져옵니다.
-        const totalFee = parseFloat(document.getElementById('calculatedFeeAmount').value.replace(/,/g, '')) || 0;
-        const totalTax = parseFloat(document.getElementById('calculatedTaxAmount').value.replace(/,/g, '')) || 0;
+        
         const totalDeductions = totalFee + totalTax; // 총 공제액
 
         const totalBuyCost = buyPrice * quantity;
@@ -542,9 +527,7 @@
         }
 
         // 매도 후 순회수액 재계산
-        const feeRate = parseFloat(document.getElementById('feeRateInput').value.replace(/,/g, '')) || 0;
-        const calculatedFeeOnSell = grossSellAmount * (feeRate / 100);
-        const netProceedsAfterSellDeductions = grossSellAmount - (calculatedFeeOnSell + totalTax);
+        const netProceedsAfterSellDeductions = grossSellAmount - (totalFee / 2) - totalTax; // 매도 수수료(총 수수료의 절반) + 거래세
 
         const tableHTML = `
             <thead>
@@ -658,9 +641,6 @@
         feeRateInput.value = (storedFeeRate !== null && storedFeeRate !== "") ? storedFeeRate : DEFAULT_FEE_RATE;
         taxRateInput.value = (storedTaxRate !== null && storedTaxRate !== "") ? storedTaxRate : DEFAULT_TAX_RATE;
         
-        // 쿠키 로드 후 수수료/세금 필드 업데이트 (금액 계산)
-        updateFeeAndTaxFields();
-
         // 초기 로드 후 자동 계산 실행
         calculateProfitLoss();
     }
@@ -668,8 +648,6 @@
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
         loadFromCookies(); // 1. 쿠키에서 모든 값 불러오기 및 초기 계산 실행
-
-        // '손익률 계산하기' 버튼이 제거되었으므로, 관련 이벤트 리스너는 필요 없음.
     });
 
 </script>
