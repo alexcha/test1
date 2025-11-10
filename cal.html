@@ -3,21 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기 (세율 수정 및 쿠키 저장)</title>
+    <title>주식 손익률 계산기 (세금 상세 내역 포함)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 기본 스타일 설정 */
-        body {
+        /* Tailwind CSS 설정 */
+        :root {
             font-family: 'Inter', Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
         }
-        /* 계산기 컨테이너 스타일 */
+        /* 추가적인 커스텀 스타일 */
         .calculator {
-            width: 100%;
             max-width: 500px;
             margin: 20px auto;
             background: #ffffff;
@@ -25,189 +19,166 @@
             border-radius: 12px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
-        h2 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #3498db;
+        .input-group {
+             margin-bottom: 1rem;
         }
-        label {
-            display: block;
-            margin-top: 15px;
+        .input-group label {
             font-weight: bold;
             color: #34495e;
             font-size: 0.95em;
+            display: block; /* 모바일에서 레이블이 한 줄 차지하도록 */
+            margin-bottom: 0.25rem;
         }
-        .rate-info {
-            font-size: 0.8em;
-            color: #7f8c8d;
-            font-weight: normal;
-        }
-        /* 입력 필드 그룹 */
-        .input-group {
-            margin-bottom: 15px;
-        }
-        /* 입력 필드 스타일 */
         input[type="text"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-top: 5px;
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1em;
-            transition: border-color 0.3s;
             text-align: right;
+            transition: border-color 0.3s;
+            padding: 0.5rem 0.75rem;
         }
         input[type="text"]:focus {
             border-color: #3498db;
             outline: none;
         }
-        /* Readonly 필드 스타일 */
         input[readonly] {
             background-color: #ecf0f1;
             color: #7f8c8d;
             cursor: default;
         }
+        
         /* 버튼 스타일 */
-        button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 30px;
-            background-color: #3498db;
-            color: white;
-            border: none;
+        #calculateButton, #resetButton {
+            padding: 10px 15px;
+            font-weight: 600;
             border-radius: 8px;
+            transition: background-color 0.3s, transform 0.1s;
+            color: white;
             cursor: pointer;
-            font-size: 1.1em;
-            font-weight: bold;
-            transition: background-color 0.3s ease, transform 0.1s;
+            border: none;
+            display: block; /* Full width for mobile */
         }
-        button:hover {
-            background-color: #2980b9;
+        
+        /* 결과 테이블 스타일 */
+        .result-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            font-size: 0.95em;
         }
-        button:active {
-            transform: scale(0.99);
+        .result-table th, .result-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            text-align: left;
         }
-        /* 결과 영역 스타일 */
-        .result {
-            margin-top: 30px;
-            padding: 20px;
-            border: 2px solid #2ecc71;
-            border-radius: 10px;
-            background-color: #e8f8f5;
-            text-align: center;
-        }
-        .result h3 {
+        .result-table th {
+            background-color: #f8f9fa;
             color: #2c3e50;
-            margin-top: 0;
-            margin-bottom: 15px;
+            font-weight: 600;
         }
-        .result p {
-            margin: 8px 0;
-            font-size: 1em;
+        .result-table tr:last-child td {
+            border-bottom: none;
         }
+        .result-table .value-col {
+            text-align: right;
+            font-weight: bold;
+        }
+        /* 공제액 상세 표시를 위한 스타일 */
+        .deduction-detail th, .deduction-detail td {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            font-size: 0.9em;
+            font-weight: normal;
+        }
+        .deduction-detail .value-col {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+
         /* 손익률 표시 스타일 */
         .profit {
             color: #2ecc71; /* 상승 (초록) */
-            font-size: 1.6em;
-            font-weight: bold;
+            font-size: 1.2em;
         }
         .loss {
             color: #e74c3c; /* 하락 (빨강) */
-            font-size: 1.6em;
-            font-weight: bold;
+            font-size: 1.2em;
         }
         .neutral {
             color: #34495e; /* 중립 (회색) */
-            font-size: 1.6em;
-            font-weight: bold;
-        }
-        /* 방문자 카운터 스타일 */
-        .visitor-counter {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #555;
-            padding: 10px;
-            border-top: 1px solid #eee;
-        }
-        /* 모바일 최적화 */
-        @media (max-width: 500px) {
-            .calculator {
-                padding: 15px;
-                margin: 10px;
-            }
+            font-size: 1.2em;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 p-4 md:p-8">
 
-<div class="calculator">
-    <h2>📈 주식 거래 손익률 계산기</h2>
+<div class="calculator w-full">
+    <h2 class="text-2xl font-bold text-center text-blue-800 border-b-4 border-blue-500 pb-3 mb-6">📈 주식 거래 손익률 계산기</h2>
 
     <!-- 매수 정보 섹션 (쿠키 저장) -->
     <div class="input-group">
         <label for="buyPrice">1. 매수 단가 (1주당 가격)</label>
-        <input type="text" id="buyPrice" value="10,000" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric">
+        <input type="text" id="buyPrice" value="10,000" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
     </div>
 
     <div class="input-group">
         <label for="quantity">2. 수량 (총 주식 수)</label>
-        <input type="text" id="quantity" value="100" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric">
+        <input type="text" id="quantity" value="100" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
     </div>
 
     <!-- 매도 정보 섹션 -->
     <div class="input-group">
         <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
-        <input type="text" id="sellPrice" value="12,000" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric">
+        <input type="text" id="sellPrice" value="12,000" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric" class="w-full">
     </div>
     
     <!-- 4. 수수료율 입력 및 계산 금액 표시 -->
     <div class="input-group">
-        <label for="feeRateInput">4. 매도 수수료율 <span class="rate-info">(총 매도 금액 대비, 예: 0.015)</span></label>
-        <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal">
+        <label for="feeRateInput">4. 매도 수수료율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.015)</span></label>
+        <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
     </div>
     <div class="input-group">
         <label for="calculatedFeeAmount">4-1. 계산된 수수료 금액 (원)</label>
-        <input type="text" id="calculatedFeeAmount" value="0" required readonly>
+        <input type="text" id="calculatedFeeAmount" value="0" required readonly class="w-full">
     </div>
 
     <!-- 5. 거래세율 입력 및 계산 금액 표시 -->
     <div class="input-group">
-        <label for="taxRateInput">5. 매도 거래세율 <span class="rate-info">(총 매도 금액 대비, 예: 0.2)</span></label>
-        <input type="text" id="taxRateInput" value="0.2" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal">
+        <label for="taxRateInput">5. 매도 거래세율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.2)</span></label>
+        <input type="text" id="taxRateInput" value="0.2" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
     </div>
     <div class="input-group">
         <label for="calculatedTaxAmount">5-1. 계산된 거래세 금액 (원)</label>
-        <input type="text" id="calculatedTaxAmount" value="0" required readonly>
+        <input type="text" id="calculatedTaxAmount" value="0" required readonly class="w-full">
     </div>
     
-    <button id="calculateButton">손익률 계산하기</button>
+    <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 w-full mb-2">손익률 계산하기</button>
+    <!-- 초기화 버튼 -->
+    <button id="resetButton" class="bg-red-500 hover:bg-red-600 w-full text-sm py-2">입력값 초기화</button>
 
-    <div id="result" class="result" style="display: none;">
-        <h3>📊 계산 결과</h3>
+    <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
+        <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
         
-        <p>총 매수 비용 (원금): <span id="totalBuy"></span>원</p>
-        <p>총 회수 금액 (수수료/세금 차감): <span id="totalSell"></span>원</p>
-        <p>순이익/손실: <span id="netProfit"></span>원</p>
-        <p>최종 손익률:</p>
-        <div id="profitRateContainer">
-            <span id="profitRate" class="neutral"></span>
-        </div>
+        <table id="resultTable" class="result-table">
+            <!-- Content filled by JavaScript -->
+        </table>
     </div>
 
     <!-- 방문자 카운터 -->
-    <div class="visitor-counter">
-        오늘 방문자 수: <span id="visitorCount">0</span>명
+    <div class="visitor-counter text-sm text-gray-500 mt-4 text-center">
+        오늘 방문자 수: <span id="visitorCount" class="font-semibold text-blue-600">0</span>명
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot, query, where, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot, query, where, collection, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    setLogLevel('debug'); // Firestore 디버그 로깅 활성화
 
     // Firestore 및 App ID 설정
     let db;
@@ -286,7 +257,7 @@
 
         const diff = newValue.length - oldValue.length;
         let newCursorStart = cursorStart + diff;
-
+        
         if (newValue.length > oldValue.length) {
             if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
                 newCursorStart = cursorStart + 1;
@@ -362,25 +333,21 @@
      * 입력된 매수 수량, 매도 단가, 세율을 기반으로 계산된 수수료와 거래세 금액을 업데이트합니다.
      */
     window.updateFeeAndTaxFields = function() {
-        // 1. 필요 값 가져오기
         const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
 
-        // 세율 가져오기 (입력값이 없으면 0으로 간주)
         const feeRateInput = document.getElementById('feeRateInput').value.replace(/,/g, '');
         const taxRateInput = document.getElementById('taxRateInput').value.replace(/,/g, '');
         
         const feeRate = parseFloat(feeRateInput) || 0;
         const taxRate = parseFloat(taxRateInput) || 0;
         
-        // 2. 총 매도 금액 계산
         const grossSellAmount = sellPrice * quantity;
         
-        // 3. 수수료 및 세금 계산 (사용자가 입력한 값은 퍼센트(%)이므로 100으로 나눔)
+        // 사용자가 입력한 값은 퍼센트(%)이므로 100으로 나눔
         const calculatedFee = grossSellAmount * (feeRate / 100);
         const calculatedTax = grossSellAmount * (taxRate / 100);
         
-        // 4. 읽기 전용 필드 업데이트 (정수로 포맷)
         document.getElementById('calculatedFeeAmount').value = formatCurrency(calculatedFee);
         document.getElementById('calculatedTaxAmount').value = formatCurrency(calculatedTax);
     }
@@ -389,65 +356,92 @@
      * 주식 거래의 손익률을 계산하고 결과를 화면에 표시합니다.
      */
     window.calculateProfitLoss = function() {
-        updateFeeAndTaxFields(); // 필드가 최신 값인지 확인하기 위해 재실행
-        
-        // 1. 입력 값 가져오기 (계산에 필요한 순수 숫자 값)
+        updateFeeAndTaxFields(); // 최신 수수료/세금 금액 계산
+
         const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
         const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
         
-        // 계산된 수수료/세금 금액 (읽기 전용 필드에서 가져옴)
+        // 계산된 수수료와 거래세 금액을 포맷되지 않은 숫자로 가져옵니다.
         const totalFee = parseFloat(document.getElementById('calculatedFeeAmount').value.replace(/,/g, '')) || 0;
         const totalTax = parseFloat(document.getElementById('calculatedTaxAmount').value.replace(/,/g, '')) || 0;
+        const totalDeductions = totalFee + totalTax; // 총 공제액
 
-        // 2. 총 매수 원금 계산
         const totalBuyCost = buyPrice * quantity;
         const totalQuantity = quantity;
 
-        // 유효성 검사
         if (totalQuantity <= 0) {
             const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = "<h3>경고</h3><p style='color:#e74c3c;'>수량은 0보다 커야 합니다.</p>";
+            resultDiv.innerHTML = "<h3 class='text-center text-red-600 font-bold'>경고</h3><p class='text-center text-red-600'>수량은 0보다 커야 합니다.</p>";
             resultDiv.style.display = 'block';
             return;
         }
 
-        // 3. 총 매도 금액 계산 (수수료/세금 차감)
         const grossSellAmount = sellPrice * totalQuantity; 
-        const totalSell = grossSellAmount - (totalFee + totalTax); 
+        const totalSell = grossSellAmount - totalDeductions; // 순 회수 금액 (세후)
 
-        // 4. 순이익/손실 및 손익률 계산
-        const netProfitLoss = totalSell - totalBuyCost;
+        const netProfitLoss = totalSell - totalBuyCost; // 순이익/손실 (세후)
         
         let profitRate = 0;
         if (totalBuyCost > 0) {
             profitRate = (netProfitLoss / totalBuyCost) * 100;
         }
 
-        // 5. 결과 출력
-        document.getElementById('totalBuy').textContent = formatCurrency(totalBuyCost);
-        document.getElementById('totalSell').textContent = formatCurrency(totalSell);
-        document.getElementById('netProfit').textContent = formatCurrency(netProfitLoss);
-        
-        const profitRateElement = document.getElementById('profitRate');
-        profitRateElement.textContent = profitRate.toFixed(2) + '%';
-        
-        // 색상 및 클래스 변경
-        profitRateElement.classList.remove('profit', 'loss', 'neutral');
-        
+        // 5. 결과 출력 (테이블 형식)
+        const profitRateText = profitRate.toFixed(2) + '%';
+        let rateClass = 'neutral';
         if (netProfitLoss > 0) {
-            profitRateElement.classList.add('profit');
+            rateClass = 'profit';
         } else if (netProfitLoss < 0) {
-            profitRateElement.classList.add('loss');
-        } else {
-            profitRateElement.classList.add('neutral');
+            rateClass = 'loss';
         }
 
+        const tableHTML = `
+            <thead>
+                <tr>
+                    <th colspan="2" class="text-center bg-blue-100 rounded-t-lg">거래 요약</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>총 매수 비용 (원금)</th>
+                    <td class="value-col">${formatCurrency(totalBuyCost)} 원</td>
+                </tr>
+                <tr>
+                    <th>총 매도 금액 (세전)</th>
+                    <td class="value-col">${formatCurrency(grossSellAmount)} 원</td>
+                </tr>
+                <tr>
+                    <th><span class="text-red-600">총 공제액 (수수료+세금)</span></th>
+                    <td class="value-col text-red-600 font-bold">- ${formatCurrency(totalDeductions)} 원</td>
+                </tr>
+                <tr class="deduction-detail">
+                    <th style="padding-left: 20px;">ㄴ 총 수수료</th>
+                    <td class="value-col">- ${formatCurrency(totalFee)} 원</td>
+                </tr>
+                <tr class="deduction-detail">
+                    <th style="padding-left: 20px;">ㄴ 총 거래세</th>
+                    <td class="value-col">- ${formatCurrency(totalTax)} 원</td>
+                </tr>
+                <tr class="bg-gray-50">
+                    <th>순이익/손실 (세후)</th>
+                    <td class="value-col">${formatCurrency(netProfitLoss)} 원</td>
+                </tr>
+                <tr class="font-bold text-lg bg-yellow-100">
+                    <th><span class="text-blue-600">최종 손익률</span></th>
+                    <td class="value-col">
+                        <span class="${rateClass}">${profitRateText}</span>
+                    </td>
+                </tr>
+            </tbody>
+        `;
+
+        document.getElementById('resultTable').innerHTML = tableHTML;
         document.getElementById('result').style.display = 'block';
     }
     
     /**
-     * 쿠키에 저장된 매수 단가, 수량, 세율을 불러와 입력 필드에 채웁니다.
+     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채웁니다.
      */
     function loadFromCookies() {
         // 통화 관련 쿠키 로드
@@ -474,21 +468,44 @@
         const storedFeeRate = getCookie('stockFeeRate');
         const storedTaxRate = getCookie('stockTaxRate');
         
-        if (storedFeeRate !== null && storedFeeRate !== "") {
-            feeRateInput.value = storedFeeRate;
-        } else {
-            feeRateInput.value = DEFAULT_FEE_RATE;
-        }
-
-        if (storedTaxRate !== null && storedTaxRate !== "") {
-            taxRateInput.value = storedTaxRate;
-        } else {
-            taxRateInput.value = DEFAULT_TAX_RATE;
-        }
+        feeRateInput.value = (storedFeeRate !== null && storedFeeRate !== "") ? storedFeeRate : DEFAULT_FEE_RATE;
+        taxRateInput.value = (storedTaxRate !== null && storedTaxRate !== "") ? storedTaxRate : DEFAULT_TAX_RATE;
         
         // 쿠키 로드 후 수수료/세금 필드 업데이트 (금액 계산)
         updateFeeAndTaxFields();
     }
+
+    /**
+     * 모든 입력 필드와 쿠키를 초기 상태로 되돌립니다.
+     */
+    window.resetInputs = function() {
+        // 1. 입력 필드를 기본값으로 설정
+        document.getElementById('buyPrice').value = formatCurrency(10000);
+        document.getElementById('quantity').value = formatCurrency(100);
+        document.getElementById('sellPrice').value = formatCurrency(12000);
+        document.getElementById('feeRateInput').value = DEFAULT_FEE_RATE; 
+        document.getElementById('taxRateInput').value = DEFAULT_TAX_RATE;
+        
+        // 2. 쿠키를 기본값으로 재설정 (영구 저장 초기화)
+        setCookie('stockBuyPrice', '10000');
+        setCookie('stockQuantity', '100');
+        setCookie('stockFeeRate', DEFAULT_FEE_RATE);
+        setCookie('stockTaxRate', DEFAULT_TAX_RATE);
+        
+        // 이전 결과 출력 필드도 초기화
+        const calculatedFeeInput = document.getElementById('calculatedFeeAmount');
+        const calculatedTaxInput = document.getElementById('calculatedTaxAmount');
+
+        calculatedFeeInput.value = formatCurrency(0);
+        calculatedTaxInput.value = formatCurrency(0);
+
+
+        // 3. 계산된 필드 및 결과 영역 초기화
+        document.getElementById('result').style.display = 'none';
+
+        // 초기화 후 수수료 필드 다시 계산 (필수)
+        updateFeeAndTaxFields();
+    };
 
 
     /**
@@ -519,6 +536,7 @@
             
             const userId = userCredential.user.uid;
             
+            // 방문 기록 저장 (userId를 문서 ID로 사용하여 오늘의 방문 기록을 한 번만 저장)
             const visitRef = doc(db, `artifacts/${appId}/public/data/${DAILY_VISITORS_COLLECTION}`, userId);
             
             await setDoc(visitRef, {
@@ -527,6 +545,7 @@
                 userId: userId 
             }, { merge: true });
 
+            // 오늘 접속자 수 실시간 리스너 설정 (오늘 날짜의 기록만 필터링)
             const visitorsCollectionRef = collection(db, `artifacts/${appId}/public/data/${DAILY_VISITORS_COLLECTION}`);
             
             const q = query(
@@ -553,6 +572,7 @@
         initializeFirebaseAndCounter(); // 2. Firebase 및 카운터 초기화
 
         document.getElementById('calculateButton').addEventListener('click', calculateProfitLoss);
+        document.getElementById('resetButton').addEventListener('click', resetInputs);
     });
 
 </script>
