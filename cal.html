@@ -48,17 +48,7 @@
             cursor: default;
         }
         
-        /* 버튼 스타일 */
-        #calculateButton {
-            padding: 10px 15px;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: background-color 0.3s, transform 0.1s;
-            color: white;
-            cursor: pointer;
-            border: none;
-            display: block; /* Full width for mobile */
-        }
+        /* 버튼 스타일 (기존 계산 버튼은 제거됨) */
 
         /* 개별 초기화 버튼 스타일 */
         .reset-individual-btn {
@@ -160,6 +150,18 @@
             color: #34495e; /* 중립 (회색) */
             font-weight: bold;
         }
+        /* 실시간 업데이트 피드백 */
+        .realtime-note {
+            color: #27ae60;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px dashed #2ecc71;
+            border-radius: 4px;
+        }
 
     </style>
 </head>
@@ -167,6 +169,7 @@
 
 <div class="calculator w-full">
     <h2 class="text-2xl font-bold text-center text-blue-800 border-b-4 border-blue-500 pb-3 mb-6">📈 주식 거래 손익률 계산기</h2>
+    <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
     <!-- 1. 매수 단가 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
@@ -186,11 +189,10 @@
         </div>
     </div>
 
-    <!-- 3. 매도 단가 (쿠키 저장, 개별 초기화 가능) - 변경된 부분 -->
+    <!-- 3. 매도 단가 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
         <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
         <div class="flex items-center space-x-2">
-            <!-- handleCurrencyInputAndSave 함수를 사용하여 포맷팅, 쿠키 저장, 수수료 업데이트를 모두 처리 -->
             <input type="text" id="sellPrice" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice')" inputmode="numeric" class="w-full">
             <button type="button" onclick="resetIndividualInput('sellPrice', 'stockSellPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
         </div>
@@ -224,7 +226,8 @@
         <input type="text" id="calculatedTaxAmount" value="0" required readonly class="w-full">
     </div>
     
-    <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 w-full mb-2">손익률 계산하기</button>
+    <!-- <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 w-full mb-2">손익률 계산하기</button>  -->
+    <!-- 계산 버튼 제거됨 -->
 
     <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
         <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
@@ -322,7 +325,7 @@
     }
     
     /**
-     * 금액 입력(매수 단가/수량/매도 단가)을 포맷하고, 해당 값을 쿠키에 저장하며, 수수료 필드를 업데이트합니다.
+     * 금액 입력(매수 단가/수량/매도 단가)을 포맷하고, 해당 값을 쿠키에 저장하며, 수수료 필드를 업데이트하고, 계산을 실행합니다.
      * @param {HTMLInputElement} input 입력 요소
      * @param {string} cookieName 저장할 쿠키 이름 (예: 'stockSellPrice')
      */
@@ -336,6 +339,7 @@
             input.value = '';
             setCookie(cookieName, '');
             updateFeeAndTaxFields();
+            calculateProfitLoss(); // 입력값 없을 때도 계산 실행 (결과 숨김 처리용)
             return; 
         }
 
@@ -359,10 +363,13 @@
 
         // 3. 수수료 필드 업데이트
         updateFeeAndTaxFields();
+
+        // 4. 자동 계산 실행 (모든 통화 입력 변경 시)
+        calculateProfitLoss(); 
     }
     
     /**
-     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장하고, 수수료 필드를 업데이트합니다.
+     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장하고, 수수료 필드를 업데이트하고, 계산을 실행합니다.
      * @param {HTMLInputElement} input 입력 요소
      * @param {string} cookieName 저장할 쿠키 이름
      */
@@ -377,10 +384,13 @@
         
         // 수수료 필드 업데이트
         updateFeeAndTaxFields();
+
+        // 자동 계산 실행 (비율 입력 변경 시)
+        calculateProfitLoss(); 
     }
     
     /**
-     * 개별 입력 필드를 기본값으로 초기화하고 쿠키를 업데이트합니다.
+     * 개별 입력 필드를 기본값으로 초기화하고 쿠키를 업데이트하고, 계산을 실행합니다.
      * @param {string} inputId 초기화할 입력 요소의 ID
      * @param {string} cookieName 저장된 쿠키 이름
      * @param {string} defaultValue 입력 필드의 기본값 (포맷되지 않은 숫자 문자열)
@@ -403,8 +413,8 @@
         // 2. 매도 단가와 수량만 초기화되면 수수료/거래세 금액이 0이 될 수 있으므로 계산 필드 업데이트
         updateFeeAndTaxFields();
         
-        // 3. 결과 영역 숨김
-        document.getElementById('result').style.display = 'none';
+        // 3. 자동 계산 실행 (모든 초기화 시)
+        calculateProfitLoss();
     };
 
 
@@ -443,6 +453,12 @@
         const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
         
+        // 모든 핵심 입력값이 0인 경우 결과를 숨깁니다.
+        if (buyPrice === 0 && quantity === 0 && sellPrice === 0) {
+            document.getElementById('result').style.display = 'none';
+            return;
+        }
+
         // 계산된 수수료와 거래세 금액을 포맷되지 않은 숫자로 가져옵니다.
         const totalFee = parseFloat(document.getElementById('calculatedFeeAmount').value.replace(/,/g, '')) || 0;
         const totalTax = parseFloat(document.getElementById('calculatedTaxAmount').value.replace(/,/g, '')) || 0;
@@ -567,7 +583,7 @@
             quantityInput.value = formatCurrency(0);
         }
 
-        // 3. 매도 단가 (새로 추가된 로직)
+        // 3. 매도 단가
         if (storedSellPrice !== null && storedSellPrice !== "") {
             sellPriceInput.value = storedSellPrice;
             window.formatCurrencyInput(sellPriceInput);
@@ -587,13 +603,16 @@
         
         // 쿠키 로드 후 수수료/세금 필드 업데이트 (금액 계산)
         updateFeeAndTaxFields();
+
+        // 초기 로드 후 자동 계산 실행
+        calculateProfitLoss();
     }
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        loadFromCookies(); // 1. 쿠키에서 모든 값 불러오기
+        loadFromCookies(); // 1. 쿠키에서 모든 값 불러오기 및 초기 계산 실행
 
-        document.getElementById('calculateButton').addEventListener('click', calculateProfitLoss);
+        // '손익률 계산하기' 버튼이 제거되었으므로, 관련 이벤트 리스너는 필요 없음.
     });
 
 </script>
