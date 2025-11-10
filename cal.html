@@ -186,10 +186,14 @@
         </div>
     </div>
 
-    <!-- 3. 매도 단가 (쿠키 미저장) -->
+    <!-- 3. 매도 단가 (쿠키 저장, 개별 초기화 가능) - 변경된 부분 -->
     <div class="input-group">
         <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
-        <input type="text" id="sellPrice" value="0" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric" class="w-full">
+        <div class="flex items-center space-x-2">
+            <!-- handleCurrencyInputAndSave 함수를 사용하여 포맷팅, 쿠키 저장, 수수료 업데이트를 모두 처리 -->
+            <input type="text" id="sellPrice" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice')" inputmode="numeric" class="w-full">
+            <button type="button" onclick="resetIndividualInput('sellPrice', 'stockSellPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+        </div>
     </div>
     
     <!-- 4. 수수료율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
@@ -209,9 +213,9 @@
     <div class="input-group">
         <label for="taxRateInput">5. 매도 거래세율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.15)</span></label>
         <div class="flex items-center space-x-2">
-            <!-- 기본값 0.15%로 수정 -->
+            <!-- 기본값 0.15% -->
             <input type="text" id="taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
-            <!-- 초기화 기본값도 0.15%로 수정 -->
+            <!-- 초기화 기본값도 0.15% -->
             <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.15', 'rate')" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
         </div>
     </div>
@@ -234,7 +238,7 @@
 <script type="module">
     // --- Configuration ---
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
-    const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 % (0.2 -> 0.15로 수정됨)
+    const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
 
 
     // --- Cookie Helper Functions ---
@@ -288,9 +292,10 @@
     }
 
     /**
-     * 입력 필드의 숫자를 세 자리마다 쉼표(,)로 포맷하고 커서 위치를 유지합니다. (매도 단가용)
+     * 입력 필드의 숫자를 세 자리마다 쉼표(,)로 포맷하고 커서 위치를 유지합니다. (로드 시 사용)
+     * @param {HTMLInputElement} input 입력 요소
      */
-    window.parseAndFormatInput = function(input) {
+    window.formatCurrencyInput = function(input) {
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9]/g, ''); 
@@ -317,9 +322,9 @@
     }
     
     /**
-     * 금액 입력(매수 단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 수수료 필드를 업데이트합니다.
+     * 금액 입력(매수 단가/수량/매도 단가)을 포맷하고, 해당 값을 쿠키에 저장하며, 수수료 필드를 업데이트합니다.
      * @param {HTMLInputElement} input 입력 요소
-     * @param {string} cookieName 저장할 쿠키 이름
+     * @param {string} cookieName 저장할 쿠키 이름 (예: 'stockSellPrice')
      */
     window.handleCurrencyInputAndSave = function(input, cookieName) {
         // 1. 포맷팅 및 커서 위치 유지
@@ -507,7 +512,7 @@
                     <td class="value-col">- ${formatCurrency(totalTax)} 원</td>
                 </tr>
                 
-                <!-- 요청하신 매도 후 순회수액 (세후) 항목 추가 및 스타일 변경 -->
+                <!-- 매도 후 순회수액 (세후) -->
                 <tr class="bg-indigo-50">
                     <th class="font-bold">매도 후 순회수액 (세후)</th>
                     <td class="value-col net-proceeds-color">${formatCurrency(totalSell)} 원</td>
@@ -543,24 +548,32 @@
         
         const storedPrice = getCookie('stockBuyPrice');
         const storedQuantity = getCookie('stockQuantity');
+        const storedSellPrice = getCookie('stockSellPrice'); // 매도 단가 쿠키 로드
+
         
-        // 쿠키에 값이 있는 경우만 로드, 없으면 HTML에 설정된 기본값(0) 사용
+        // 1. 매수 단가
         if (storedPrice !== null && storedPrice !== "") {
             buyPriceInput.value = storedPrice;
-            window.parseAndFormatInput(buyPriceInput); 
+            window.formatCurrencyInput(buyPriceInput); 
         } else {
              buyPriceInput.value = formatCurrency(0);
         }
         
+        // 2. 수량
         if (storedQuantity !== null && storedQuantity !== "") {
             quantityInput.value = storedQuantity;
-            window.parseAndFormatInput(quantityInput);
+            window.formatCurrencyInput(quantityInput);
         } else {
             quantityInput.value = formatCurrency(0);
         }
 
-        // 매도단가도 기본값 0으로 설정
-        sellPriceInput.value = formatCurrency(0);
+        // 3. 매도 단가 (새로 추가된 로직)
+        if (storedSellPrice !== null && storedSellPrice !== "") {
+            sellPriceInput.value = storedSellPrice;
+            window.formatCurrencyInput(sellPriceInput);
+        } else {
+            sellPriceInput.value = formatCurrency(0);
+        }
         
         // 세율 관련 쿠키 로드
         const feeRateInput = document.getElementById('feeRateInput');
@@ -570,7 +583,6 @@
         const storedTaxRate = getCookie('stockTaxRate');
         
         feeRateInput.value = (storedFeeRate !== null && storedFeeRate !== "") ? storedFeeRate : DEFAULT_FEE_RATE;
-        // 거래세율 기본값 변경 적용
         taxRateInput.value = (storedTaxRate !== null && storedTaxRate !== "") ? storedTaxRate : DEFAULT_TAX_RATE;
         
         // 쿠키 로드 후 수수료/세금 필드 업데이트 (금액 계산)
