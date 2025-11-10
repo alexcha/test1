@@ -48,8 +48,6 @@
             cursor: default;
         }
         
-        /* 버튼 스타일 (기존 계산 버튼은 제거됨) */
-
         /* 개별 초기화 버튼 스타일 */
         .reset-individual-btn {
             width: 32px;
@@ -198,22 +196,25 @@
         </div>
     </div>
     
-    <!-- 4. 수수료율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
+    <!-- 4. 수수료율 입력 및 계산 금액 표시 -->
     <div class="input-group">
-        <label for="feeRateInput">4. 매도 수수료율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.015)</span></label>
+        <label for="feeRateInput">4. 매매 수수료율 (%) 
+        </label>
         <div class="flex items-center space-x-2">
             <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
             <button type="button" onclick="resetIndividualInput('feeRateInput', 'stockFeeRate', '0.015', 'rate')" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
         </div>
     </div>
     <div class="input-group">
-        <label for="calculatedFeeAmount">4-1. 계산된 수수료 금액 (원)</label>
+        <!-- 수정: (매수+매도) 멘트 제거 -->
+        <label for="calculatedFeeAmount">4-1. 계산된 총 수수료 금액</label>
         <input type="text" id="calculatedFeeAmount" value="0" required readonly class="w-full">
     </div>
 
-    <!-- 5. 거래세율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
+    <!-- 5. 거래세율 입력 및 계산 금액 표시 -->
     <div class="input-group">
-        <label for="taxRateInput">5. 매도 거래세율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.15)</span></label>
+        <label for="taxRateInput">5. 매도 거래세율 (%) 
+        </label>
         <div class="flex items-center space-x-2">
             <!-- 기본값 0.15% -->
             <input type="text" id="taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
@@ -226,9 +227,6 @@
         <input type="text" id="calculatedTaxAmount" value="0" required readonly class="w-full">
     </div>
     
-    <!-- <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 w-full mb-2">손익률 계산하기</button>  -->
-    <!-- 계산 버튼 제거됨 -->
-
     <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
         <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
         
@@ -424,22 +422,40 @@
      * 입력된 매수 수량, 매도 단가, 세율을 기반으로 계산된 수수료와 거래세 금액을 업데이트합니다.
      */
     window.updateFeeAndTaxFields = function() {
+        const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
         const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
 
         const feeRateInput = document.getElementById('feeRateInput').value.replace(/,/g, '');
         const taxRateInput = document.getElementById('taxRateInput').value.replace(/,/g, '');
         
+        // feeRate와 taxRate는 퍼센트 값으로 간주합니다 (예: 0.015%에서 0.015)
         const feeRate = parseFloat(feeRateInput) || 0;
         const taxRate = parseFloat(taxRateInput) || 0;
         
+        // 총 매수 비용 (원금)
+        const totalBuyCost = buyPrice * quantity;
+        // 총 매도 금액 (세전)
         const grossSellAmount = sellPrice * quantity;
         
-        // 사용자가 입력한 값은 퍼센트(%)이므로 100으로 나눔
-        const calculatedFee = grossSellAmount * (feeRate / 100);
-        const calculatedTax = grossSellAmount * (taxRate / 100);
+        // ----------------------------------------------------
+        // 수수료: 매수 금액과 매도 금액 모두에 각각 적용
+        // ----------------------------------------------------
+        const feeRateFactor = feeRate / 100; // 0.015 -> 0.00015 (비율)
         
-        document.getElementById('calculatedFeeAmount').value = formatCurrency(calculatedFee);
+        const calculatedFeeOnBuy = totalBuyCost * feeRateFactor;
+        const calculatedFeeOnSell = grossSellAmount * feeRateFactor;
+
+        // 최종 총 수수료 (매수 수수료 + 매도 수수료)
+        const totalCalculatedFee = calculatedFeeOnBuy + calculatedFeeOnSell;
+        
+        // ----------------------------------------------------
+        // 거래세: 총 매도 금액에만 적용
+        // ----------------------------------------------------
+        const taxRateFactor = taxRate / 100; // 0.15 -> 0.0015 (비율)
+        const calculatedTax = grossSellAmount * taxRateFactor;
+        
+        document.getElementById('calculatedFeeAmount').value = formatCurrency(totalCalculatedFee);
         document.getElementById('calculatedTaxAmount').value = formatCurrency(calculatedTax);
     }
 
@@ -468,18 +484,21 @@
         const totalQuantity = quantity;
 
         const grossSellAmount = sellPrice * totalQuantity; 
-        const totalSell = grossSellAmount - totalDeductions; // 매도 후 순회수액 (세후)
-
-        const netProfitLoss = totalSell - totalBuyCost; // 순이익/손실 (세후)
+        
+        // 순이익/손실 (세후): (매도 금액) - (총 매수 비용) - (총 공제액)
+        const netProfitLoss = grossSellAmount - totalDeductions - totalBuyCost;
         
         let profitRate = 0;
         // 투자 원금(totalBuyCost)이 0보다 커야 손익률 계산 가능 (0 나누기 방지)
         if (totalBuyCost > 0) {
             profitRate = (netProfitLoss / totalBuyCost) * 100;
+        } else if (netProfitLoss > 0) {
+            // 원금 0인데 이익이 난 경우 (매우 드문 경우)
+            profitRate = Infinity;
         }
 
         // 5. 결과 출력 (테이블 형식)
-        const profitRateText = profitRate.toFixed(2) + '%';
+        const profitRateText = (isFinite(profitRate) ? profitRate.toFixed(2) : 'N/A') + '%';
 
         // 순이익/손실 (세후) 텍스트 스타일 결정 (수익: 빨강, 손실: 파랑)
         let netResultClass = 'net-result neutral-text';
@@ -499,6 +518,11 @@
             rateClass = 'loss';
         }
 
+        // 매도 후 순회수액 재계산 (총 매도 금액 - 매도 거래에서 발생한 수수료 및 세금)
+        // 매도 후 순회수액은 사용자가 최종적으로 돌려받는 현금 흐름을 의미
+        const feeRate = parseFloat(document.getElementById('feeRateInput').value.replace(/,/g, '')) || 0;
+        const calculatedFeeOnSell = grossSellAmount * (feeRate / 100);
+        const netProceedsAfterSellDeductions = grossSellAmount - (calculatedFeeOnSell + totalTax);
 
         const tableHTML = `
             <thead>
@@ -516,22 +540,22 @@
                     <td class="value-col">${formatCurrency(grossSellAmount)} 원</td>
                 </tr>
                 <tr>
-                    <th><span class="deduction-color">총 공제액 (수수료+세금)</span></th>
+                    <th><span class="deduction-color">총 공제액 (매수/매도 수수료 + 거래세)</span></th>
                     <td class="value-col deduction-color">- ${formatCurrency(totalDeductions)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
-                    <th style="padding-left: 20px;">ㄴ 총 수수료</th>
+                    <th style="padding-left: 20px;">ㄴ 총 매매 수수료 (매수/매도 합산)</th>
                     <td class="value-col">- ${formatCurrency(totalFee)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
-                    <th style="padding-left: 20px;">ㄴ 총 거래세</th>
+                    <th style="padding-left: 20px;">ㄴ 총 거래세 (매도 시)</th>
                     <td class="value-col">- ${formatCurrency(totalTax)} 원</td>
                 </tr>
                 
                 <!-- 매도 후 순회수액 (세후) -->
                 <tr class="bg-indigo-50">
                     <th class="font-bold">매도 후 순회수액 (세후)</th>
-                    <td class="value-col net-proceeds-color">${formatCurrency(totalSell)} 원</td>
+                    <td class="value-col net-proceeds-color">${formatCurrency(netProceedsAfterSellDeductions)} 원</td>
                 </tr>
 
                 <tr class="bg-gray-50">
