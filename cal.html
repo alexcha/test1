@@ -207,10 +207,12 @@
 
     <!-- 5. 거래세율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
-        <label for="taxRateInput">5. 매도 거래세율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.2)</span></label>
+        <label for="taxRateInput">5. 매도 거래세율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.15)</span></label>
         <div class="flex items-center space-x-2">
-            <input type="text" id="taxRateInput" value="0.2" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
-            <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.2', 'rate')" class="reset-individual-btn" title="기본값 (0.2%)으로 초기화">↺</button>
+            <!-- 기본값 0.15%로 수정 -->
+            <input type="text" id="taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
+            <!-- 초기화 기본값도 0.15%로 수정 -->
+            <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.15', 'rate')" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
         </div>
     </div>
     <div class="input-group">
@@ -232,7 +234,7 @@
 <script type="module">
     // --- Configuration ---
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
-    const DEFAULT_TAX_RATE = 0.2;   // 기본 거래세율 %
+    const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 % (0.2 -> 0.15로 수정됨)
 
 
     // --- Cookie Helper Functions ---
@@ -568,6 +570,7 @@
         const storedTaxRate = getCookie('stockTaxRate');
         
         feeRateInput.value = (storedFeeRate !== null && storedFeeRate !== "") ? storedFeeRate : DEFAULT_FEE_RATE;
+        // 거래세율 기본값 변경 적용
         taxRateInput.value = (storedTaxRate !== null && storedTaxRate !== "") ? storedTaxRate : DEFAULT_TAX_RATE;
         
         // 쿠키 로드 후 수수료/세금 필드 업데이트 (금액 계산)
