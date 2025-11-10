@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기 (세금 상세 내역 포함)</title>
+    <title>주식 손익률 계산기 (개별 초기화 전용)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Tailwind CSS 설정 */
@@ -49,7 +49,7 @@
         }
         
         /* 버튼 스타일 */
-        #calculateButton, #resetButton {
+        #calculateButton {
             padding: 10px 15px;
             font-weight: 600;
             border-radius: 8px;
@@ -58,6 +58,29 @@
             cursor: pointer;
             border: none;
             display: block; /* Full width for mobile */
+        }
+
+        /* 개별 초기화 버튼 스타일 */
+        .reset-individual-btn {
+            width: 32px;
+            height: 32px;
+            line-height: 1;
+            font-size: 1.1rem;
+            color: #95a5a6;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 8px;
+            margin-left: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            flex-shrink: 0; /* 공간이 부족해도 줄어들지 않도록 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .reset-individual-btn:hover {
+            background-color: #bdc3c7;
+            color: #2c3e50;
         }
         
         /* 결과 테이블 스타일 */
@@ -118,37 +141,50 @@
 <div class="calculator w-full">
     <h2 class="text-2xl font-bold text-center text-blue-800 border-b-4 border-blue-500 pb-3 mb-6">📈 주식 거래 손익률 계산기</h2>
 
-    <!-- 매수 정보 섹션 (쿠키 저장) -->
+    <!-- 1. 매수 단가 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
         <label for="buyPrice">1. 매수 단가 (1주당 가격)</label>
-        <input type="text" id="buyPrice" value="10,000" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
+        <div class="flex items-center space-x-2">
+            <input type="text" id="buyPrice" value="10,000" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
+            <button type="button" onclick="resetIndividualInput('buyPrice', 'stockBuyPrice', '10000', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+        </div>
     </div>
 
+    <!-- 2. 수량 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
         <label for="quantity">2. 수량 (총 주식 수)</label>
-        <input type="text" id="quantity" value="100" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
+        <div class="flex items-center space-x-2">
+            <input type="text" id="quantity" value="100" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
+            <button type="button" onclick="resetIndividualInput('quantity', 'stockQuantity', '100', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+        </div>
     </div>
 
-    <!-- 매도 정보 섹션 -->
+    <!-- 3. 매도 단가 (쿠키 미저장) -->
     <div class="input-group">
         <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
         <input type="text" id="sellPrice" value="12,000" required oninput="parseAndFormatInput(this); updateFeeAndTaxFields();" inputmode="numeric" class="w-full">
     </div>
     
-    <!-- 4. 수수료율 입력 및 계산 금액 표시 -->
+    <!-- 4. 수수료율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
         <label for="feeRateInput">4. 매도 수수료율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.015)</span></label>
-        <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
+        <div class="flex items-center space-x-2">
+            <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
+            <button type="button" onclick="resetIndividualInput('feeRateInput', 'stockFeeRate', '0.015', 'rate')" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+        </div>
     </div>
     <div class="input-group">
         <label for="calculatedFeeAmount">4-1. 계산된 수수료 금액 (원)</label>
         <input type="text" id="calculatedFeeAmount" value="0" required readonly class="w-full">
     </div>
 
-    <!-- 5. 거래세율 입력 및 계산 금액 표시 -->
+    <!-- 5. 거래세율 입력 및 계산 금액 표시 (쿠키 저장, 개별 초기화 가능) -->
     <div class="input-group">
         <label for="taxRateInput">5. 매도 거래세율 (%) <span class="text-sm font-normal text-gray-500">(총 매도 금액 대비, 예: 0.2)</span></label>
-        <input type="text" id="taxRateInput" value="0.2" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
+        <div class="flex items-center space-x-2">
+            <input type="text" id="taxRateInput" value="0.2" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
+            <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.2', 'rate')" class="reset-individual-btn" title="기본값 (0.2%)으로 초기화">↺</button>
+        </div>
     </div>
     <div class="input-group">
         <label for="calculatedTaxAmount">5-1. 계산된 거래세 금액 (원)</label>
@@ -156,8 +192,6 @@
     </div>
     
     <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 w-full mb-2">손익률 계산하기</button>
-    <!-- 초기화 버튼 -->
-    <button id="resetButton" class="bg-red-500 hover:bg-red-600 w-full text-sm py-2">입력값 초기화</button>
 
     <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
         <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
@@ -166,25 +200,10 @@
             <!-- Content filled by JavaScript -->
         </table>
     </div>
-
-    <!-- 방문자 카운터 -->
-    <div class="visitor-counter text-sm text-gray-500 mt-4 text-center">
-        오늘 방문자 수: <span id="visitorCount" class="font-semibold text-blue-600">0</span>명
-    </div>
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot, query, where, collection, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    setLogLevel('debug'); // Firestore 디버그 로깅 활성화
-
-    // Firestore 및 App ID 설정
-    let db;
-    let auth;
-    let appId;
-    const DAILY_VISITORS_COLLECTION = "daily_visits";
+    // --- Configuration ---
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.2;   // 기본 거래세율 %
 
@@ -325,6 +344,34 @@
         // 수수료 필드 업데이트
         updateFeeAndTaxFields();
     }
+    
+    /**
+     * 개별 입력 필드를 기본값으로 초기화하고 쿠키를 업데이트합니다.
+     * @param {string} inputId 초기화할 입력 요소의 ID
+     * @param {string} cookieName 저장된 쿠키 이름
+     * @param {string} defaultValue 입력 필드의 기본값 (포맷되지 않은 숫자 문자열)
+     * @param {string} type 입력 타입 ('currency' 또는 'rate')
+     */
+    window.resetIndividualInput = function(inputId, cookieName, defaultValue, type) {
+        const input = document.getElementById(inputId);
+        
+        // 1. 값 설정 및 쿠키 업데이트
+        if (type === 'currency') {
+            // 통화: 포맷하여 화면에 표시하고, 원시 값을 쿠키에 저장
+            input.value = formatCurrency(parseFloat(defaultValue)); 
+            setCookie(cookieName, defaultValue); 
+        } else { // rate
+            // 비율: 그대로 화면에 표시하고, 쿠키에 저장
+            input.value = defaultValue; 
+            setCookie(cookieName, defaultValue);
+        }
+        
+        // 2. 매도 단가와 수량만 초기화되면 수수료/거래세 금액이 0이 될 수 있으므로 계산 필드 업데이트
+        updateFeeAndTaxFields();
+        
+        // 3. 결과 영역 숨김
+        document.getElementById('result').style.display = 'none';
+    };
 
 
     // --- Calculation Logic ---
@@ -475,104 +522,11 @@
         updateFeeAndTaxFields();
     }
 
-    /**
-     * 모든 입력 필드와 쿠키를 초기 상태로 되돌립니다.
-     */
-    window.resetInputs = function() {
-        // 1. 입력 필드를 기본값으로 설정
-        document.getElementById('buyPrice').value = formatCurrency(10000);
-        document.getElementById('quantity').value = formatCurrency(100);
-        document.getElementById('sellPrice').value = formatCurrency(12000);
-        document.getElementById('feeRateInput').value = DEFAULT_FEE_RATE; 
-        document.getElementById('taxRateInput').value = DEFAULT_TAX_RATE;
-        
-        // 2. 쿠키를 기본값으로 재설정 (영구 저장 초기화)
-        setCookie('stockBuyPrice', '10000');
-        setCookie('stockQuantity', '100');
-        setCookie('stockFeeRate', DEFAULT_FEE_RATE);
-        setCookie('stockTaxRate', DEFAULT_TAX_RATE);
-        
-        // 이전 결과 출력 필드도 초기화
-        const calculatedFeeInput = document.getElementById('calculatedFeeAmount');
-        const calculatedTaxInput = document.getElementById('calculatedTaxAmount');
-
-        calculatedFeeInput.value = formatCurrency(0);
-        calculatedTaxInput.value = formatCurrency(0);
-
-
-        // 3. 계산된 필드 및 결과 영역 초기화
-        document.getElementById('result').style.display = 'none';
-
-        // 초기화 후 수수료 필드 다시 계산 (필수)
-        updateFeeAndTaxFields();
-    };
-
-
-    /**
-     * Firebase를 초기화하고 오늘 접속자 카운터를 실시간으로 업데이트합니다.
-     */
-    async function initializeFirebaseAndCounter() {
-        appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        if (Object.keys(firebaseConfig).length === 0) {
-            console.error("Firebase config is missing. Counter will not work.");
-            return;
-        }
-        
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayDateKey = today.toISOString().split('T')[0];
-        
-        try {
-            const userCredential = initialAuthToken 
-                ? await signInWithCustomToken(auth, initialAuthToken) 
-                : await signInAnonymously(auth);
-            
-            const userId = userCredential.user.uid;
-            
-            // 방문 기록 저장 (userId를 문서 ID로 사용하여 오늘의 방문 기록을 한 번만 저장)
-            const visitRef = doc(db, `artifacts/${appId}/public/data/${DAILY_VISITORS_COLLECTION}`, userId);
-            
-            await setDoc(visitRef, {
-                visitTime: serverTimestamp(),
-                dateKey: todayDateKey, 
-                userId: userId 
-            }, { merge: true });
-
-            // 오늘 접속자 수 실시간 리스너 설정 (오늘 날짜의 기록만 필터링)
-            const visitorsCollectionRef = collection(db, `artifacts/${appId}/public/data/${DAILY_VISITORS_COLLECTION}`);
-            
-            const q = query(
-                visitorsCollectionRef, 
-                where("dateKey", "==", todayDateKey)
-            );
-
-            onSnapshot(q, (snapshot) => {
-                const uniqueDailyVisitors = snapshot.size;
-                document.getElementById('visitorCount').textContent = formatCurrency(uniqueDailyVisitors);
-            }, (error) => {
-                console.error("Firestore onSnapshot error:", error);
-                document.getElementById('visitorCount').textContent = 'Error';
-            });
-
-        } catch (error) {
-            console.error("Firebase Authentication Error:", error);
-        }
-    }
-
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
         loadFromCookies(); // 1. 쿠키에서 모든 값 불러오기
-        initializeFirebaseAndCounter(); // 2. Firebase 및 카운터 초기화
 
         document.getElementById('calculateButton').addEventListener('click', calculateProfitLoss);
-        document.getElementById('resetButton').addEventListener('click', resetInputs);
     });
 
 </script>
