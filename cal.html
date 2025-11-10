@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기</title>
+    <title>주식 손익률 계산기 (자동 계산)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Tailwind CSS 설정 */
@@ -206,7 +206,6 @@
         </div>
     </div>
     <div class="input-group">
-        <!-- 수정: (매수+매도) 멘트 제거 -->
         <label for="calculatedFeeAmount">4-1. 계산된 총 수수료 금액</label>
         <input type="text" id="calculatedFeeAmount" value="0" required readonly class="w-full">
     </div>
@@ -485,22 +484,34 @@
 
         const grossSellAmount = sellPrice * totalQuantity; 
         
-        // 순이익/손실 (세후): (매도 금액) - (총 매수 비용) - (총 공제액)
+        // 1. 순이익/손실 (세후): (매도 금액) - (총 매수 비용) - (총 공제액)
         const netProfitLoss = grossSellAmount - totalDeductions - totalBuyCost;
         
+        // 2. 최종 손익률: 순이익/손실을 총 매수 비용으로 나눈 값
         let profitRate = 0;
-        // 투자 원금(totalBuyCost)이 0보다 커야 손익률 계산 가능 (0 나누기 방지)
         if (totalBuyCost > 0) {
             profitRate = (netProfitLoss / totalBuyCost) * 100;
         } else if (netProfitLoss > 0) {
-            // 원금 0인데 이익이 난 경우 (매우 드문 경우)
             profitRate = Infinity;
         }
 
+        // 3. (참고용) 단순 매매차익: 수수료와 세금을 고려하지 않은 시세 차익
+        const simpleProfit = grossSellAmount - totalBuyCost;
+
+        // 4. (참고용) 단순 매매차익률: 단순 차익을 총 매수 비용으로 나눈 값 (외부 툴 9.31%에 해당하는 값)
+        let simpleProfitRate = 0;
+        if (totalBuyCost > 0) {
+            simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
+        } else if (simpleProfit > 0) {
+            simpleProfitRate = Infinity;
+        }
+
+
         // 5. 결과 출력 (테이블 형식)
         const profitRateText = (isFinite(profitRate) ? profitRate.toFixed(2) : 'N/A') + '%';
+        const simpleProfitRateText = (isFinite(simpleProfitRate) ? simpleProfitRate.toFixed(2) : 'N/A') + '%';
 
-        // 순이익/손실 (세후) 텍스트 스타일 결정 (수익: 빨강, 손실: 파랑)
+        // 순이익/손실 (세후) 텍스트 스타일 결정
         let netResultClass = 'net-result neutral-text';
         if (netProfitLoss > 0) {
             netResultClass = 'net-result profit-text'; 
@@ -510,7 +521,7 @@
             netResultClass = 'net-result neutral-text';
         }
 
-        // 최종 손익률 텍스트 스타일 결정 (수익: 빨강, 손실: 파랑)
+        // 최종 손익률 텍스트 스타일 결정
         let rateClass = 'neutral';
         if (netProfitLoss > 0) {
             rateClass = 'profit';
@@ -518,8 +529,7 @@
             rateClass = 'loss';
         }
 
-        // 매도 후 순회수액 재계산 (총 매도 금액 - 매도 거래에서 발생한 수수료 및 세금)
-        // 매도 후 순회수액은 사용자가 최종적으로 돌려받는 현금 흐름을 의미
+        // 매도 후 순회수액 재계산
         const feeRate = parseFloat(document.getElementById('feeRateInput').value.replace(/,/g, '')) || 0;
         const calculatedFeeOnSell = grossSellAmount * (feeRate / 100);
         const netProceedsAfterSellDeductions = grossSellAmount - (calculatedFeeOnSell + totalTax);
@@ -564,10 +574,18 @@
                         <span class="${netResultClass}">${formatCurrency(netProfitLoss)} 원</span>
                     </td>
                 </tr>
+                <!-- 최종 손익률 강조 및 설명 수정 (더 간결하게) -->
                 <tr class="font-bold text-lg bg-yellow-100">
-                    <th><span class="text-blue-600">최종 손익률</span></th>
+                    <th><span class="text-blue-600">최종 손익률 (세후 순수익률)</span></th>
                     <td class="value-col">
                         <span class="${rateClass}">${profitRateText}</span>
+                    </td>
+                </tr>
+                <!-- 참고용 단순 매매차익률 수정 (더 간결하게) -->
+                <tr>
+                    <th>참고: 단순 수익률 (비용 미반영)</th>
+                    <td class="value-col">
+                        <span class="${rateClass}">${simpleProfitRateText}</span>
                     </td>
                 </tr>
             </tbody>
