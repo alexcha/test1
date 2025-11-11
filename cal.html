@@ -191,7 +191,7 @@
     <div class="input-group">
         <label for="buyPrice">1. 매수 단가 (1주당 가격)</label>
         <div class="flex items-center space-x-2">
-            <input type="text" id="buyPrice" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
+            <input type="text" id="buyPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
             <button type="button" onclick="resetIndividualInput('buyPrice', 'stockBuyPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
         </div>
     </div>
@@ -200,7 +200,7 @@
     <div class="input-group">
         <label for="quantity">2. 수량 (총 주식 수)</label>
         <div class="flex items-center space-x-2">
-            <input type="text" id="quantity" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
+            <input type="text" id="quantity" value="" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
             <button type="button" onclick="resetIndividualInput('quantity', 'stockQuantity', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
         </div>
     </div>
@@ -209,7 +209,7 @@
     <div class="input-group">
         <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
         <div class="flex items-center space-x-2">
-            <input type="text" id="sellPrice" value="0" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice')" inputmode="numeric" class="w-full">
+            <input type="text" id="sellPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice')" inputmode="numeric" class="w-full">
             <button type="button" onclick="resetIndividualInput('sellPrice', 'stockSellPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
         </div>
     </div>
@@ -310,8 +310,9 @@
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9]/g, ''); 
 
-        if (rawValue === '') {
-            input.value = '';
+        // 0이거나 빈값이면 빈 문자열 표시
+        if (rawValue === '' || parseFloat(rawValue) === 0) {
+            input.value = ''; 
             return; 
         }
 
@@ -342,8 +343,8 @@
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9]/g, ''); 
 
-        if (rawValue === '') {
-            input.value = '';
+        if (rawValue === '' || parseFloat(rawValue) === 0) {
+            input.value = ''; // 입력값이 없거나 0이면 빈 문자열로 표시
             setCookie(cookieName, '');
             calculateProfitLoss(); // 입력값 없을 때도 계산 실행 (결과 숨김 처리용)
             return; 
@@ -401,11 +402,11 @@
         
         // 1. 값 설정 및 쿠키 업데이트
         if (type === 'currency') {
-            // 통화: 포맷하여 화면에 표시하고, 원시 값을 쿠키에 저장
-            input.value = formatCurrency(parseFloat(defaultValue)); 
-            setCookie(cookieName, defaultValue); 
+            // 통화/수량: 초기화 시 빈 문자열로 설정
+            input.value = ""; 
+            setCookie(cookieName, ''); 
         } else { // rate
-            // 비율: 그대로 화면에 표시하고, 쿠키에 저장
+            // 비율: 기본값으로 설정
             input.value = defaultValue; 
             setCookie(cookieName, defaultValue);
         }
@@ -600,38 +601,25 @@
      */
     function loadFromCookies() {
         // 통화 관련 쿠키 로드
-        const buyPriceInput = document.getElementById('buyPrice');
-        const quantityInput = document.getElementById('quantity');
-        const sellPriceInput = document.getElementById('sellPrice');
-        
-        const storedPrice = getCookie('stockBuyPrice');
-        const storedQuantity = getCookie('stockQuantity');
-        const storedSellPrice = getCookie('stockSellPrice'); // 매도 단가 쿠키 로드
+        const currencyInputs = [
+            { id: 'buyPrice', cookie: 'stockBuyPrice' },
+            { id: 'quantity', cookie: 'stockQuantity' },
+            { id: 'sellPrice', cookie: 'stockSellPrice' }
+        ];
 
-        
-        // 1. 매수 단가
-        if (storedPrice !== null && storedPrice !== "") {
-            buyPriceInput.value = storedPrice;
-            window.formatCurrencyInput(buyPriceInput); 
-        } else {
-             buyPriceInput.value = formatCurrency(0);
-        }
-        
-        // 2. 수량
-        if (storedQuantity !== null && storedQuantity !== "") {
-            quantityInput.value = storedQuantity;
-            window.formatCurrencyInput(quantityInput);
-        } else {
-            quantityInput.value = formatCurrency(0);
-        }
-
-        // 3. 매도 단가
-        if (storedSellPrice !== null && storedSellPrice !== "") {
-            sellPriceInput.value = storedSellPrice;
-            window.formatCurrencyInput(sellPriceInput);
-        } else {
-            sellPriceInput.value = formatCurrency(0);
-        }
+        currencyInputs.forEach(item => {
+            const input = document.getElementById(item.id);
+            const storedValue = getCookie(item.cookie);
+            
+            // 쿠키 값이 있고 0이 아니면 포맷팅하여 로드
+            if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
+                input.value = storedValue;
+                window.formatCurrencyInput(input); 
+            } else {
+                // 쿠키 값이 없거나 0이면 빈 문자열로 설정
+                input.value = "";
+            }
+        });
         
         // 세율 관련 쿠키 로드
         const feeRateInput = document.getElementById('feeRateInput');
