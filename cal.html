@@ -320,9 +320,9 @@
             </div>
         </div>
 
-        <!-- 3. 추가 매수 정보 섹션 (다중 입력) -->
+        <!-- 3. 물타기 매수 정보 입력 섹션 (다중 입력) -->
         <div class="p-4 bg-green-50 border-l-4 border-green-400 rounded-lg mb-6">
-            <h3 class="text-xl font-semibold text-green-800 mb-4">3. 추가 매수 정보 (다중 입력)</h3>
+            <h3 class="text-xl font-semibold text-green-800 mb-4">3. 물타기 매수 정보 입력</h3>
             
             <div id="dca_purchaseEntriesContainer"></div>
 
@@ -381,6 +381,9 @@
 
     // --- Tab Switching Logic ---
     window.switchTab = function(tabName) {
+        // 탭 상태 저장
+        setCookie('activeTab', tabName); 
+        
         activeTab = tabName;
         document.getElementById('tab-profit-loss').style.display = tabName === 'profit-loss' ? 'block' : 'none';
         document.getElementById('tab-dca-simulator').style.display = tabName === 'dca-simulator' ? 'block' : 'none';
@@ -543,9 +546,66 @@
     };
 
 
+    // --- Dynamic Purchase Entry Persistence ---
+
+    function saveDcaEntries() {
+        const entriesData = [];
+        const entries = document.querySelectorAll('#dca_purchaseEntriesContainer .purchase-entry');
+        
+        entries.forEach(entry => {
+            const id = entry.dataset.id;
+            const priceInput = document.getElementById(`dca_price-${id}`);
+            const qtyInput = document.getElementById(`dca_qty-${id}`);
+            
+            // Save raw (unformatted) values
+            const price = priceInput.value.replace(/[^0-9.]/g, ''); 
+            const quantity = qtyInput.value.replace(/[^0-9]/g, ''); 
+
+            // 유효한 데이터가 있는 항목만 저장
+            if (price || quantity) {
+                entriesData.push({ price: price, quantity: quantity });
+            }
+        });
+
+        // 항목이 하나도 없을 경우 (예: 모두 지워짐) 빈 배열로 저장
+        setCookie('dcaEntries', JSON.stringify(entriesData));
+    }
+
+    function loadDcaEntries() {
+        const container = document.getElementById('dca_purchaseEntriesContainer');
+        container.innerHTML = ''; // 기존 항목 초기화
+        purchaseEntryIdCounter = 0; // ID 카운터 초기화
+
+        const storedData = getCookie('dcaEntries');
+        let loadedEntries = [];
+        
+        if (storedData) {
+            try {
+                loadedEntries = JSON.parse(storedData);
+            } catch (e) {
+                console.error("Error parsing DCA entries cookie:", e);
+            }
+        }
+
+        if (loadedEntries.length === 0) {
+            // 저장된 데이터가 없으면 빈 항목 하나 추가
+            addPurchaseEntry();
+        } else {
+            // 저장된 데이터 로드
+            loadedEntries.forEach(data => {
+                // 저장된 원시 값을 넘겨 addPurchaseEntry를 호출
+                addPurchaseEntry(data.price, data.quantity); 
+            });
+        }
+    }
+
+
     // --- Dynamic Purchase Entry Handlers (DCA only) ---
 
-    window.addPurchaseEntry = function() {
+    /**
+     * 동적 매수 항목을 추가합니다. (로드 시 초기값 적용 가능)
+     */
+    window.addPurchaseEntry = function(initialPrice = '', initialQuantity = '') {
         const container = document.getElementById('dca_purchaseEntriesContainer');
         const id = purchaseEntryIdCounter++;
         
@@ -553,20 +613,27 @@
         entryDiv.className = 'purchase-entry';
         entryDiv.dataset.id = id;
         
-        // 단가 입력 필드
+        // 초기값은 포맷되지 않은 상태로 설정
         entryDiv.innerHTML += `
             <div class="input-col">
                 <label for="dca_price-${id}">단가 (원)</label>
-                <input type="text" id="dca_price-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+                <input type="text" id="dca_price-${id}" value="${initialPrice}" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
             </div>
             <div class="input-col">
                 <label for="dca_qty-${id}">수량 (주)</label>
-                <input type="text" id="dca_qty-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+                <input type="text" id="dca_qty-${id}" value="${initialQuantity}" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
             </div>
             <button type="button" onclick="removePurchaseEntry(${id})" class="delete-btn" title="항목 삭제">×</button>
         `;
         
         container.appendChild(entryDiv);
+
+        const priceInput = document.getElementById(`dca_price-${id}`);
+        const qtyInput = document.getElementById(`dca_qty-${id}`);
+        
+        // 로드된 초기값이 있으면 포맷팅 적용
+        if (initialPrice) window.formatCurrencyInput(priceInput);
+        if (initialQuantity) window.formatCurrencyInput(qtyInput);
 
         calculateAllResults();
     };
@@ -628,7 +695,8 @@
             return {
                 netProfitLoss: 0, netProfitRate: 0, 
                 profitLossText: '0 원', profitRateText: '0.00 %', 
-                resultClass: `${prefix}_neutral-text`
+                resultClass: `${prefix}-neutral-text`,
+                costs: {}
             };
         }
         
@@ -636,14 +704,14 @@
         const netProfitLoss = costs.grossSellAmount - totalCost - costs.totalDeductions;
         const netProfitRate = (totalCost > 0) ? (netProfitLoss / totalCost) * 100 : (netProfitLoss > 0 ? Infinity : 0);
 
-        let resultClass = `${prefix}_neutral-text`;
+        let resultClass = `${prefix}-neutral-text`;
         let signPrefix = ''; 
         
         if (netProfitLoss > 0) {
-            resultClass = `${prefix}_profit-text`;
+            resultClass = `${prefix}-profit-text`;
             signPrefix = '+ ';
         } else if (netProfitLoss < 0) {
-            resultClass = `${prefix}_loss-text`;
+            resultClass = `${prefix}-loss-text`;
             signPrefix = '- ';
         }
 
@@ -819,6 +887,9 @@
         // 5. 결과 숨김 처리
         if (totalQuantityDCA === 0 || totalCostDCA === 0) {
             document.getElementById('dca_result').style.display = 'none';
+            
+            // 물타기 항목 저장 (결과 숨김 처리 시에도 저장)
+            saveDcaEntries();
             return;
         }
         
@@ -934,12 +1005,21 @@
 
         document.getElementById('dca_resultTable').innerHTML = tableHTML;
         document.getElementById('dca_result').style.display = 'block';
+
+        // 12. Save dynamic entries (as calculation runs on every input)
+        saveDcaEntries();
     }
     
     /**
      * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
      */
     function loadFromCookies() {
+        // 1. Tab Persistence
+        const storedTab = getCookie('activeTab'); 
+        if (storedTab) {
+            activeTab = storedTab;
+        }
+
         // --- DCA Calculator Fields ---
         const dcaCurrencyInputs = [
             { id: 'dca_currentPrice', cookie: 'dcaCurrentPrice' },
@@ -981,26 +1061,21 @@
         ];
         
         rateInputs.forEach(item => {
+            // DCA 쿠키 로드 (DCA와 PL 모두 이 쿠키를 참조)
             const storedValue = getCookie(item.cookie);
             const value = (storedValue !== null && storedValue !== "") ? storedValue : item.default;
             
+            // DCA 탭 필드에 값 설정
             document.getElementById(item.id_dca).value = value;
-            document.getElementById(item.id_pl).value = value;
-
-            // PL 계산기는 PL 고유 쿠키를 사용하도록 로드 시 업데이트 (한 번만 실행)
-            if (item.cookie === 'dcaFeeRate') {
-                const stockFeeRate = getCookie('stockFeeRate');
-                if (stockFeeRate !== null) document.getElementById('pl_feeRateInput').value = stockFeeRate;
-            }
-            if (item.cookie === 'dcaTaxRate') {
-                const stockTaxRate = getCookie('stockTaxRate');
-                if (stockTaxRate !== null) document.getElementById('pl_taxRateInput').value = stockTaxRate;
-            }
+            
+            // PL 탭 필드는 PL 고유 쿠키를 우선하여 로드
+            const stockCookieValue = getCookie(item.cookie === 'dcaFeeRate' ? 'stockFeeRate' : 'stockTaxRate');
+            document.getElementById(item.id_pl).value = (stockCookieValue !== null && stockCookieValue !== "") ? stockCookieValue : value;
         });
         
-        // 초기 동적 매수 항목 하나 추가
-        addPurchaseEntry(); 
-
+        // 2. Load dynamic DCA entries (if stored)
+        loadDcaEntries(); 
+        
         // 초기 로드 후 현재 활성 탭에 맞춰 계산 실행
         if (activeTab === 'profit-loss') {
             calculateProfitLoss();
@@ -1019,4 +1094,5 @@
 </script>
 </body>
 </html>
+
 
