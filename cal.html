@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 손익률 계산기</title>
+    <title>주식 금융 통합 도구 (손익률 & 물타기)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Tailwind CSS 설정 */
+        /* Inter 폰트 사용 설정 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
         :root {
             font-family: 'Inter', Arial, sans-serif;
         }
-        /* 추가적인 커스텀 스타일 */
+        
         .calculator {
             max-width: 500px;
             margin: 20px auto;
             background: #ffffff;
-            /* 모바일 최적화를 위해 패딩을 16px에서 12px로 축소 */
             padding: 16px 12px; 
             border-radius: 12px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
@@ -27,7 +28,7 @@
             font-weight: bold;
             color: #34495e;
             font-size: 0.95em;
-            display: block; /* 모바일에서 레이블이 한 줄 차지하도록 */
+            display: block;
             margin-bottom: 0.25rem;
         }
         input[type="text"] {
@@ -43,12 +44,17 @@
             border-color: #3498db;
             outline: none;
         }
-        input[readonly] {
-            background-color: #ecf0f1;
-            color: #7f8c8d;
-            cursor: default;
-        }
         
+        /* 탭 버튼 스타일 */
+        .tab-button.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .tab-button {
+            transition: all 0.2s;
+        }
+
         /* 개별 초기화 버튼 스타일 */
         .reset-individual-btn {
             width: 32px;
@@ -62,7 +68,7 @@
             margin-left: 8px;
             cursor: pointer;
             transition: background-color 0.2s, color 0.2s;
-            flex-shrink: 0; /* 공간이 부족해도 줄어들지 않도록 */
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -72,34 +78,28 @@
             color: #2c3e50;
         }
         
-        /* 결과 테이블 스타일 - 모바일 최적화 */
+        /* 결과 테이블 스타일 (공통) */
         .result-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 15px;
-            /* 폰트 크기 한 단계 축소: 0.95em -> 0.9em */
             font-size: 0.9em; 
-            /* 표가 넘어가지 않도록 강제 설정 */
             table-layout: fixed; 
         }
         .result-table th, .result-table td {
-            /* 모바일 화면 밀림 방지를 위해 패딩을 8px로 축소 */
-            padding: 8px; 
+            padding: 10px 8px; 
             border-bottom: 1px solid #ecf0f1;
             text-align: left;
-            /* 긴 숫자가 화면을 밀어내는 것을 방지하기 위해 단어 줄바꿈 허용 */
             word-break: break-word; 
         }
         .result-table th {
             background-color: #f8f9fa;
             color: #2c3e50;
             font-weight: 600;
-            /* 첫 번째 열이 텍스트를 담을 수 있도록 너비 조정 */
             width: 60%;
         }
         .result-table td {
-             /* 두 번째 열이 숫자를 담을 수 있도록 너비 조정 */
             width: 40%;
         }
         .result-table tr:last-child td {
@@ -110,63 +110,48 @@
             font-weight: bold;
         }
         
-        /* 총 공제액 및 상세 항목 색상 (파란색) */
-        .deduction-color {
-            color: #3498db; /* 파란색 (손실과 동일) */
-            font-weight: bold;
+        /* 색상 및 폰트 강조 (물타기 계산기 스타일) */
+        .dca-break-even-price-color {
+            color: #2ecc71; 
+            font-weight: 800;
+            font-size: 1.25em;
         }
-        .deduction-detail th, .deduction-detail td {
-            padding-top: 4px;
-            padding-bottom: 4px;
-            /* 상세 항목 폰트 크기 축소: 0.9em -> 0.85em */
-            font-size: 0.85em; 
-            font-weight: normal;
+        .dca-profit-text {
+            color: #e74c3c; 
+            font-weight: 800;
+            font-size: 1.15em;
         }
-        .deduction-detail .value-col {
-            color: #3498db; /* 상세 공제액도 파란색 */
-            font-weight: 500;
+        .dca-loss-text {
+            color: #3498db; 
+            font-weight: 800;
+            font-size: 1.15em;
+        }
+        .dca-neutral-text {
+            color: #34495e; 
+            font-weight: 800;
+            font-size: 1.15em;
         }
 
-        /* 매도 후 순회수액 (요청에 따라 굵은 보라색으로 강조) */
-        .net-proceeds-color {
-            color: #6c5ce7; /* 짙은 보라색 */
-            font-weight: 800; /* Extra bold */
-            /* 폰트 크기 축소: 1.1em -> 1.05em */
+        /* 손익률 계산기 스타일 */
+        .pl-deduction-color {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .pl-net-proceeds-color {
+            color: #6c5ce7;
+            font-weight: 800;
             font-size: 1.05em; 
         }
-
-
-        /* 손익/손실 색상 정의 (수익: 빨강, 손실: 파랑) */
-        .profit {
-            color: #e74c3c; /* 수익 (빨간색) */
-            /* 폰트 크기 축소: 1.2em -> 1.15em */
-            font-size: 1.15em; 
-        }
-        .loss {
-            color: #3498db; /* 손실 (파란색) */
-            /* 폰트 크기 축소: 1.2em -> 1.15em */
-            font-size: 1.15em; 
-        }
-        .neutral {
-            color: #34495e; /* 중립 (회색) */
-            /* 폰트 크기 축소: 1.2em -> 1.15em */
-            font-size: 1.15em; 
-        }
-
-        /* 순이익/손실 (세후) 항목에 대한 스타일 */
-        .net-result.profit-text {
-            color: #e74c3c; /* 수익 (빨간색) */
+        .pl-profit-text {
+            color: #e74c3c;
             font-weight: bold;
         }
-        .net-result.loss-text {
-            color: #3498db; /* 손실 (파란색) */
+        .pl-loss-text {
+            color: #3498db;
             font-weight: bold;
         }
-        .net-result.neutral-text {
-            color: #34495e; /* 중립 (회색) */
-            font-weight: bold;
-        }
-        /* 실시간 업데이트 피드백 */
+
+        /* 공통 실시간 업데이트 피드백 */
         .realtime-note {
             color: #27ae60;
             font-weight: 600;
@@ -178,86 +163,243 @@
             border: 1px dashed #2ecc71;
             border-radius: 4px;
         }
+        
+        /* 동적 추가 매수 항목 스타일 (DCA 전용) */
+        .purchase-entry {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #f0fff4; 
+            border-radius: 8px;
+            border: 1px solid #d1fae5; 
+        }
+        .delete-btn {
+            width: 32px;
+            height: 32px;
+            background: #fecaca; 
+            color: #b91c1c; 
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .delete-btn:hover {
+            background-color: #fca5a5;
+        }
 
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
 
 <div class="calculator w-full">
-    <h2 class="text-2xl font-bold text-center text-blue-800 border-b-4 border-blue-500 pb-3 mb-6">📈 주식 거래 손익률 계산기</h2>
+    <h2 class="text-2xl font-bold text-center text-indigo-800 border-b-4 border-indigo-500 pb-3 mb-6">주식 금융 도구 통합</h2>
+    
+    <!-- 탭 버튼 -->
+    <div class="flex mb-6 bg-gray-200 rounded-lg p-1 space-x-1">
+        <button id="tab-btn-1" onclick="switchTab('profit-loss')" class="tab-button w-1/2 py-2 text-sm font-semibold text-gray-700 rounded-lg active">
+            손익률 계산
+        </button>
+        <button id="tab-btn-2" onclick="switchTab('dca-simulator')" class="tab-button w-1/2 py-2 text-sm font-semibold text-gray-700 rounded-lg">
+            물타기 시뮬레이터
+        </button>
+    </div>
+
     <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
-    <!-- 1. 매수 단가 (쿠키 저장, 개별 초기화 가능) -->
-    <div class="input-group">
-        <label for="buyPrice">1. 매수 단가 (1주당 가격)</label>
-        <div class="flex items-center space-x-2">
-            <input type="text" id="buyPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice')" inputmode="numeric" class="w-full">
-            <button type="button" onclick="resetIndividualInput('buyPrice', 'stockBuyPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
-        </div>
-    </div>
+    <!-- 1. 주식 거래 손익률 계산기 (Tab 1 Content) -->
+    <div id="tab-profit-loss" class="tab-content">
+        <h3 class="text-xl font-bold text-center text-blue-700 mb-4">📈 주식 거래 손익률 계산기</h3>
 
-    <!-- 2. 수량 (쿠키 저장, 개별 초기화 가능) -->
-    <div class="input-group">
-        <label for="quantity">2. 수량 (총 주식 수)</label>
-        <div class="flex items-center space-x-2">
-            <input type="text" id="quantity" value="" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity')" inputmode="numeric" class="w-full">
-            <button type="button" onclick="resetIndividualInput('quantity', 'stockQuantity', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+        <!-- 매수 단가 -->
+        <div class="input-group">
+            <label for="pl_buyPrice">1. 매수 단가 (1주당 가격)</label>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="pl_buyPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice'); calculateProfitLoss();" inputmode="numeric" class="w-full">
+                <button type="button" onclick="resetIndividualInput('pl_buyPrice', 'stockBuyPrice', '0', 'currency'); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+            </div>
         </div>
-    </div>
 
-    <!-- 3. 매도 단가 (쿠키 저장, 개별 초기화 가능) -->
-    <div class="input-group">
-        <label for="sellPrice">3. 매도 단가 (1주당 가격)</label>
-        <div class="flex items-center space-x-2">
-            <input type="text" id="sellPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice')" inputmode="numeric" class="w-full">
-            <button type="button" onclick="resetIndividualInput('sellPrice', 'stockSellPrice', '0', 'currency')" class="reset-individual-btn" title="기본값으로 초기화">↺</button>
+        <!-- 수량 -->
+        <div class="input-group">
+            <label for="pl_quantity">2. 수량 (총 주식 수)</label>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="pl_quantity" value="" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity'); calculateProfitLoss();" inputmode="numeric" class="w-full">
+                <button type="button" onclick="resetIndividualInput('pl_quantity', 'stockQuantity', '0', 'currency'); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+            </div>
         </div>
-    </div>
-    
-    <!-- 4. 매매 수수료율 입력 -->
-    <div class="input-group">
-        <label for="feeRateInput">4. 매매 수수료율 (%) 
-        </label>
-        <div class="flex items-center space-x-2">
-            <input type="text" id="feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate');" inputmode="decimal" class="w-full">
-            <button type="button" onclick="resetIndividualInput('feeRateInput', 'stockFeeRate', '0.015', 'rate')" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
-        </div>
-    </div>
 
-    <!-- 5. 거래세율 입력 -->
-    <div class="input-group">
-        <label for="taxRateInput">5. 매도 거래세율 (%) 
-        </label>
-        <div class="flex items-center space-x-2">
-            <!-- 기본값 0.15% -->
-            <input type="text" id="taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'stockTaxRate');" inputmode="decimal" class="w-full">
-            <!-- 초기화 기본값도 0.15% -->
-            <button type="button" onclick="resetIndividualInput('taxRateInput', 'stockTaxRate', '0.15', 'rate')" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+        <!-- 매도 단가 -->
+        <div class="input-group">
+            <label for="pl_sellPrice">3. 매도 단가 (1주당 가격)</label>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="pl_sellPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice'); calculateProfitLoss();" inputmode="numeric" class="w-full">
+                <button type="button" onclick="resetIndividualInput('pl_sellPrice', 'stockSellPrice', '0', 'currency'); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+            </div>
         </div>
-    </div>
-    
-    <div id="result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
-        <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
         
-        <table id="resultTable" class="result-table">
-            <!-- Content filled by JavaScript -->
-        </table>
+        <!-- 매매 수수료율 -->
+        <div class="input-group">
+            <label for="pl_feeRateInput">4. 매매 수수료율 (%)</label>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="pl_feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate'); calculateProfitLoss();" inputmode="decimal" class="w-full">
+                <button type="button" onclick="resetIndividualInput('pl_feeRateInput', 'stockFeeRate', '0.015', 'rate'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+            </div>
+        </div>
+
+        <!-- 거래세율 -->
+        <div class="input-group">
+            <label for="pl_taxRateInput">5. 매도 거래세율 (%)</label>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="pl_taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'stockTaxRate'); calculateProfitLoss();" inputmode="decimal" class="w-full">
+                <button type="button" onclick="resetIndividualInput('pl_taxRateInput', 'stockTaxRate', '0.15', 'rate'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+            </div>
+        </div>
+        
+        <div id="pl_result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
+            <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
+            <table id="pl_resultTable" class="result-table"></table>
+        </div>
+    </div>
+
+
+    <!-- 2. 주식 물타기 손익 시뮬레이터 (Tab 2 Content) -->
+    <div id="tab-dca-simulator" class="tab-content" style="display: none;">
+        <h3 class="text-xl font-bold text-center text-indigo-700 mb-4">💰 주식 물타기 손익 시뮬레이터</h3>
+
+        <!-- 1. 현재 시장 가격 섹션 -->
+        <div class="p-4 bg-indigo-50 border-l-4 border-indigo-400 rounded-lg mb-6">
+            <h3 class="text-xl font-semibold text-indigo-800 mb-4">1. 현재 시장 가격</h3>
+            <div class="input-group">
+                <label for="dca_currentMarketPrice">현재 주가 (1주당 가격, 원)</label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="dca_currentMarketPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'dcaMarketPrice'); calculateAllResults();" inputmode="numeric" class="w-full text-lg font-bold text-indigo-700">
+                    <button type="button" onclick="resetIndividualInput('dca_currentMarketPrice', 'dcaMarketPrice', '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 현재 보유 정보 섹션 -->
+        <div class="p-4 bg-blue-50 border-l-4 border-blue-400 rounded-lg mb-6">
+            <h3 class="text-xl font-semibold text-blue-800 mb-4">2. 현재 보유 정보</h3>
+            <div class="input-group">
+                <label for="dca_currentPrice">현재 평단가 (1주당 가격, 원)</label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="dca_currentPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'dcaCurrentPrice'); calculateAllResults();" inputmode="numeric" class="w-full text-lg">
+                    <button type="button" onclick="resetIndividualInput('dca_currentPrice', 'dcaCurrentPrice', '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="dca_currentQuantity">현재 수량 (총 주식 수, 주)</label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="dca_currentQuantity" value="" required oninput="handleCurrencyInputAndSave(this, 'dcaCurrentQuantity'); calculateAllResults();" inputmode="numeric" class="w-full text-lg">
+                    <button type="button" onclick="resetIndividualInput('dca_currentQuantity', 'dcaCurrentQuantity', '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
+                </div>
+            </div>
+            
+            <div id="dca_currentTotalCostContainer" class="p-2 mt-2 border-t border-gray-200 text-center hidden">
+                <span class="text-gray-600 font-semibold text-sm">총 매수 원금:</span>
+                <span id="dca_currentTotalCostDisplay" class="text-lg font-extrabold text-blue-800">0 원</span>
+            </div>
+            
+            <div id="dca_preDcaResult" class="pre-dca-result hidden">
+                <div class="text-gray-700 font-semibold mb-2">물타기 전 현재 예상 손익</div>
+                <div class="flex justify-between items-center text-base">
+                    <span class="text-gray-600">순이익/손실:</span>
+                    <span id="dca_preDcaProfitLoss" class="value loss-text">- 0 원</span>
+                </div>
+                <div class="flex justify-between items-center text-sm mt-1">
+                    <span class="text-gray-600">순수익률:</span>
+                    <span id="dca_preDcaProfitRate" class="value loss-text">- 0.00 %</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 추가 매수 정보 섹션 (다중 입력) -->
+        <div class="p-4 bg-green-50 border-l-4 border-green-400 rounded-lg mb-6">
+            <h3 class="text-xl font-semibold text-green-800 mb-4">3. 추가 매수 정보 (다중 입력)</h3>
+            
+            <div id="dca_purchaseEntriesContainer"></div>
+
+            <div class="p-2 mt-4 mb-4 bg-green-100 rounded-lg text-sm font-semibold text-green-800 flex justify-between">
+                <span>총 추가 매수 수량 / 금액:</span>
+                <span id="dca_totalNewPurchase" class="text-right">0 주 / 0 원</span>
+            </div>
+            
+            <button type="button" onclick="addPurchaseEntry()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-md">
+                + 매수 항목 추가
+            </button>
+        </div>
+        
+        <!-- 4. 거래 비용 설정 섹션 (DCA와 손익률이 같은 필드를 공유) -->
+        <div class="p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg mb-6">
+            <h3 class="text-xl font-semibold text-yellow-800 mb-4">4. 거래 비용 설정 (%)</h3>
+            
+            <!-- 총 매매 수수료율 -->
+            <div class="input-group">
+                <label for="dca_feeRateInput">매수/매도 수수료율 (%) 
+                    <span class="text-gray-500 font-normal text-sm block"> (예: 0.015% → 0.015 입력)</span>
+                </label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="dca_feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'dcaFeeRate'); calculateAllResults();" inputmode="decimal" class="w-full">
+                    <button type="button" onclick="resetIndividualInput('dca_feeRateInput', 'dcaFeeRate', '0.015', 'rate'); calculateAllResults();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+                </div>
+            </div>
+
+            <!-- 매도 거래세율 -->
+            <div class="input-group">
+                <label for="dca_taxRateInput">매도 거래세율 (%) 
+                    <span class="text-gray-500 font-normal text-sm block"> (예: 0.15% → 0.15 입력)</span>
+                </label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="dca_taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'dcaTaxRate'); calculateAllResults();" inputmode="decimal" class="w-full">
+                    <button type="button" onclick="resetIndividualInput('dca_taxRateInput', 'dcaTaxRate', '0.15', 'rate'); calculateAllResults();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="dca_result" class="result mt-6 p-4 border-2 border-indigo-500 bg-indigo-50 rounded-lg" style="display: none;">
+            <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">✅ 물타기 후 최종 분석 결과</h3>
+            
+            <table id="dca_resultTable" class="result-table"></table>
+        </div>
     </div>
 </div>
 
 <script type="module">
-    // --- Configuration ---
+    // --- Global State & Configuration ---
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
+    let purchaseEntryIdCounter = 0; 
+    let activeTab = 'profit-loss'; // 현재 활성화된 탭
 
 
-    // --- Cookie Helper Functions ---
+    // --- Tab Switching Logic ---
+    window.switchTab = function(tabName) {
+        activeTab = tabName;
+        document.getElementById('tab-profit-loss').style.display = tabName === 'profit-loss' ? 'block' : 'none';
+        document.getElementById('tab-dca-simulator').style.display = tabName === 'dca-simulator' ? 'block' : 'none';
 
-    /**
-     * 쿠키에서 지정된 이름의 값을 가져옵니다.
-     * @param {string} name 쿠키 이름
-     * @returns {string|null} 쿠키 값 또는 null
-     */
+        document.getElementById('tab-btn-1').classList.remove('active');
+        document.getElementById('tab-btn-2').classList.remove('active');
+        document.getElementById(`tab-btn-${tabName === 'profit-loss' ? 1 : 2}`).classList.add('active');
+        
+        // 탭 전환 시 해당 계산기 실행
+        if (tabName === 'profit-loss') {
+            calculateProfitLoss();
+        } else {
+            calculateAllResults();
+        }
+    }
+
+
+    // --- Cookie Helper Functions (DCA Calculator's logic used) ---
+
     function getCookie(name) {
         const nameEQ = name + "=";
         const ca = document.cookie.split(';');
@@ -269,63 +411,62 @@
         return null;
     }
 
-    /**
-     * 쿠키에 값을 설정합니다. (만료일 30일 설정)
-     * @param {string} name 쿠키 이름
-     * @param {string} value 저장할 값
-     */
     function setCookie(name, value) {
         const date = new Date();
-        date.setTime(date.getTime() + (30*24*60*60*1000)); // 30 days expiration
+        date.setTime(date.getTime() + (30*24*60*60*1000)); 
         const expires = "; expires=" + date.toUTCString();
         document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
     }
 
-    // --- Format & Input Handlers ---
+    // --- Format & Input Handlers (DCA Calculator's logic used) ---
 
     /**
-     * 금액을 한국 통화 형식으로 포맷합니다. (세 자리마다 쉼표 추가)
-     * @param {number} amount - 금액
-     * @param {number} [precision=0] - 소수점 이하 자릿수 (기본값: 0, 정수)
-     * @returns {string} 포맷된 문자열
+     * 금액을 한국 통화 형식으로 포맷합니다.
      */
     function formatCurrency(amount, precision = 0) {
         if (typeof amount !== 'number' || isNaN(amount)) {
             amount = 0;
         }
-        const fixedAmount = amount.toFixed(precision);
-        const parts = fixedAmount.split('.');
-        const integerPart = parts[0];
-        const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
-        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        return formattedIntegerPart + decimalPart;
+        const absoluteAmount = Math.abs(amount);
+        
+        if (precision === 0) {
+            // 손익분기점, 원금, 수량, 손익금액 등 (정수)
+            return Math.floor(absoluteAmount).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
+        }
+
+        // 순수 평균 단가, 수익률, 변동률 등 (소수점 둘째 자리)
+        return absoluteAmount.toLocaleString('ko-KR', { minimumFractionDigits: precision, maximumFractionDigits: precision });
     }
 
     /**
-     * 입력 필드의 숫자를 세 자리마다 쉼표(,)로 포맷하고 커서 위치를 유지합니다. (로드 시 사용)
-     * @param {HTMLInputElement} input 입력 요소
+     * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다. (빈 값 처리 포함)
      */
     window.formatCurrencyInput = function(input) {
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
-        let rawValue = oldValue.replace(/[^0-9]/g, ''); 
+        let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
 
-        // 0이거나 빈값이면 빈 문자열 표시
+        const parts = rawValue.split('.');
+        rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
+
         if (rawValue === '' || parseFloat(rawValue) === 0) {
             input.value = ''; 
             return; 
         }
-
-        const newValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        
+        const [integerPart, decimalPart] = rawValue.split('.');
+        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
+        
         input.value = newValue;
 
         const diff = newValue.length - oldValue.length;
         let newCursorStart = cursorStart + diff;
-        
+
         if (newValue.length > oldValue.length) {
             if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
-                newCursorStart = cursorStart + 1;
-            }
+                    newCursorStart = cursorStart + 1;
+                }
         }
         
         newCursorStart = Math.min(newCursorStart, newValue.length);
@@ -333,24 +474,28 @@
     }
     
     /**
-     * 금액 입력(매수 단가/수량/매도 단가)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
-     * @param {HTMLInputElement} input 입력 요소
-     * @param {string} cookieName 저장할 쿠키 이름 (예: 'stockSellPrice')
+     * 금액 입력(단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
      */
     window.handleCurrencyInputAndSave = function(input, cookieName) {
-        // 1. 포맷팅 및 커서 위치 유지
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
-        let rawValue = oldValue.replace(/[^0-9]/g, ''); 
+        let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
+        
+        const parts = rawValue.split('.');
+        rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
 
         if (rawValue === '' || parseFloat(rawValue) === 0) {
-            input.value = ''; // 입력값이 없거나 0이면 빈 문자열로 표시
-            setCookie(cookieName, '');
-            calculateProfitLoss(); // 입력값 없을 때도 계산 실행 (결과 숨김 처리용)
+            input.value = '';
+            if (cookieName) setCookie(cookieName, '');
+            // 계산 함수는 oninput 속성에서 호출하도록 변경하여 코드 단순화
             return; 
         }
-
-        const newValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        
+        // 0 입력 시 빈 문자열로 표시 (이미 위에서 처리됨)
+        const [integerPart, decimalPart] = rawValue.split('.');
+        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
+            
         input.value = newValue;
 
         const diff = newValue.length - oldValue.length;
@@ -365,163 +510,184 @@
         newCursorStart = Math.min(newCursorStart, newValue.length);
         input.setSelectionRange(newCursorStart, newCursorStart);
         
-        // 2. 쿠키 저장 (쉼표 없는 원시 값을 저장)
-        setCookie(cookieName, rawValue);
-
-        // 3. 자동 계산 실행 (모든 통화 입력 변경 시)
-        calculateProfitLoss(); 
+        if (cookieName) setCookie(cookieName, rawValue);
+        // 계산은 HTML의 oninput에서 호출됨
     }
-    
+
     /**
-     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장하고, 계산을 실행합니다.
-     * @param {HTMLInputElement} input 입력 요소
-     * @param {string} cookieName 저장할 쿠키 이름
+     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장합니다.
      */
     window.handleRateInputAndSave = function(input, cookieName) {
-        // 쉼표만 제거하고 실수 그대로 저장
         const rawValue = input.value.replace(/,/g, ''); 
         
-        // 유효한 숫자인 경우만 저장
         if (!isNaN(parseFloat(rawValue))) {
             setCookie(cookieName, rawValue);
         }
-        
-        // 자동 계산 실행 (비율 입력 변경 시)
-        calculateProfitLoss(); 
+        // 계산은 HTML의 oninput에서 호출됨
     }
     
     /**
-     * 개별 입력 필드를 기본값으로 초기화하고 쿠키를 업데이트하고, 계산을 실행합니다.
-     * @param {string} inputId 초기화할 입력 요소의 ID
-     * @param {string} cookieName 저장된 쿠키 이름
-     * @param {string} defaultValue 입력 필드의 기본값 (포맷되지 않은 숫자 문자열)
-     * @param {string} type 입력 타입 ('currency' 또는 'rate')
+     * 개별 입력 필드를 기본값으로 초기화합니다.
      */
     window.resetIndividualInput = function(inputId, cookieName, defaultValue, type) {
         const input = document.getElementById(inputId);
         
-        // 1. 값 설정 및 쿠키 업데이트
         if (type === 'currency') {
-            // 통화/수량: 초기화 시 빈 문자열로 설정
             input.value = ""; 
             setCookie(cookieName, ''); 
         } else { // rate
-            // 비율: 기본값으로 설정
             input.value = defaultValue; 
             setCookie(cookieName, defaultValue);
         }
-        
-        // 2. 자동 계산 실행 (모든 초기화 시)
-        calculateProfitLoss();
+        // 계산은 HTML의 onclick에서 호출됨
     };
 
 
-    // --- Calculation Logic ---
+    // --- Dynamic Purchase Entry Handlers (DCA only) ---
 
-    /**
-     * 입력된 매수 수량, 매도 단가, 세율을 기반으로 수수료와 거래세 금액을 계산하여 반환합니다.
-     * @returns {{totalFee: number, totalTax: number}} 계산된 총 수수료와 거래세 금액
-     */
-    window.calculateFeesAndTaxes = function() {
-        const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
-        const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
-        const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
-
-        const feeRateInput = document.getElementById('feeRateInput').value.replace(/,/g, '');
-        const taxRateInput = document.getElementById('taxRateInput').value.replace(/,/g, '');
+    window.addPurchaseEntry = function() {
+        const container = document.getElementById('dca_purchaseEntriesContainer');
+        const id = purchaseEntryIdCounter++;
         
-        // feeRate와 taxRate는 퍼센트 값으로 간주합니다 (예: 0.015%에서 0.015)
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'purchase-entry';
+        entryDiv.dataset.id = id;
+        
+        // 단가 입력 필드
+        entryDiv.innerHTML += `
+            <div class="input-col">
+                <label for="dca_price-${id}">단가 (원)</label>
+                <input type="text" id="dca_price-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+            </div>
+            <div class="input-col">
+                <label for="dca_qty-${id}">수량 (주)</label>
+                <input type="text" id="dca_qty-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+            </div>
+            <button type="button" onclick="removePurchaseEntry(${id})" class="delete-btn" title="항목 삭제">×</button>
+        `;
+        
+        container.appendChild(entryDiv);
+
+        calculateAllResults();
+    };
+
+    window.removePurchaseEntry = function(id) {
+        const entry = document.querySelector(`#dca_purchaseEntriesContainer .purchase-entry[data-id="${id}"]`);
+        if (entry) {
+            entry.remove();
+            calculateAllResults();
+        }
+    };
+
+    function aggregateDCAValues() {
+        let totalNewCost = 0;
+        let totalNewQuantity = 0;
+        
+        const entries = document.querySelectorAll('#dca_purchaseEntriesContainer .purchase-entry');
+        
+        entries.forEach(entry => {
+            const id = entry.dataset.id;
+            const priceInput = document.getElementById(`dca_price-${id}`);
+            const qtyInput = document.getElementById(`dca_qty-${id}`);
+            
+            const price = parseFloat(priceInput.value.replace(/,/g, '')) || 0;
+            const quantity = Math.floor(parseFloat(qtyInput.value.replace(/,/g, '')) || 0);
+
+            if (quantity > 0) {
+                totalNewQuantity += quantity;
+                totalNewCost += price * quantity;
+            }
+        });
+
+        // UI 업데이트
+        document.getElementById('dca_totalNewPurchase').innerText = 
+            `${formatCurrency(totalNewQuantity, 0)} 주 / ${formatCurrency(totalNewCost, 0)} 원`;
+        
+        return { totalNewCost, totalNewQuantity };
+    }
+    
+    // --- Cost Calculation Helper (Shared Logic) ---
+    function calculateTotalCosts(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate) {
+        const F = feeRate / 100; 
+        const T = taxRate / 100;   
+        
+        const buyFee = totalBuyCost * F;
+        const grossSellAmount = sellPrice * totalQuantity;
+        const sellFee = grossSellAmount * F;
+        const salesTax = grossSellAmount * T;
+        
+        const totalFee = buyFee + sellFee;
+        const totalTax = salesTax;
+        const totalDeductions = totalFee + totalTax;
+
+        return { buyFee, sellFee, salesTax, totalFee, totalTax, totalDeductions, grossSellAmount };
+    }
+
+    function calculateProfitStatus(totalCost, totalQuantity, marketPrice, feeRate, taxRate, prefix = 'dca') {
+        if (totalCost === 0 || totalQuantity === 0 || marketPrice === 0) {
+            return {
+                netProfitLoss: 0, netProfitRate: 0, 
+                profitLossText: '0 원', profitRateText: '0.00 %', 
+                resultClass: `${prefix}_neutral-text`
+            };
+        }
+        
+        const costs = calculateTotalCosts(totalCost, totalQuantity, marketPrice, feeRate, taxRate);
+        const netProfitLoss = costs.grossSellAmount - totalCost - costs.totalDeductions;
+        const netProfitRate = (totalCost > 0) ? (netProfitLoss / totalCost) * 100 : (netProfitLoss > 0 ? Infinity : 0);
+
+        let resultClass = `${prefix}_neutral-text`;
+        let signPrefix = ''; 
+        
+        if (netProfitLoss > 0) {
+            resultClass = `${prefix}_profit-text`;
+            signPrefix = '+ ';
+        } else if (netProfitLoss < 0) {
+            resultClass = `${prefix}_loss-text`;
+            signPrefix = '- ';
+        }
+
+        const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
+        const profitRateText = signPrefix + (isFinite(netProfitRate) ? formatCurrency(netProfitRate, 2) : 'N/A') + ' %';
+        
+        return { netProfitLoss, netProfitRate, profitLossText, profitRateText, resultClass, costs };
+    }
+
+
+    // --- CALCULATION 1: Profit/Loss Calculator Logic ---
+
+    window.calculateProfitLoss = function() {
+        if (activeTab !== 'profit-loss') return;
+        
+        // 입력값 가져오기 (PL Calculator IDs)
+        const buyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
+        const quantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
+        const sellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
+        
+        const feeRateInput = document.getElementById('pl_feeRateInput').value.replace(/,/g, '');
+        const taxRateInput = document.getElementById('pl_taxRateInput').value.replace(/,/g, '');
+        
         const feeRate = parseFloat(feeRateInput) || 0;
         const taxRate = parseFloat(taxRateInput) || 0;
         
-        // 총 매수 비용 (원금)
-        const totalBuyCost = buyPrice * quantity;
-        // 총 매도 금액 (세전)
-        const grossSellAmount = sellPrice * quantity;
-        
-        // ----------------------------------------------------
-        // 수수료: 매수 금액과 매도 금액 모두에 각각 적용
-        // ----------------------------------------------------
-        const feeRateFactor = feeRate / 100; // 0.015 -> 0.00015 (비율)
-        
-        const calculatedFeeOnBuy = totalBuyCost * feeRateFactor;
-        const calculatedFeeOnSell = grossSellAmount * feeRateFactor;
-
-        // 최종 총 수수료 (매수 수수료 + 매도 수수료)
-        const totalCalculatedFee = calculatedFeeOnBuy + calculatedFeeOnSell;
-        
-        // ----------------------------------------------------
-        // 거래세: 총 매도 금액에만 적용
-        // ----------------------------------------------------
-        const taxRateFactor = taxRate / 100; // 0.15 -> 0.0015 (비율)
-        const calculatedTax = grossSellAmount * taxRateFactor;
-        
-        // 필드가 제거되었으므로, 값을 반환합니다.
-        return { totalFee: totalCalculatedFee, totalTax: calculatedTax };
-    }
-
-    /**
-     * 주식 거래의 손익률을 계산하고 결과를 화면에 표시합니다.
-     */
-    window.calculateProfitLoss = function() {
-        // 새로운 함수를 호출하여 값을 직접 가져옵니다.
-        const { totalFee, totalTax } = window.calculateFeesAndTaxes(); 
-
-        const buyPrice = parseFloat(document.getElementById('buyPrice').value.replace(/,/g, '')) || 0;
-        const quantity = parseFloat(document.getElementById('quantity').value.replace(/,/g, '')) || 0;
-        const sellPrice = parseFloat(document.getElementById('sellPrice').value.replace(/,/g, '')) || 0;
-        
-        // 모든 핵심 입력값이 0인 경우 결과를 숨깁니다.
-        if (buyPrice === 0 && quantity === 0 && sellPrice === 0) {
-            document.getElementById('result').style.display = 'none';
-            return;
-        }
-        
-        const totalDeductions = totalFee + totalTax; // 총 공제액
-
         const totalBuyCost = buyPrice * quantity;
         const totalQuantity = quantity;
 
-        const grossSellAmount = sellPrice * totalQuantity; 
+        if (totalBuyCost === 0 && totalQuantity === 0 && sellPrice === 0) {
+            document.getElementById('pl_result').style.display = 'none';
+            return;
+        }
+
+        const { netProfitLoss, netProfitRate, profitRateText, resultClass, costs } = 
+            calculateProfitStatus(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate, 'pl');
         
-        // 1. 순이익/손실 (세후): (매도 금액) - (총 매수 비용) - (총 공제액)
-        const netProfitLoss = grossSellAmount - totalDeductions - totalBuyCost;
+        // PL Calculator specific logic
+        const grossSellAmount = costs.grossSellAmount;
+        const totalDeductions = costs.totalDeductions;
+        const totalFee = costs.totalFee;
+        const totalTax = costs.totalTax;
         
-        // 2. 최종 손익률: 순이익/손실을 총 매수 비용으로 나눈 값
-        let profitRate = 0;
-        if (totalBuyCost > 0) {
-            profitRate = (netProfitLoss / totalBuyCost) * 100;
-        } else if (netProfitLoss > 0) {
-            profitRate = Infinity;
-        }
-
-        // 3. (참고용) 단순 매매차익: 수수료와 세금을 고려하지 않은 시세 차익
-        const simpleProfit = grossSellAmount - totalBuyCost;
-
-        // 4. (참고용) 단순 매매차익률: 단순 차익을 총 매수 비용으로 나눈 값 (외부 툴 9.31%에 해당하는 값)
-        let simpleProfitRate = 0;
-        if (totalBuyCost > 0) {
-            simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
-        } else if (simpleProfit > 0) {
-            simpleProfitRate = Infinity;
-        }
-
-
-        // 5. 결과 출력 (테이블 형식)
-        const profitRateText = (isFinite(profitRate) ? profitRate.toFixed(2) : 'N/A') + '%';
-        const simpleProfitRateText = (isFinite(simpleProfitRate) ? simpleProfitRate.toFixed(2) : 'N/A') + '%';
-
-        // 순이익/손실 (세후) 텍스트 스타일 결정
-        let netResultClass = 'net-result neutral-text';
-        if (netProfitLoss > 0) {
-            netResultClass = 'net-result profit-text'; 
-        } else if (netProfitLoss < 0) {
-            netResultClass = 'net-result loss-text'; 
-        } else {
-            netResultClass = 'net-result neutral-text';
-        }
-
-        // 최종 손익률 텍스트 스타일 결정
+        // 최종 손익률 텍스트 스타일 결정 (순이익/손실 기준)
         let rateClass = 'neutral';
         if (netProfitLoss > 0) {
             rateClass = 'profit';
@@ -529,8 +695,17 @@
             rateClass = 'loss';
         }
 
-        // 매도 후 순회수액 재계산
-        const netProceedsAfterSellDeductions = grossSellAmount - (totalFee / 2) - totalTax; // 매도 수수료(총 수수료의 절반) + 거래세
+        // 매도 후 순회수액 (매도 금액 - 매도 수수료 - 거래세)
+        const netProceedsAfterSellDeductions = grossSellAmount - (costs.sellFee + costs.salesTax); 
+        
+        // 단순 수익률 (세금/수수료 미반영)
+        const simpleProfit = grossSellAmount - totalBuyCost;
+        let simpleProfitRate = 0;
+        if (totalBuyCost > 0) {
+            simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
+        }
+        const simpleProfitRateText = (isFinite(simpleProfitRate) ? simpleProfitRate.toFixed(2) : 'N/A') + '%';
+
 
         const tableHTML = `
             <thead>
@@ -541,103 +716,304 @@
             <tbody>
                 <tr>
                     <th>총 매수 비용 (원금)</th>
-                    <td class="value-col">${formatCurrency(totalBuyCost)} 원</td>
+                    <td class="value-col">${formatCurrency(totalBuyCost, 0)} 원</td>
                 </tr>
                 <tr>
                     <th>총 매도 금액 (세전)</th>
-                    <td class="value-col">${formatCurrency(grossSellAmount)} 원</td>
+                    <td class="value-col">${formatCurrency(grossSellAmount, 0)} 원</td>
                 </tr>
                 <tr>
-                    <!-- 텍스트 길이 축소: 총 공제액 (매수/매도 수수료 + 거래세) -> 총 공제액 -->
-                    <th><span class="deduction-color">총 공제액</span></th>
-                    <td class="value-col deduction-color">- ${formatCurrency(totalDeductions)} 원</td>
+                    <th><span class="pl-deduction-color">총 공제액</span></th>
+                    <td class="value-col pl-deduction-color">- ${formatCurrency(totalDeductions, 0)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
-                    <!-- 텍스트 길이 축소: ㄴ 총 매매 수수료 (매수/매도 합산) -> ㄴ 매매 수수료 -->
                     <th style="padding-left: 20px;">ㄴ 매매 수수료</th>
-                    <td class="value-col">- ${formatCurrency(totalFee)} 원</td>
+                    <td class="value-col">- ${formatCurrency(totalFee, 0)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
-                    <!-- 텍스트 길이 축소: ㄴ 총 거래세 (매도 시) -> ㄴ 거래세 -->
                     <th style="padding-left: 20px;">ㄴ 거래세</th>
-                    <td class="value-col">- ${formatCurrency(totalTax)} 원</td>
+                    <td class="value-col">- ${formatCurrency(totalTax, 0)} 원</td>
                 </tr>
                 
-                <!-- 매도 후 순회수액 (세후) -->
                 <tr class="bg-indigo-50">
                     <th class="font-bold">매도 후 순회수액 (세후)</th>
-                    <td class="value-col net-proceeds-color">${formatCurrency(netProceedsAfterSellDeductions)} 원</td>
+                    <td class="value-col pl-net-proceeds-color">${formatCurrency(netProceedsAfterSellDeductions, 0)} 원</td>
                 </tr>
 
                 <tr class="bg-gray-50">
                     <th>순이익/손실 (세후)</th>
                     <td class="value-col">
-                        <span class="${netResultClass}">${formatCurrency(netProfitLoss)} 원</span>
+                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : ''} ${formatCurrency(netProfitLoss, 0)} 원</span>
                     </td>
                 </tr>
-                <!-- 텍스트 길이 축소: 최종 손익률 (세후 순수익률) -> 최종 손익률 (세후) -->
                 <tr class="font-bold text-lg bg-yellow-100">
                     <th><span class="text-blue-600">최종 손익률 (세후)</span></th>
                     <td class="value-col">
-                        <span class="${rateClass}">${profitRateText}</span>
+                        <span class="${rateClass}">${netProfitRate > 0 ? '+' : ''}${profitRateText}</span>
                     </td>
                 </tr>
-                <!-- 텍스트 길이 축소: 참고: 단순 수익률 (비용 미반영) -> 참고: 단순 수익률 (세전) -->
                 <tr>
                     <th>참고: 단순 수익률 (세전)</th>
                     <td class="value-col">
-                        <span class="${rateClass}">${simpleProfitRateText}</span>
+                        <span class="${rateClass}">${simpleProfitRate > 0 ? '+' : ''}${simpleProfitRateText}</span>
                     </td>
                 </tr>
             </tbody>
         `;
 
-        document.getElementById('resultTable').innerHTML = tableHTML;
-        document.getElementById('result').style.display = 'block';
+        document.getElementById('pl_resultTable').innerHTML = tableHTML;
+        document.getElementById('pl_result').style.display = 'block';
+    }
+
+
+    // --- CALCULATION 2: DCA Simulator Logic ---
+
+    window.calculateAllResults = function() {
+        if (activeTab !== 'dca-simulator') return;
+
+        // 1. 정적 입력값 가져오기
+        const currentPrice = parseFloat(document.getElementById('dca_currentPrice').value.replace(/,/g, '')) || 0;
+        const currentQuantity = parseFloat(document.getElementById('dca_currentQuantity').value.replace(/,/g, '')) || 0;
+        const currentMarketPrice = parseFloat(document.getElementById('dca_currentMarketPrice').value.replace(/,/g, '')) || 0;
+        
+        // DCA와 PL 모두 같은 비용 필드를 사용하지만, 쿠키는 DCA 이름을 따릅니다.
+        const feeRate = parseFloat(document.getElementById('dca_feeRateInput').value.replace(/,/g, '')) || 0;
+        const taxRate = parseFloat(document.getElementById('dca_taxRateInput').value.replace(/,/g, '')) || 0;
+
+        // 2. 동적 매수 값 집계
+        const dcaValues = aggregateDCAValues();
+        const newTotalCost = dcaValues.totalNewCost;
+        const newQuantity = dcaValues.totalNewQuantity;
+
+        // 3. 기본값 계산 (합산 후)
+        const currentTotalCost = currentPrice * currentQuantity;
+        
+        // 현재 보유 총 원금 표시 업데이트
+        const costContainer = document.getElementById('dca_currentTotalCostContainer');
+        const costDisplay = document.getElementById('dca_currentTotalCostDisplay');
+        
+        if (currentTotalCost > 0) {
+            costDisplay.innerText = formatCurrency(currentTotalCost, 0) + ' 원';
+            costContainer.classList.remove('hidden');
+        } else {
+            costContainer.classList.add('hidden');
+        }
+        
+        const totalCostDCA = currentTotalCost + newTotalCost; 
+        const totalQuantityDCA = currentQuantity + newQuantity; 
+        
+        // 4. 물타기 전 상태 분석 (Pre-DCA)
+        const preDcaStatus = calculateProfitStatus(currentTotalCost, currentQuantity, currentMarketPrice, feeRate, taxRate, 'dca');
+        const preDcaDiv = document.getElementById('dca_preDcaResult');
+        
+        if (currentTotalCost > 0 && currentMarketPrice > 0) {
+            document.getElementById('dca_preDcaProfitLoss').innerText = preDcaStatus.profitLossText;
+            document.getElementById('dca_preDcaProfitLoss').className = 'value ' + preDcaStatus.resultClass;
+            document.getElementById('dca_preDcaProfitRate').innerText = preDcaStatus.profitRateText;
+            document.getElementById('dca_preDcaProfitRate').className = 'value ' + preDcaStatus.resultClass;
+            preDcaDiv.classList.remove('hidden');
+        } else {
+            preDcaDiv.classList.add('hidden');
+        }
+
+        // 5. 결과 숨김 처리
+        if (totalQuantityDCA === 0 || totalCostDCA === 0) {
+            document.getElementById('dca_result').style.display = 'none';
+            return;
+        }
+        
+        // 6. 순수 평균 단가 계산 (비용 미반영)
+        const newAveragePrice = totalCostDCA / totalQuantityDCA;
+        
+        // 7. 손익분기점 매도 단가 (Break-Even Price) 계산
+        const F = feeRate / 100; 
+        const T = taxRate / 100;   
+        
+        let breakEvenPrice = 0;
+        
+        const numerator = totalCostDCA * (1 + F); 
+        const denominator = totalQuantityDCA * (1 - F - T); 
+        
+        if (denominator > 0) {
+            breakEvenPrice = numerator / denominator;
+        } else {
+             breakEvenPrice = Infinity;
+        }
+        
+        // 8. 물타기 후 현재 주가 기준 예상 손익 분석 (Post-DCA)
+        const postDcaStatus = calculateProfitStatus(totalCostDCA, totalQuantityDCA, currentMarketPrice, feeRate, taxRate, 'dca');
+        
+        // 9. 평단가 변동률 계산
+        let priceReductionRate = 0;
+        if (currentPrice > 0) {
+             priceReductionRate = ((currentPrice - newAveragePrice) / currentPrice) * 100;
+        }
+
+        // 평단가 변동률 텍스트 스타일 결정
+        let rateClass = 'text-gray-700';
+        let ratePrefix = '';
+        if (priceReductionRate > 0) {
+            rateClass = 'text-red-600 font-bold'; // 감소 (빨간색)
+            ratePrefix = '↓ ';
+        } else if (priceReductionRate < 0) {
+            rateClass = 'text-blue-600 font-bold'; // 증가 (파란색)
+            ratePrefix = '↑ ';
+            priceReductionRate = Math.abs(priceReductionRate);
+        }
+        
+        // 10. 비용 상세 계산 (현재 주가 기준)
+        const marketCosts = calculateTotalCosts(totalCostDCA, totalQuantityDCA, currentMarketPrice, feeRate, taxRate);
+
+
+        // 11. 결과 출력 (테이블 형식)
+        const tableHTML = `
+            <thead>
+                <tr>
+                    <th colspan="2" class="text-center bg-indigo-100 rounded-t-lg">합산 결과 요약</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>총 수량</th>
+                    <td class="value-col">${formatCurrency(totalQuantityDCA, 0)} 주</td>
+                </tr>
+                <tr>
+                    <th>총 합산 매수 원금</th>
+                    <td class="value-col">${formatCurrency(totalCostDCA, 0)} 원</td>
+                </tr>
+                
+                <tr class="bg-yellow-100">
+                    <th class="font-bold">순수 평균 단가 (비용 제외)</th>
+                    <td class="value-col text-indigo-700 font-extrabold">${formatCurrency(newAveragePrice, 2)} 원</td>
+                </tr>
+                <tr>
+                    <th><span class="text-gray-700">평단가 변동률</span></th>
+                    <td class="value-col">
+                        <span class="${rateClass}">${ratePrefix}${isFinite(priceReductionRate) ? formatCurrency(priceReductionRate, 2) : 'N/A'} %</span>
+                    </td>
+                </tr>
+                
+                <!-- 손익분기점 (소수점 버림 처리) -->
+                <tr class="font-bold text-lg bg-green-100 border-t-2 border-green-500">
+                    <th><span class="text-green-800">손익분기점 매도 단가 (수수료·세금 반영)</span></th>
+                    <td class="value-col dca-break-even-price-color">${isFinite(breakEvenPrice) ? formatCurrency(Math.floor(breakEvenPrice), 0) : '불가능'} 원</td>
+                </tr>
+                
+                <!-- 물타기 후 현재 주가 기준 손익 -->
+                <tr>
+                    <th colspan="2" class="text-center bg-indigo-200 border-t mt-4 py-2 font-bold text-base">
+                        <span class="text-indigo-800">물타기 후: 주가 ${formatCurrency(currentMarketPrice, 0)}원 기준 손익 분석</span>
+                    </th>
+                </tr>
+                <tr>
+                    <th><span class="text-gray-700">예상 순이익/손실</span></th>
+                    <td class="value-col">
+                        <span class="${postDcaStatus.resultClass}">${postDcaStatus.profitLossText}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th><span class="text-gray-700">예상 순수익률</span></th>
+                    <td class="value-col">
+                        <span class="${postDcaStatus.resultClass}">${postDcaStatus.profitRateText}</span>
+                    </td>
+                </tr>
+
+                <!-- 비용 요약 (입력된 비용 기준) -->
+                <tr>
+                    <th colspan="2" class="text-center bg-gray-50 border-t pt-4 font-bold text-sm">
+                        <span class="text-gray-600">총 수수료·세금 합계 (입력값 기준)</span>
+                    </th>
+                </tr>
+                <tr>
+                    <th><span class="cost-color">총 수수료·세금 합계</span></th>
+                    <td class="value-col cost-color">${formatCurrency(marketCosts.totalDeductions, 0)} 원</td>
+                </tr>
+                
+            </tbody>
+        `;
+
+        document.getElementById('dca_resultTable').innerHTML = tableHTML;
+        document.getElementById('dca_result').style.display = 'block';
     }
     
     /**
-     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채웁니다.
+     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
      */
     function loadFromCookies() {
-        // 통화 관련 쿠키 로드
-        const currencyInputs = [
-            { id: 'buyPrice', cookie: 'stockBuyPrice' },
-            { id: 'quantity', cookie: 'stockQuantity' },
-            { id: 'sellPrice', cookie: 'stockSellPrice' }
+        // --- DCA Calculator Fields ---
+        const dcaCurrencyInputs = [
+            { id: 'dca_currentPrice', cookie: 'dcaCurrentPrice' },
+            { id: 'dca_currentQuantity', cookie: 'dcaCurrentQuantity' },
+            { id: 'dca_currentMarketPrice', cookie: 'dcaMarketPrice' }
         ];
 
-        currencyInputs.forEach(item => {
+        dcaCurrencyInputs.forEach(item => {
             const input = document.getElementById(item.id);
             const storedValue = getCookie(item.cookie);
             
-            // 쿠키 값이 있고 0이 아니면 포맷팅하여 로드
             if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
                 input.value = storedValue;
                 window.formatCurrencyInput(input); 
-            } else {
-                // 쿠키 값이 없거나 0이면 빈 문자열로 설정
-                input.value = "";
+            } 
+        });
+
+        // --- PL Calculator Fields ---
+        const plCurrencyInputs = [
+            { id: 'pl_buyPrice', cookie: 'stockBuyPrice' },
+            { id: 'pl_quantity', cookie: 'stockQuantity' },
+            { id: 'pl_sellPrice', cookie: 'stockSellPrice' }
+        ];
+        
+        plCurrencyInputs.forEach(item => {
+            const input = document.getElementById(item.id);
+            const storedValue = getCookie(item.cookie);
+            
+            if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
+                input.value = storedValue;
+                window.formatCurrencyInput(input); 
+            }
+        });
+
+        // --- Shared Rate Fields (DCA & PL) ---
+        const rateInputs = [
+            { id_dca: 'dca_feeRateInput', id_pl: 'pl_feeRateInput', cookie: 'dcaFeeRate', default: DEFAULT_FEE_RATE },
+            { id_dca: 'dca_taxRateInput', id_pl: 'pl_taxRateInput', cookie: 'dcaTaxRate', default: DEFAULT_TAX_RATE }
+        ];
+        
+        rateInputs.forEach(item => {
+            const storedValue = getCookie(item.cookie);
+            const value = (storedValue !== null && storedValue !== "") ? storedValue : item.default;
+            
+            document.getElementById(item.id_dca).value = value;
+            document.getElementById(item.id_pl).value = value;
+
+            // PL 계산기는 PL 고유 쿠키를 사용하도록 로드 시 업데이트 (한 번만 실행)
+            if (item.cookie === 'dcaFeeRate') {
+                const stockFeeRate = getCookie('stockFeeRate');
+                if (stockFeeRate !== null) document.getElementById('pl_feeRateInput').value = stockFeeRate;
+            }
+            if (item.cookie === 'dcaTaxRate') {
+                const stockTaxRate = getCookie('stockTaxRate');
+                if (stockTaxRate !== null) document.getElementById('pl_taxRateInput').value = stockTaxRate;
             }
         });
         
-        // 세율 관련 쿠키 로드
-        const feeRateInput = document.getElementById('feeRateInput');
-        const taxRateInput = document.getElementById('taxRateInput');
+        // 초기 동적 매수 항목 하나 추가
+        addPurchaseEntry(); 
 
-        const storedFeeRate = getCookie('stockFeeRate');
-        const storedTaxRate = getCookie('stockTaxRate');
-        
-        feeRateInput.value = (storedFeeRate !== null && storedFeeRate !== "") ? storedFeeRate : DEFAULT_FEE_RATE;
-        taxRateInput.value = (storedTaxRate !== null && storedTaxRate !== "") ? storedTaxRate : DEFAULT_TAX_RATE;
-        
-        // 초기 로드 후 자동 계산 실행
-        calculateProfitLoss();
+        // 초기 로드 후 현재 활성 탭에 맞춰 계산 실행
+        if (activeTab === 'profit-loss') {
+            calculateProfitLoss();
+        } else {
+            calculateAllResults();
+        }
     }
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        loadFromCookies(); // 1. 쿠키에서 모든 값 불러오기 및 초기 계산 실행
+        loadFromCookies(); 
+        // 초기 로드 후 탭 설정 (기본은 profit-loss)
+        switchTab(activeTab); 
     });
 
 </script>
