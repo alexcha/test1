@@ -114,17 +114,17 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
-            # padding: 8px, font-size: 13px (이전 조정 유지)
+            # padding: 8px -> 4px로 축소
             printf "<tr>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
+                <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
+                <td style=\"padding: 4px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거)
+# 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거 및 패딩/보더 제거)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -175,19 +175,19 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # max-width, min-width 제거 (CSS 클래스가 제어)
-        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
+        # border, border-spacing: 0, font-size: 13px, table-layout: fixed
+        print "<table style=\"width: 100%; border-collapse: collapse; border-spacing: 0; font-size: 13px; border-radius: 8px; overflow: hidden; margin-top: 0; table-layout: fixed;\">";
         # 각 열의 너비를 비율로 지정
         print "<colgroup>\
             <col style=\"width: 33%;\">\
             <col style=\"width: 37%;\">\
             <col style=\"width: 30%;\">\
         </colgroup>";
-        # th padding: 8px로 수정
+        # th padding: 14px -> 4px로 수정
         print "<thead><tr>\
-            <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
-            <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
-            <th style=\"padding: 8px; background-color: white; text-align: right; color: #333;\">변화</th>\
+            <th style=\"padding: 4px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
+            <th style=\"padding: 4px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
+            <th style=\"padding: 4px; background-color: white; text-align: right; color: #333;\">변화</th>\
         </tr></thead>";
         print "<tbody>"; 
 
@@ -215,11 +215,11 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # td padding: 8px로 수정
+            # td padding: 8px -> 4px로 수정
             row_data[i] = sprintf("<tr>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
+                <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
+                <td style=\"padding: 4px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>", date, current_value_display, color_style, diff_display); 
 
             prev_value = current_value;
@@ -564,11 +564,10 @@ cat << CHART_END > money.html
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
-            border: 1px solid #ddd; /* 경계를 래퍼로 옮겨서 스크롤바에 포함되도록 합니다. */
+            border: none; /* 래퍼의 테두리 제거 */
             border-radius: 8px; 
             overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
             -webkit-overflow-scrolling: touch; 
-            /* 래퍼 자체는 패딩이 없으므로, 테이블 안쪽에서 패딩을 확보해야 합니다. */
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
         /* 테이블 자체는 min-width를 확보하여 스크롤이 생기게 하고, fixed layout과 colgroup으로 너비를 배분합니다. */
@@ -577,8 +576,9 @@ cat << CHART_END > money.html
              min-width: 500px; /* 테이블이 모바일에서 좁아지는 것을 방지 (최소 500px 확보) */
              table-layout: fixed;
              border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
+             /* 셀의 상하 테두리는 td에 인라인으로 설정되어 있음 */
         }
-        /* 일일 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
+        /* 일별 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
         /* 이 부분은 data-table-wrapper 클래스를 적용하면서 필요 없어졌습니다. */
         /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
 
@@ -667,7 +667,7 @@ ${RAW_TABLE_ROWS}
         // 테이블 구조 생성
         const tableHtml = \`
             <div class="data-table-wrapper">
-            <table style="width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px;">
+            <table style="width: 100%; border-collapse: collapse; border-spacing: 0; table-layout: fixed; font-size: 13px;">
                 <colgroup>
                     <col style="width: 33%;"> /* 시간 */
                     <col style="width: 37%;"> /* 값 */
@@ -675,9 +675,9 @@ ${RAW_TABLE_ROWS}
                 </colgroup>
                 <thead>
                     <tr>
-                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
-                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
-                        <th style="padding: 8px; background-color: white; text-align: right; color: #333;">변화</th>
+                        <th style="padding: 4px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
+                        <th style="padding: 4px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
+                        <th style="padding: 4px; background-color: white; text-align: right; color: #333;">변화</th>
                     </tr>
                 </thead>
                 <tbody>
