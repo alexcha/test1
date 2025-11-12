@@ -303,7 +303,8 @@
                     <div class="text-sm text-gray-500">${item.expression.replace(/\*/g, '×').replace(/\//g, '÷')} =</div>
                     <div class="text-xl text-gray-900 font-semibold">${item.result}</div>
                 `;
-                contentDiv.addEventListener('click', () => loadFromHistory(item.result));
+                // ⭐️ 항목 클릭 시 전체 'item' 객체를 전달하도록 수정
+                contentDiv.addEventListener('click', () => loadFromHistory(item));
 
 
                 const deleteButton = document.createElement('button');
@@ -325,15 +326,25 @@
         }
 
         /**
-         * 히스토리 항목을 클릭했을 때 해당 결과를 현재 수식으로 로드합니다.
-         * @param {string} result - 히스토리 항목의 결과값
+         * ⭐️ 히스토리 항목을 클릭했을 때 수식과 결과를 현재 계산기에 로드합니다.
+         * @param {object} item - 히스토리 항목 객체 ({expression, result})
          */
-        function loadFromHistory(result) {
-            currentExpression = String(result);
+        function loadFromHistory(item) {
+            currentExpression = item.expression;
             currentOpDisplay.textContent = currentExpression;
-            previousOpDisplay.textContent = '';
-            resultDisplayed = true;
-            openParentheses = 0; 
+            
+            // 이전 수식창을 비우고 새로운 계산을 시작할 준비를 합니다.
+            previousOpDisplay.textContent = ''; 
+            
+            resultDisplayed = false; // 수식을 불러왔으므로 결과 표시 상태를 해제합니다.
+            
+            // 괄호 카운터를 수식에 맞게 재설정
+            openParentheses = 0;
+            currentExpression.split('').forEach(char => {
+                if (char === '(') openParentheses++;
+                if (char === ')') openParentheses--;
+            });
+
             saveExpression();
         }
 
