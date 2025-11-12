@@ -564,19 +564,24 @@ cat << CHART_END > money.html
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
-            min-width: 300px; /* 테이블 래퍼의 최소 너비 설정 유지 */
+            border: 1px solid #ddd; /* 경계를 래퍼로 옮겨서 스크롤바에 포함되도록 합니다. */
             border-radius: 8px; 
             overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
-            -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
+            -webkit-overflow-scrolling: touch; 
+            /* 래퍼 자체는 패딩이 없으므로, 테이블 안쪽에서 패딩을 확보해야 합니다. */
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
-        /* 테이블 자체는 100% 너비로 설정하고, fixed layout을 사용하여 너비를 분할합니다. */
-        /* min-width를 모바일 뷰에 맞게 설정 (ex. 320px) */
+        /* 테이블 자체는 min-width를 확보하여 스크롤이 생기게 하고, fixed layout과 colgroup으로 너비를 배분합니다. */
         .data-table-wrapper table {
              width: 100%;
-             min-width: 400px; /* 테이블이 모바일에서 너무 좁아지는 것을 방지 (최소 400px 확보) */
+             min-width: 500px; /* 테이블이 모바일에서 좁아지는 것을 방지 (최소 500px 확보) */
              table-layout: fixed;
+             border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
         }
+        /* 일일 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
+        /* 이 부분은 data-table-wrapper 클래스를 적용하면서 필요 없어졌습니다. */
+        /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
+
     </style>
 </head>
 <body>
