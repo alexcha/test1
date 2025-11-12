@@ -115,8 +115,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
-            # Print only the <tr> tag, escaped quotes are handled by shell here-doc below
-            # 폰트 크기 조정에 따라 padding: 12px -> 8px로 축소
+            # padding: 8px, font-size: 13px (이전 조정 유지)
             printf "<tr>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
@@ -177,9 +176,15 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # font-size: 14px -> 13px로 수정
-        print "<table style=\"width: 100%; max-width: 900px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
-        # th padding: 14px -> 8px로 수정
+        # table-layout: fixed 및 colgroup 추가를 위해 style 조정
+        print "<table style=\"width: 100%; max-width: 900px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
+        # 각 열의 너비를 비율로 지정하여 칸이 좁아지지 않도록 합니다.
+        print "<colgroup>\
+            <col style=\"width: 33%;\">\
+            <col style=\"width: 37%;\">\
+            <col style=\"width: 30%;\">\
+        </colgroup>";
+        # th padding: 8px로 수정
         print "<thead><tr>\
             <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
             <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
@@ -211,7 +216,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # td padding: 12px -> 8px로 수정
+            # td padding: 8px로 수정
             row_data[i] = sprintf("<tr>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
@@ -380,10 +385,8 @@ if [ -n "$GEMINI_API_KEY" ]; then
 
             # 출처/Grounding 정보 추출 (jq 사용)
             SOURCES_HTML=""
-            # groundingAttributions 배열에서 uri와 title을 TSV 형식으로 추출 (오류 무시)
             SOURCES_ARRAY=$(echo "$API_RESPONSE" | jq -r '.candidates[0].groundingMetadata.groundingAttributions[] | select(.web) | [.web.uri, .web.title] | @tsv' 2>/dev/null)
             
-            # 첫 번째 출처만 사용
             if [ -n "$SOURCES_ARRAY" ]; then
                 FIRST_SOURCE=$(echo "$SOURCES_ARRAY" | head -n 1)
                 URI=$(echo "$FIRST_SOURCE" | awk '{print $1}')
@@ -413,7 +416,7 @@ cat << CHART_END > money.html
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; color: #333; }
         /* 컨테이너의 너비를 100%로 설정하여 좌우 꽉 채우고, 내부 여백을 최소화합니다. */
         .container { 
             width: 100%; 
@@ -436,6 +439,7 @@ cat << CHART_END > money.html
             height: 40vh; 
             min-height: 300px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            position: relative; /* 메시지 배치를 위해 추가 */
         }
         /* h2 스타일: 두 제목 모두 검정색으로 통일 */
         h2 { 
@@ -477,7 +481,7 @@ cat << CHART_END > money.html
         .error-message {
             text-align: left;
             padding: 15px;
-            background-color: #fcebeb; /* Light red for error */
+            background-color: #ffe0e6; /* Bright background for error */
             border: 1px solid #dc3545; /* Red border */
             color: #dc3545; /* Red text */
             border-radius: 8px;
@@ -496,6 +500,7 @@ cat << CHART_END > money.html
             font-size: 15px;
             line-height: 1.6;
             margin-top: 20px;
+            color: #333; /* Black text */
         }
         .sources-container {
              margin-top: 20px; 
@@ -503,6 +508,20 @@ cat << CHART_END > money.html
              padding-top: 10px;
         }
         
+        /* 데이터 없음 메시지 스타일 */
+        .no-data-message {
+             position: absolute; 
+             top: 50%;
+             left: 50%;
+             transform: translate(-50%, -50%);
+             text-align: center; 
+             color: #6c757d; 
+             padding: 20px; 
+             font-size: 16px;
+             font-weight: 600;
+             width: 80%; 
+        }
+
         /* --- 페이지네이션 및 테이블 스타일 --- */
         .pagination-controls {
             display: flex;
@@ -535,17 +554,17 @@ cat << CHART_END > money.html
             color: #555;
             font-size: 15px;
         }
-        /* 데이터 테이블 Wrapper - max-width 950px -> 900px로 수정 */
+        /* 데이터 테이블 Wrapper - max-width 900px로 유지 */
         .data-table-wrapper {
             width: 100%; 
-            max-width: 900px; /* 테이블의 최대 너비를 900px로 유지 (950px에서 줄임) */
+            max-width: 900px; 
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
-            /* font-size는 AWK 스크립트의 인라인 스타일로 제어됩니다. */
             min-width: 300px; 
             border-radius: 8px; 
             overflow: hidden;
+            /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
     </style>
 </head>
@@ -566,6 +585,7 @@ cat << CHART_END > money.html
         </div>
         <div class="chart-container">
             <canvas id="dailyChart"></canvas>
+            <p id="dailyChartNoData" class="no-data-message" style="display: none;">일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div>
         
         <div style="text-align: center;">
@@ -580,6 +600,7 @@ cat << CHART_END > money.html
         </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
+            <p id="simpleChartNoData" class="no-data-message" style="display: none;">데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div> 
 
         
@@ -609,7 +630,7 @@ cat << CHART_END > money.html
     // 줄바꿈 문자로 분리하여 <tr> 태그 문자열 배열로 만듭니다.
     const rawRowData = \`
 ${RAW_TABLE_ROWS}
-\`.trim().split('\n').filter(row => row.trim() !== '');
+\`.trim().split('\\n').filter(row => row.trim() !== '');
 
     const ROWS_PER_PAGE = 20;
     let currentPage = 1;
@@ -630,12 +651,17 @@ ${RAW_TABLE_ROWS}
         // 테이블 구조 생성
         const tableHtml = \`
             <div class="data-table-wrapper">
-            <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px;">
+                <colgroup>
+                    <col style="width: 30%;"> /* 시간 */
+                    <col style="width: 40%;"> /* 값 */
+                    <col style="width: 30%;"> /* 변화 */
+                </colgroup>
                 <thead>
                     <tr>
-                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333; font-size: 13px;">시간</th>
-                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333; font-size: 13px;">값</th>
-                        <th style="padding: 8px; background-color: white; text-align: right; color: #333; font-size: 13px;">변화</th>
+                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
+                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
+                        <th style="padding: 8px; background-color: white; text-align: right; color: #333;">변화</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -687,7 +713,7 @@ ${RAW_TABLE_ROWS}
     if (rawRowData.length > 0) {
         renderTable(currentPage);
     } else {
-        document.getElementById('dataRecordsContainer').innerHTML = "<p style='text-align: center; color: #6c757d; padding: 20px; font-size: 16px;'>데이터 기록이 존재하지 않습니다.</p>";
+        document.getElementById('dataRecordsContainer').innerHTML = "<p class='no-data-message'>데이터 기록이 존재하지 않습니다.</p>";
         document.getElementById('paginationControls').innerHTML = '';
     }
 
@@ -699,11 +725,11 @@ ${RAW_TABLE_ROWS}
         let formattedValue; 
 
         if (absValue >= 1000000000) {
-            formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+            formattedValue = (value / 1000000000).toFixed(1).replace(/\\.0$/, '') + 'B';
         } else if (absValue >= 1000000) {
-            formattedValue = (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            formattedValue = (value / 1000000).toFixed(1).replace(/\\.0$/, '') + 'M';
         } else if (absValue >= 1000) {
-            formattedValue = (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            formattedValue = (value / 1000).toFixed(1).replace(/\\.0$/, '') + 'K';
         } else {
             // 정수형으로 포맷팅
             formattedValue = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(value);
@@ -729,13 +755,14 @@ ${RAW_TABLE_ROWS}
     // 1. 차트 렌더링 로직 (simpleChart - 빨간색)
     // --------------------------------------------- 
 
-    const ctx = document.getElementById('simpleChart').getContext('2d');
-    
+    const simpleChartCanvas = document.getElementById('simpleChart');
     if (chartData.length === 0) {
-        console.error("Chart data is empty. Cannot render simpleChart.");
-        document.getElementById('simpleChart').parentNode.innerHTML = "<p style='text-align: center; color: #dc3545; padding: 50px; font-size: 16px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
+        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
+        simpleChartCanvas.style.display = 'none';
+        document.getElementById('simpleChartNoData').style.display = 'block';
     } else {
-        new Chart(ctx, {
+        document.getElementById('simpleChartNoData').style.display = 'none';
+        new Chart(simpleChartCanvas.getContext('2d'), {
             type: 'line', 
             data: {
                 labels: chartLabels,
@@ -796,13 +823,15 @@ ${RAW_TABLE_ROWS}
     // ---------------------------------------------
     // 2. 차트 렌더링 로직 (dailyChart - 파란색 - 변경 없음)
     // ---------------------------------------------
-    const dailyCtx = document.getElementById('dailyChart').getContext('2d'); 
-
+    const dailyChartCanvas = document.getElementById('dailyChart');
+    
     if (jsDailyValues.length === 0) {
-        console.error("Daily chart data is empty. Cannot render dailyChart.");
-        document.getElementById('dailyChart').parentNode.innerHTML = "<p style='text-align: center; color: #007bff; padding: 50px; font-size: 16px;'>일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>";
+        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
+        dailyChartCanvas.style.display = 'none';
+        document.getElementById('dailyChartNoData').style.display = 'block';
     } else {
-        new Chart(dailyCtx, {
+        document.getElementById('dailyChartNoData').style.display = 'none';
+        new Chart(dailyChartCanvas.getContext('2d'), {
             type: 'line',
             data: {
                 labels: jsDailyLabels,
