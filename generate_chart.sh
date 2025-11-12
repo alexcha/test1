@@ -83,6 +83,7 @@ JS_LABELS=$(awk -F ' : ' '
 ' result.txt) 
 
 # 2. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
+# ⭐️ 변경: RAW_TABLE_ROWS 생성 시에도 변화가 0인 항목을 제외합니다.
 RAW_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -108,9 +109,8 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
 
     {
         # $1 format is YYYY-MM-DD HH:MM:SS
-        formatted_time = substr($1, 6, 5) " " substr($1, 12, 2) "시";
+        formatted_time[NR] = substr($1, 6, 5) " " substr($1, 12, 2) "시";
         
-        times[NR] = formatted_time; 
         values_str[NR] = $2;
         gsub(/,/, "", $2); 
         values_num[NR] = $2 + 0; 
@@ -118,34 +118,46 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     END {
         # NR: total number of records. Loop backwards (newest first).
         for (i = NR; i >= 1; i--) {
-            time_str = times[i];
-            current_val_str = values_str[i]; 
             current_val_num = values_num[i]; 
 
             if (i > 1) {
                 prev_val_num = values_num[i - 1];
                 diff = current_val_num - prev_val_num;
-                diff_display = comma_format(diff); 
+                
+                # ⭐️ 핵심 수정: 변화가 0이 아니거나 (diff != 0) 또는 첫 번째 데이터 (i == 1)인 경우에만 기록합니다.
+                # 현재 루프는 역순(i=NR부터 1까지)이므로, diff가 0이 아닌 경우와 마지막 데이터(i=NR)를 필터링해야 합니다.
+                # 하지만, AWK 배열에 저장된 순서대로 변화를 계산하고, 마지막에 역순으로 출력하는 것이 일반적입니다.
+                # 현재 로직은 역순으로 순회하며 i-1의 값을 참조합니다. 따라서 i=1일 때만 '---'를 표시하고,
+                # i>1 이고 diff == 0이면 출력하지 않아야 합니다.
 
-                if (diff > 0) {
-                    color_style = "color: #dc3545; font-weight: 600;";
-                } else if (diff < 0) {
-                    color_style = "color: #007bff; font-weight: 600;";
+                if (diff != 0) {
+                    diff_display = comma_format(diff); 
+
+                    if (diff > 0) {
+                        color_style = "color: #dc3545; font-weight: 600;";
+                    } else if (diff < 0) {
+                        color_style = "color: #007bff; font-weight: 600;";
+                    }
+                } else if (i == 1) {
+                    # 원본 데이터의 가장 오래된 기록은 변화가 '---'입니다. (역순 루프에서 가장 마지막)
+                    diff_display = "---";
+                    color_style = "color: #6c757d;";
                 } else {
-                    diff_display = "0";
-                    color_style = "color: #333; font-weight: 600;";
+                    # 변화가 0인 경우, 이 행 전체를 건너뜁니다.
+                    continue; 
                 }
             } else {
+                # 루프의 마지막 실행 (가장 오래된 데이터)
                 diff_display = "---";
                 color_style = "color: #6c757d;";
             } 
 
-            # padding: 8px, font-size: 14px (숫자 폰트 크기 일관성 유지)
+            # 이 코드는 NR번째 데이터부터 1번째 데이터까지 역순으로 출력합니다.
             printf "<tr>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;\">%s</td>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;\">%s</td>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; %s\">%s</td>\
-            </tr>\n", time_str, current_val_str, color_style, diff_display
+            </tr>\n", formatted_time[i], values_str[i], color_style, diff_display
         }
     }
 ' result.txt) 
