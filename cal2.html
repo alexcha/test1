@@ -128,7 +128,7 @@
             font-weight: 600;
             font-size: 0.85rem;
             text-align: center;
-            margin-top: -10px;
+            margin-top: 0px; /* 제목 제거 후 마진 조정 */
             margin-bottom: 10px;
             padding: 5px;
             border: 1px dashed #2ecc71;
@@ -179,7 +179,7 @@
 <body class="bg-gray-100 p-4 md:p-8">
 
 <div class="calculator w-full">
-    <h2 class="text-2xl font-bold text-center text-indigo-800 border-b-4 border-indigo-500 pb-3 mb-6">💰 주식 물타기 손익 시뮬레이터</h2>
+    <!-- ⭐️ 주식 물타기 손익 시뮬레이터 제목이 제거되었습니다. ⭐️ -->
     
     <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
@@ -594,10 +594,10 @@
         
         if (netProfitLoss > 0) {
             resultClass = `${prefix}-profit-text`;
-            signPrefix = '+ ';
+            signPrefix = '+';
         } else if (netProfitLoss < 0) {
             resultClass = `${prefix}-loss-text`;
-            signPrefix = '- ';
+            signPrefix = '-';
         }
 
         const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
@@ -772,6 +772,16 @@
 
         document.getElementById('dca_resultTable').innerHTML = tableHTML;
         document.getElementById('dca_result').style.display = 'block';
+
+        // 결과창의 테두리와 배경색을 순손익에 따라 변경
+        const resultDiv = document.getElementById('dca_result');
+        if (postDcaStatus.netProfitLoss > 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익은 빨간색
+        } else if (postDcaStatus.netProfitLoss < 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실은 파란색
+        } else {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
+        }
 
         // 12. Save dynamic entries (as calculation runs on every input)
         saveDcaEntries();
