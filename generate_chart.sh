@@ -1,4 +1,3 @@
-#!/bin/bash
 # 이 스크립트는 result.txt 파일을 읽어 HTML 대시보드를 생성합니다.
 
 
@@ -114,11 +113,11 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
-            # padding: 8px, font-size: 13px (이전 조정 유지)
+            # padding: 8px, font-size: 14px (숫자 폰트 크기 일관성 유지)
             printf "<tr>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
     }
@@ -176,7 +175,8 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
         } 
 
         # max-width, min-width 제거 (CSS 클래스가 제어)
-        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
+        # 테이블 전체 폰트 사이즈를 14px로 통일
+        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
         # 각 열의 너비를 비율로 지정
         print "<colgroup>\
             <col style=\"width: 33%;\">\
@@ -215,11 +215,11 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # td padding: 8px로 수정
+            # td padding: 8px, font-size: 14px (숫자 폰트 크기 일관성 유지)
             row_data[i] = sprintf("<tr>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
-                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40; font-size: 14px;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; %s\">%s</td>\
             </tr>", date, current_value_display, color_style, diff_display); 
 
             prev_value = current_value;
@@ -800,7 +800,7 @@ ${RAW_TABLE_ROWS}
                 scales: {
                     x: {
                         type: 'category', 
-                        title: { display: true, text: '시간 (MM-DD HH시)', font: { size: 14, weight: 'bold' } }, 
+                        title: { display: true, text: '시간', font: { size: 14, weight: 'bold' } }, 
                         ticks: {
                             maxRotation: 45, 
                             minRotation: 45,
@@ -826,7 +826,7 @@ ${RAW_TABLE_ROWS}
                     },
                     title: {
                         display: true,
-                        text: '시간별 변화 값 추이 (MM-DD HH시)', 
+                        text: '시간별 변화 값 추이', 
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -893,7 +893,7 @@ ${RAW_TABLE_ROWS}
                     },
                     title: {
                         display: true,
-                        text: '일별 최종 값 변화 추이 (YYYY-MM-DD)',
+                        text: '일별 최종 값 변화 추이',
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
