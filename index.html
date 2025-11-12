@@ -19,9 +19,9 @@
             min-height: 100vh;
         }
 
-        /* ⭐️ iFrame 컨테이너 높이 계산 (하단 탭 공간을 90px에서 60px로 줄여 높이 확장) */
+        /* ⭐️ iFrame 컨테이너 높이 계산 (하단 탭 공간을 60px로 유지) */
         .iframe-fixed-height {
-            /* 100vh - (최소화된 상단 탭 높이 + 하단 여백) -> 60px로 수정 */
+            /* 100vh - (최소화된 상단 탭 높이 + 하단 여백) -> 60px */
             height: calc(100vh - 60px); 
         }
 
@@ -46,12 +46,17 @@
             <button id="tab-cal"
                     class="tab-button flex-1 py-1 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
                     data-tab="cal">
-                매도 계산기
+                매도
             </button>
             <button id="tab-cal2"
                     class="tab-button flex-1 py-1 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
                     data-tab="cal2">
                 물타기
+            </button>
+            <button id="tab-cal3"
+                    class="tab-button flex-1 py-1 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
+                    data-tab="cal3">
+                계산기
             </button>
         </div>
 
@@ -69,10 +74,14 @@
                 <iframe id="iframe-cal2" src="cal2.html"></iframe>
             </div>
             
+            <div id="content-cal3" class="tab-pane w-full overflow-y-auto iframe-fixed-height hidden">
+                <iframe id="iframe-cal3" src="cal3.html"></iframe>
+            </div>
+
             <div id="instruction-message" class="p-8 text-center text-gray-500">
                 <p class="text-xl font-bold text-indigo-600">파일 내용을 보려면 탭을 선택하세요.</p>
                 <p class="text-sm mt-3 border-t pt-3">
-                    **주의:** 이 HTML 파일과 **같은 폴더**에 세 개의 파일이 있어야 합니다.
+                    **주의:** 이 HTML 파일과 **같은 폴더**에 네 개의 파일이 있어야 합니다.
                 </p>
             </div>
 
@@ -110,10 +119,11 @@
 
                 // 2. 내용 패널 업데이트 및 iFrame 새로고침
                 tabPanes.forEach(pane => {
+                    // content-money, content-cal, content-cal2, content-cal3 중 현재 탭과 일치하는 패널을 찾습니다.
                     if (pane.id === `content-${tabName}`) {
                         pane.classList.remove('hidden');
                         
-                        // ⭐️ iFrame 새로고침 (캐싱 문제 해결)
+                        // iFrame 새로고침 (캐싱 문제 해결)
                         const iframe = document.getElementById(`iframe-${tabName}`);
                         if (iframe) {
                             // 현재 src 값을 가져와서, 캐시 무시를 위한 쿼리 파라미터(현재 시간)를 추가합니다.
@@ -140,10 +150,8 @@
             });
 
             // 초기 로드 시 마지막으로 활성화되었던 탭을 활성화합니다.
-            // iFrame에 ID를 추가했으므로, 초기 로드 시에도 switchTab을 사용하여 새로고침 로직을 태웁니다.
             switchTab(initialTab); 
         });
     </script>
 </body>
 </html>
-
