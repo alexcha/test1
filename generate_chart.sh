@@ -124,7 +124,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거 및 패딩/보더 제거)
+# 3. 일별 집계 테이블 생성 (AWK에서 max-width: 80% 적용)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -175,8 +175,8 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # table-layout: fixed 제거 (콘텐츠 너비에 맞게 자동 조정)
-        print "<table style=\"width: auto; border-collapse: collapse; border-spacing: 0; font-size: 11px; border-radius: 8px; overflow: hidden; margin-top: 0; margin-left: auto; margin-right: auto;\">"; 
+        # max-width: 80% 적용
+        print "<table style=\"width: auto; max-width: 80%; border-collapse: collapse; border-spacing: 0; font-size: 11px; border-radius: 8px; overflow: hidden; margin: 0 auto; table-layout: auto;\">"; 
         # <colgroup> 제거
 
         # th padding: 1px 0.5px 로 수정
@@ -212,17 +212,13 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
             
             # td padding: 1px 0.5px 로 수정
-            row_data[i] = sprintf("<tr>\
+            printf "<tr>\
                 <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
                 <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
                 <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
-            </tr>", date, current_value_display, color_style, diff_display); 
+            </tr>", date, current_value_display, color_style, diff_display; 
 
             prev_value = current_value;
-        } 
-
-        for (i = num_dates - 1; i >= 0; i--) {
-            print row_data[i];
         } 
 
         print "</tbody></table>";
@@ -415,9 +411,9 @@ cat << CHART_END > money.html
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; color: #333; }
         
         .container { 
-            width: 100%; /* 좌우 꽉 채우기 */
+            width: 80%; /* 화면의 80% 너비로 제한 */
             max-width: 1400px; 
-            margin: 0 auto; 
+            margin: 0 auto; /* 가운데 정렬 */
             padding: 10px; /* 내부 여백 최소화 */
             background: white; 
             border-radius: 0; 
@@ -566,9 +562,10 @@ cat << CHART_END > money.html
             -webkit-overflow-scrolling: touch; 
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
-        /* 테이블 자체는 내용물에 따라 너비가 결정되도록 변경 */
+        /* 테이블 자체는 max-width: 80%를 적용하고 내용물에 따라 너비가 결정되도록 변경 */
         .data-table-wrapper table {
-             /* width: 100%; 삭제 */
+             max-width: 80%; /* 테이블 최대 너비 80% 제한 */
+             width: auto;
              table-layout: auto; /* fixed 제거 */
              border: none; 
              margin: 0 auto; /* 중앙 정렬 */
@@ -660,10 +657,10 @@ ${RAW_TABLE_ROWS}
         const rows = getPageRows(page);
         const container = document.getElementById('dataRecordsContainer');
         
-        // 테이블 구조 생성: width: auto와 table-layout: auto를 사용하여 100%를 채우지 않도록 합니다.
+        // 테이블 구조 생성: max-width: 80% 적용
         const tableHtml = \`
             <div class="data-table-wrapper">
-            <table style="width: auto; border-collapse: collapse; border-spacing: 0; table-layout: auto; font-size: 11px; margin: 0 auto;">
+            <table style="width: auto; max-width: 80%; border-collapse: collapse; border-spacing: 0; table-layout: auto; font-size: 11px; margin: 0 auto;">
                 <thead>
                     <tr>
                         <th style="padding: 1px 0.5px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th> 
@@ -932,3 +929,5 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
+
+
