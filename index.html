@@ -16,6 +16,13 @@
         #app {
             min-height: 100vh;
         }
+
+        /* ⭐️ 추가된 CSS: iFrame 컨테이너의 높이를 탭 영역을 제외한 나머지 화면 전체로 설정 */
+        .iframe-container-height {
+            /* 100vh(화면 전체)에서 상단 패딩, 버튼 높이, 하단 여백 등을 뺀 높이 (약 160px) */
+            /* 이 값이 모바일 브라우저 환경에 따라 달라질 수 있으므로, 작동하지 않으면 100vh-100px 등으로 조정해보세요. */
+            height: calc(100vh - 160px);
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -40,7 +47,7 @@
             </button>
         </div>
 
-        <div id="tab-content" class="flex-1 bg-white p-0 rounded-xl shadow-xl overflow-hidden flex flex-col">
+        <div id="tab-content" class="flex-1 bg-white p-0 rounded-xl shadow-xl overflow-hidden flex flex-col iframe-container-height">
 
             <div id="content-cal" class="tab-pane w-full h-full flex-1 overflow-y-auto hidden">
                 <iframe src="cal.html" class="w-full h-full border-0"></iframe>
@@ -57,7 +64,7 @@
             <div id="instruction-message" class="p-8 text-center text-gray-500">
                 <p class="text-xl font-bold text-indigo-600">파일 내용을 보려면 탭을 선택하세요.</p>
                 <p class="text-sm mt-3 border-t pt-3">
-                    **주의:** 이 HTML 파일과 **같은 폴더**에 **`cal.html`**, **`money.html`**, **`cal2.html`** 파일이 있어야 내용이 표시됩니다.
+                    **주의:** 이 HTML 파일과 **같은 폴더**에 세 개의 파일이 있어야 합니다.
                 </p>
             </div>
 
@@ -65,7 +72,7 @@
     </div>
 
     <script>
-        // JavaScript for Tab Functionality
+        // JavaScript for Tab Functionality (로직은 변경 없음)
 
         document.addEventListener('DOMContentLoaded', () => {
             const tabButtons = document.querySelectorAll('.tab-button');
@@ -74,10 +81,6 @@
 
             let activeTab = 'cal';
 
-            /**
-             * 탭 상태를 업데이트하고 UI를 변경합니다.
-             * @param {string} tabName 활성화할 탭 이름 ('cal', 'money', 'cal2')
-             */
             function switchTab(tabName) {
                 activeTab = tabName;
 
@@ -117,7 +120,7 @@
                 });
             });
 
-            // 초기 로드 시: 'cal' 탭 버튼 스타일은 적용하고, 내용은 숨긴 채 안내 메시지를 표시합니다.
+            // 초기 로드 시
             switchTab('cal'); 
             tabPanes.forEach(pane => pane.classList.add('hidden')); 
             if (instructionMessage) {
