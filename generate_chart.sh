@@ -12,26 +12,32 @@ fi
 
 
 # 1. 데이터 파싱 (차트용 데이터: 변화 값 - 시간 순서대로)
-# 누적값이 아닌, 직전 값과의 '변화 값' 리스트를 생성합니다. (첫 번째 데이터의 변화는 0)
+# JS_VALUES: 누적값이 아닌, 직전 값과의 '변화 값' 리스트를 생성합니다. (첫 번째 데이터의 변화는 0)
+# ⭐️ 변경: 값이 변하지 않은 중간 데이터 포인트는 필터링하여 제외합니다.
 JS_VALUES=$(awk -F ' : ' '
     { 
         # 쉼표 제거 후 숫자값으로 변환
         gsub(/,/, "", $2); 
-        values[NR] = $2 + 0; # NR starts at 1
+        all_values[NR] = $2 + 0; # NR starts at 1
     }
     END {
-        # 변화값 배열
-        change_values[1] = 0; # 첫 번째 데이터 포인트의 변화는 0으로 처리 (시작점)
+        filtered_changes[1] = 0; # 첫 번째 데이터 포인트의 변화는 0으로 처리 (시작점)
+        filtered_index = 1;
         
+        # Iterate from the second point
         for (i = 2; i <= NR; i++) {
-            # 변화값 = 현재 값 - 이전 값
-            change_values[i] = values[i] - values[i-1];
+            # ⭐️ 변경: 값이 이전 값과 다를 경우에만 변화값을 기록합니다.
+            if (all_values[i] != all_values[i-1]) {
+                change = all_values[i] - all_values[i-1];
+                filtered_index++;
+                filtered_changes[filtered_index] = change;
+            }
         }
 
         # 변화값 출력
-        for (j = 1; j <= NR; j++) {
-            printf "%s", change_values[j]
-            if (j < NR) {
+        for (j = 1; j <= filtered_index; j++) {
+            printf "%s", filtered_changes[j]
+            if (j < filtered_index) {
                 printf ", "
             }
         }
@@ -39,16 +45,31 @@ JS_VALUES=$(awk -F ' : ' '
 ' result.txt) 
 
 # JS_LABELS: 시간 레이블을 "월-일 시" 형식 (MM-DD HH시)으로 포맷합니다.
+# ⭐️ 변경: JS_VALUES와 동기화하여 값이 변하지 않은 시점의 레이블은 제외합니다.
 JS_LABELS=$(awk -F ' : ' '
     { 
+        gsub(/,/, "", $2); 
+        all_values[NR] = $2 + 0;
+        
         # $1 format is YYYY-MM-DD HH:MM:SS. Extract MM-DD HH시
         formatted_label = substr($1, 6, 5) " " substr($1, 12, 2) "시";
-        labels[i++] = "\"" formatted_label "\""
+        all_labels[NR] = formatted_label;
     }
     END {
-        for (j=0; j<i; j++) {
-            printf "%s", labels[j]
-            if (j < i-1) {
+        filtered_labels[1] = all_labels[1]; # 첫 번째 레이블은 포함
+        filtered_index = 1;
+        
+        for (i = 2; i <= NR; i++) {
+            # ⭐️ 변경: 값이 이전 값과 다를 경우에만 레이블을 기록합니다.
+            if (all_values[i] != all_values[i-1]) {
+                filtered_index++;
+                filtered_labels[filtered_index] = all_labels[i];
+            }
+        }
+
+        for (j = 1; j <= filtered_index; j++) {
+            printf "\"%s\"", filtered_labels[j]
+            if (j < filtered_index) {
                 printf ", "
             }
         }
@@ -56,6 +77,7 @@ JS_LABELS=$(awk -F ' : ' '
 ' result.txt) 
 
 # 2. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
+# 변화 없는 데이터 필터링 없이 모든 RAW 데이터를 표시합니다. (기존 로직 유지)
 RAW_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -124,6 +146,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
 ' result.txt) 
 
 # 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거)
+# 일별 최종값(누적)은 중복 제거 없이 날짜별 최종값만 사용합니다 (기존 로직 유지)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -233,7 +256,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 변경 없음)
+# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 기존 로직 유지)
 JS_DAILY_VALUES=$(awk -F ' : ' '
     {
         numeric_value = $2;
@@ -265,7 +288,7 @@ JS_DAILY_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 변경 없음)
+# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 기존 로직 유지)
 JS_DAILY_LABELS=$(awk -F ' : ' '
     {
         date = substr($1, 1, 10);
@@ -348,7 +371,7 @@ PAYLOAD='{
 # AI 예측 헤더 업데이트
 PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE} 및 ${END_OF_MONTH_DATE}"
 # 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
-PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
+PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
 if [ -n "$GEMINI_API_KEY" ]; then
     # curl 호출 및 응답 획득 (출력은 stderr로 리다이렉트)
@@ -578,7 +601,6 @@ cat << CHART_END > money.html
              border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
         }
         /* 일일 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
-        /* 이 부분은 data-table-wrapper 클래스를 적용하면서 필요 없어졌습니다. */
         /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
 
     </style>
@@ -905,5 +927,4 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
-
 
