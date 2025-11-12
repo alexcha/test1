@@ -399,8 +399,8 @@ if [ -n "$GEMINI_API_KEY" ]; then
     fi
 fi
 
-# 6. HTML 파일 생성 (index.html)
-cat << CHART_END > index.html
+# 6. HTML 파일 생성 (money.html로 변경)
+cat << CHART_END > money.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -854,3 +854,4 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
+
