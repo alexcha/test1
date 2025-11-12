@@ -57,7 +57,7 @@ JS_LABELS=$(awk -F ' : ' '
 ' result.txt) 
 
 # 2. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
-# 데이터는 최신순(NR에서 1까지 역순)으로 정렬됩니다.
+# 폰트/패딩 조정 유지
 RAW_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -125,7 +125,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (max-width 900px로 유지, 폰트/패딩 조정)
+# 3. 일별 집계 테이블 생성 (max-width 설정 제거 및 table-layout: fixed 추가 유지)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -176,8 +176,8 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # table-layout: fixed 및 colgroup 추가를 위해 style 조정
-        print "<table style=\"width: 100%; max-width: 900px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
+        # max-width 제거, font-size: 13px, table-layout: fixed 유지
+        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
         # 각 열의 너비를 비율로 지정하여 칸이 좁아지지 않도록 합니다.
         print "<colgroup>\
             <col style=\"width: 33%;\">\
@@ -390,7 +390,7 @@ if [ -n "$GEMINI_API_KEY" ]; then
             if [ -n "$SOURCES_ARRAY" ]; then
                 FIRST_SOURCE=$(echo "$SOURCES_ARRAY" | head -n 1)
                 URI=$(echo "$FIRST_SOURCE" | awk '{print $1}')
-                TITLE=$(echo "$FIRST_SOURCE" | awk '{$1=""; print $0}' | xargs) # URI를 제외한 나머지를 제목으로 사용
+                TITLE=$(echo "$FIRST_SOURCE" | awk '{$1=""; print $0}' | xargs)
 
                 if [ ! -z "$URI" ] && [ ! -z "$TITLE" ]; then
                     SOURCES_HTML="<div class=\"sources-container\">
@@ -416,20 +416,22 @@ cat << CHART_END > money.html
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
+        /* 좌우 꽉 참 및 내용 대비 문제 해결 CSS */
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; color: #333; }
-        /* 컨테이너의 너비를 100%로 설정하여 좌우 꽉 채우고, 내부 여백을 최소화합니다. */
+        
         .container { 
-            width: 100%; 
+            width: 100%; /* 좌우 꽉 채우기 */
             max-width: 1400px; 
-            margin: 0 auto; /* 상하 마진 0, 좌우 자동 */
+            margin: 0 auto; 
             padding: 10px; /* 내부 여백 최소화 */
             background: white; 
             border-radius: 0; 
             box-shadow: none; 
         }
+        
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 26px; font-weight: 700; }
         p.update-time { text-align: center; color: #777; margin-bottom: 20px; font-size: 14px; }
-        /* 차트 컨테이너가 모바일에서 너무 작아지지 않도록 최소 높이 설정 */
+        
         .chart-container { 
             margin-bottom: 30px; 
             border: 1px solid #eee; 
@@ -439,9 +441,9 @@ cat << CHART_END > money.html
             height: 40vh; 
             min-height: 300px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            position: relative; /* 메시지 배치를 위해 추가 */
+            position: relative; 
         }
-        /* h2 스타일: 두 제목 모두 검정색으로 통일 */
+        
         h2 { 
             margin-top: 30px; 
             margin-bottom: 10px; 
@@ -450,22 +452,22 @@ cat << CHART_END > money.html
             font-size: 22px; 
             font-weight: 600;
             border-bottom: 2px solid #343a40; 
-            padding-bottom: 8px;
+            padding-bottom: 8px; 
             display: inline-block;
             width: auto;
             margin-left: auto;
             margin-right: auto;
         }
-        /* 일일 집계 차트 제목 마진 조정 */
+        
         #daily-chart-header {
             margin-top: 40px !important; 
         }
         
-        /* --- AI 예측 섹션 스타일 개선 --- */
+        /* AI 예측 섹션 스타일 */
         .prediction-section {
             padding: 20px;
-            margin-bottom: 30px;
-            background-color: #f0f8ff; /* Light blue background for success section */
+            margin-bottom: 30px; 
+            background-color: #f0f8ff; 
             border: 2px solid #007bff;
             border-radius: 12px;
             text-align: center;
@@ -477,18 +479,20 @@ cat << CHART_END > money.html
             padding-bottom: 0;
             font-size: 24px;
         }
-        /* 오류 메시지 스타일 */
+        
+        /* 오류 메시지 스타일: 대비 강화 */
         .error-message {
             text-align: left;
             padding: 15px;
-            background-color: #ffe0e6; /* Bright background for error */
-            border: 1px solid #dc3545; /* Red border */
-            color: #dc3545; /* Red text */
+            background-color: #ffe0e6; 
+            border: 1px solid #dc3545; 
+            color: #dc3545; 
             border-radius: 8px;
             line-height: 1.6;
             font-size: 15px;
             margin-top: 20px;
         }
+        
         /* 성공 메시지 컨테이너 */
         .success-message {
             text-align: left;
@@ -500,8 +504,9 @@ cat << CHART_END > money.html
             font-size: 15px;
             line-height: 1.6;
             margin-top: 20px;
-            color: #333; /* Black text */
+            color: #333; 
         }
+        
         .sources-container {
              margin-top: 20px; 
              border-top: 1px solid #eee; 
@@ -554,18 +559,31 @@ cat << CHART_END > money.html
             color: #555;
             font-size: 15px;
         }
-        /* 데이터 테이블 Wrapper - max-width 900px로 유지 */
+        /* 데이터 테이블 Wrapper - 테이블 래퍼가 잘리지 않도록 overflow-x: auto를 추가합니다. */
         .data-table-wrapper {
             width: 100%; 
-            max-width: 900px; 
+            /* max-width는 브라우저 폭에 맞춰야 하므로 제거합니다 */
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
             min-width: 300px; 
             border-radius: 8px; 
-            overflow: hidden;
+            overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
+            -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
+        /* 테이블 자체는 100% 너비로 설정하고, fixed layout을 사용하여 너비를 분할합니다. */
+        .data-table-wrapper table {
+             width: 100%;
+             min-width: 400px; /* 테이블이 너무 작아지는 것을 방지 */
+        }
+        /* 일별 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
+        div table {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
     </style>
 </head>
 <body>
@@ -591,7 +609,7 @@ cat << CHART_END > money.html
         <div style="text-align: center;">
             <h2>일일 집계 기록 (최신순)</h2>
         </div>
-        <div>
+        <div class="data-table-wrapper">
             ${DAILY_SUMMARY_TABLE}
         </div> 
         
@@ -653,8 +671,8 @@ ${RAW_TABLE_ROWS}
             <div class="data-table-wrapper">
             <table style="width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px;">
                 <colgroup>
-                    <col style="width: 30%;"> /* 시간 */
-                    <col style="width: 40%;"> /* 값 */
+                    <col style="width: 33%;"> /* 시간 */
+                    <col style="width: 37%;"> /* 값 */
                     <col style="width: 30%;"> /* 변화 */
                 </colgroup>
                 <thead>
