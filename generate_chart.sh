@@ -116,16 +116,17 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
             } 
 
             # Print only the <tr> tag, escaped quotes are handled by shell here-doc below
+            # 폰트 크기 조정에 따라 padding: 12px -> 8px로 축소
             printf "<tr>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (max-width 950px -> 900px로 수정)
+# 3. 일별 집계 테이블 생성 (max-width 900px로 유지, 폰트/패딩 조정)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -176,11 +177,13 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        print "<table style=\"width: 100%; max-width: 900px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        # font-size: 14px -> 13px로 수정
+        print "<table style=\"width: 100%; max-width: 900px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        # th padding: 14px -> 8px로 수정
         print "<thead><tr>\
-            <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
-            <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
-            <th style=\"padding: 14px; background-color: white; text-align: right; color: #333;\">변화</th>\
+            <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
+            <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
+            <th style=\"padding: 8px; background-color: white; text-align: right; color: #333;\">변화</th>\
         </tr></thead>";
         print "<tbody>"; 
 
@@ -208,10 +211,11 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
+            # td padding: 12px -> 8px로 수정
             row_data[i] = sprintf("<tr>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
-                <td style=\"padding: 12px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>", date, current_value_display, color_style, diff_display); 
 
             prev_value = current_value;
@@ -534,12 +538,11 @@ cat << CHART_END > money.html
         /* 데이터 테이블 Wrapper - max-width 950px -> 900px로 수정 */
         .data-table-wrapper {
             width: 100%; 
-            max-width: 900px; 
+            max-width: 900px; /* 테이블의 최대 너비를 900px로 유지 (950px에서 줄임) */
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
-            border: 1px solid #ddd; 
-            font-size: 14px; 
+            /* font-size는 AWK 스크립트의 인라인 스타일로 제어됩니다. */
             min-width: 300px; 
             border-radius: 8px; 
             overflow: hidden;
@@ -630,9 +633,9 @@ ${RAW_TABLE_ROWS}
             <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
                 <thead>
                     <tr>
-                        <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
-                        <th style="padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
-                        <th style="padding: 14px; background-color: white; text-align: right; color: #333;">변화</th>
+                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333; font-size: 13px;">시간</th>
+                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333; font-size: 13px;">값</th>
+                        <th style="padding: 8px; background-color: white; text-align: right; color: #333; font-size: 13px;">변화</th>
                     </tr>
                 </thead>
                 <tbody>
