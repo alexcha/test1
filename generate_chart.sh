@@ -114,7 +114,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
-            # padding: 8px -> 4px로 축소
+            # padding: 4px로 유지
             printf "<tr>\
                 <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
                 <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
@@ -177,13 +177,13 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
 
         # border, border-spacing: 0, font-size: 13px, table-layout: fixed
         print "<table style=\"width: 100%; border-collapse: collapse; border-spacing: 0; font-size: 13px; border-radius: 8px; overflow: hidden; margin-top: 0; table-layout: fixed;\">";
-        # 각 열의 너비를 비율로 지정
+        # 각 열의 너비를 비율로 지정 (35/35/30 비율로 조정)
         print "<colgroup>\
-            <col style=\"width: 33%;\">\
-            <col style=\"width: 37%;\">\
+            <col style=\"width: 35%;\">\
+            <col style=\"width: 35%;\">\
             <col style=\"width: 30%;\">\
         </colgroup>";
-        # th padding: 14px -> 4px로 수정
+        # th padding: 4px로 수정
         print "<thead><tr>\
             <th style=\"padding: 4px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
             <th style=\"padding: 4px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
@@ -215,7 +215,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # td padding: 8px -> 4px로 수정
+            # td padding: 4px로 수정
             row_data[i] = sprintf("<tr>\
                 <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
                 <td style=\"padding: 4px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
@@ -573,14 +573,12 @@ cat << CHART_END > money.html
         /* 테이블 자체는 min-width를 확보하여 스크롤이 생기게 하고, fixed layout과 colgroup으로 너비를 배분합니다. */
         .data-table-wrapper table {
              width: 100%;
-             min-width: 500px; /* 테이블이 모바일에서 좁아지는 것을 방지 (최소 500px 확보) */
+             /* min-width: 500px을 제거하여 유연하게 만듭니다. */
              table-layout: fixed;
              border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
-             /* 셀의 상하 테두리는 td에 인라인으로 설정되어 있음 */
         }
-        /* 일별 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
-        /* 이 부분은 data-table-wrapper 클래스를 적용하면서 필요 없어졌습니다. */
-        /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
+        /* 일별 집계 테이블을 감싸는 div에 data-table-wrapper 클래스를 적용하지 않았으므로, 인라인 스타일 수정이 필요합니다. */
+        /* 이전에 DAILY_SUMMARY_TABLE에 인라인으로 적용되었던 max-width: 1000px을 제거합니다. */
 
     </style>
 </head>
@@ -607,6 +605,7 @@ cat << CHART_END > money.html
         <div style="text-align: center;">
             <h2>일일 집계 기록 (최신순)</h2>
         </div>
+        <!-- 래퍼 div에 overflow-x: auto를 적용합니다. -->
         <div class="data-table-wrapper">
             ${DAILY_SUMMARY_TABLE}
         </div> 
@@ -665,12 +664,13 @@ ${RAW_TABLE_ROWS}
         const container = document.getElementById('dataRecordsContainer');
         
         // 테이블 구조 생성
+        // data-table-wrapper 클래스를 래퍼로 사용하고, 테이블 자체에 min-width를 적용
         const tableHtml = \`
             <div class="data-table-wrapper">
             <table style="width: 100%; border-collapse: collapse; border-spacing: 0; table-layout: fixed; font-size: 13px;">
                 <colgroup>
-                    <col style="width: 33%;"> /* 시간 */
-                    <col style="width: 37%;"> /* 값 */
+                    <col style="width: 35%;"> /* 시간 */
+                    <col style="width: 35%;"> /* 값 */
                     <col style="width: 30%;"> /* 변화 */
                 </colgroup>
                 <thead>
