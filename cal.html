@@ -141,8 +141,6 @@
 <body class="bg-gray-100 p-4 md:p-8">
 
 <div class="calculator w-full">
-    <h2 class="text-2xl font-bold text-center text-indigo-800 border-b-4 border-indigo-500 pb-3 mb-6">📈 주식 거래 손익률 계산기</h2>
-    
     <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
     <div id="tab-profit-loss" class="tab-content">
@@ -384,7 +382,7 @@
             signPrefix = '+';
         } else if (netProfitLoss < 0) {
             resultClass = `${prefix}-loss-text`;
-            signPrefix = '-';
+            signPrefix = ''; // 손실일 때는 마이너스 부호는 formatCurrency에서 처리됩니다.
         }
 
         const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
@@ -481,19 +479,19 @@
                 <tr class="bg-gray-50">
                     <th>순이익/손실 (세후)</th>
                     <td class="value-col">
-                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : ''} ${formatCurrency(netProfitLoss, 0)} 원</span>
+                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '-' : '')} ${formatCurrency(netProfitLoss, 0)} 원</span>
                     </td>
                 </tr>
                 <tr class="font-bold text-lg bg-yellow-100">
                     <th><span class="text-blue-600">최종 손익률 (세후)</span></th>
                     <td class="value-col">
-                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : ''}${profitRateText}</span>
+                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '-' : '')}${formatCurrency(netProfitRate, 2)} %</span>
                     </td>
                 </tr>
                 <tr>
                     <th>참고: 단순 수익률 (세전)</th>
                     <td class="value-col">
-                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'}">${simpleProfit > 0 ? '+' : ''}${simpleProfitRateText}</span>
+                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'}">${simpleProfit > 0 ? '+' : (simpleProfit < 0 ? '-' : '')}${simpleProfitRateText}</span>
                     </td>
                 </tr>
             </tbody>
@@ -501,6 +499,17 @@
 
         document.getElementById('pl_resultTable').innerHTML = tableHTML;
         document.getElementById('pl_result').style.display = 'block';
+        
+        // 결과창의 테두리와 배경색을 순손익에 따라 변경
+        const resultDiv = document.getElementById('pl_result');
+        if (netProfitLoss > 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익은 빨간색 (한국 주식 양봉색)
+        } else if (netProfitLoss < 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실은 파란색 (한국 주식 음봉색)
+        } else {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
+        }
+
     }
 
     /**
