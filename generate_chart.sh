@@ -419,7 +419,7 @@ cat << CHART_END > money.html
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; color: #333; }
         
         .container { 
-            width: 100%; /* 좌우 꽉 채우기 */
+            width: 95%; /* 사용자가 요청한 95% 너비로 수정 */
             max-width: 1400px; 
             margin: 0 auto; 
             padding: 10px; /* 내부 여백 최소화 */
