@@ -43,22 +43,21 @@
         <div id="tab-content" class="flex-1 bg-white p-0 rounded-xl shadow-xl overflow-hidden flex flex-col">
 
             <div id="content-cal" class="tab-pane w-full h-full flex-1 hidden">
-                <iframe src="about:blank" class="w-full h-full border-0"></iframe>
+                <iframe src="cal.html" class="w-full h-full border-0"></iframe>
             </div>
 
             <div id="content-money" class="tab-pane w-full h-full flex-1 hidden">
-                <iframe src="about:blank" class="w-full h-full border-0"></iframe>
+                <iframe src="money.html" class="w-full h-full border-0"></iframe>
             </div>
             
             <div id="content-cal2" class="tab-pane w-full h-full flex-1 hidden">
-                <iframe src="about:blank" class="w-full h-full border-0"></iframe>
+                <iframe src="cal2.html" class="w-full h-full border-0"></iframe>
             </div>
             
             <div id="instruction-message" class="p-8 text-center text-gray-500">
                 <p class="text-xl font-bold text-indigo-600">파일 내용을 보려면 탭을 선택하세요.</p>
                 <p class="text-sm mt-3 border-t pt-3">
-                    **주의:** 현재 iFrame의 `src`는 "about:blank"로 설정되어 있습니다. 
-                    **실제 파일을 호스팅**하고 각 iFrame의 `src` 속성을 (`cal.html`, `money.html`, `cal2.html`) 경로에 맞게 변경해야 내용이 표시됩니다.
+                    **주의:** 이 HTML 파일과 **같은 폴더**에 **`cal.html`**, **`money.html`**, **`cal2.html`** 파일이 있어야 내용이 표시됩니다.
                 </p>
             </div>
 
@@ -73,7 +72,6 @@
             const tabPanes = document.querySelectorAll('.tab-pane');
             const instructionMessage = document.getElementById('instruction-message');
 
-            // 기본 활성화 탭을 'cal'로 설정합니다.
             let activeTab = 'cal';
 
             /**
@@ -87,7 +85,6 @@
                 tabButtons.forEach(button => {
                     const isActive = button.getAttribute('data-tab') === tabName;
                     
-                    // Tailwind 클래스를 사용하여 활성/비활성 스타일 적용
                     if (isActive) {
                         button.classList.add('bg-indigo-600', 'text-white', 'shadow-lg');
                         button.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-indigo-50');
@@ -120,7 +117,7 @@
                 });
             });
 
-            // 초기 로드 시: 'cal' 탭 버튼 스타일은 적용하되, 실제 내용은 숨기고 안내 메시지를 표시합니다.
+            // 초기 로드 시: 'cal' 탭 버튼 스타일은 적용하고, 내용은 숨긴 채 안내 메시지를 표시합니다.
             switchTab('cal'); 
             tabPanes.forEach(pane => pane.classList.add('hidden')); 
             if (instructionMessage) {
