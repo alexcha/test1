@@ -21,14 +21,16 @@ JS_VALUES=$(awk -F ' : ' '
         all_values[NR] = $2 + 0; # NR starts at 1
     }
     END {
-        filtered_changes[1] = 0; # 첫 번째 데이터 포인트의 변화는 0으로 처리 (시작점)
+        # 첫 번째 데이터 포인트의 변화는 0으로 처리 (시작점). 
+        # 이 포인트는 항상 포함합니다.
+        filtered_changes[1] = 0; 
         filtered_index = 1;
         
         # Iterate from the second point
         for (i = 2; i <= NR; i++) {
             change = all_values[i] - all_values[i-1];
             
-            # ⭐️ 핵심: 변화가 0이 아닐 경우에만 기록 (상승 또는 하락)
+            # ⭐️ 핵심 수정: 변화가 0이 아닐 경우에만 기록 (상승 또는 하락)
             if (change != 0) {
                 filtered_index++;
                 filtered_changes[filtered_index] = change;
@@ -64,7 +66,7 @@ JS_LABELS=$(awk -F ' : ' '
         for (i = 2; i <= NR; i++) {
             change = all_values[i] - all_values[i-1];
             
-            # ⭐️ 핵심: 변화가 0이 아닐 경우에만 레이블을 기록
+            # ⭐️ 핵심 수정: 변화가 0이 아닐 경우에만 레이블을 기록
             if (change != 0) {
                 filtered_index++;
                 filtered_labels[filtered_index] = all_labels[i];
@@ -609,7 +611,6 @@ cat << CHART_END > money.html
 </head>
 <body>
     <div class="container">
-        <!-- <h1>데이터 변화 추이 대시보드</h1> 제목 제거됨 -->
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <div class="prediction-section">
@@ -929,5 +930,3 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
-
-
