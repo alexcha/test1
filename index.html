@@ -58,15 +58,15 @@
         <div id="tab-content" class="bg-white p-0 rounded-xl shadow-xl overflow-hidden flex flex-col">
 
             <div id="content-money" class="tab-pane w-full overflow-y-auto iframe-fixed-height hidden">
-                <iframe src="money.html"></iframe>
+                <iframe id="iframe-money" src="money.html"></iframe>
             </div>
 
             <div id="content-cal" class="tab-pane w-full overflow-y-auto iframe-fixed-height hidden">
-                <iframe src="cal.html"></iframe>
+                <iframe id="iframe-cal" src="cal.html"></iframe>
             </div>
             
             <div id="content-cal2" class="tab-pane w-full overflow-y-auto iframe-fixed-height hidden">
-                <iframe src="cal2.html"></iframe>
+                <iframe id="iframe-cal2" src="cal2.html"></iframe>
             </div>
             
             <div id="instruction-message" class="p-8 text-center text-gray-500">
@@ -86,11 +86,14 @@
             const tabButtons = document.querySelectorAll('.tab-button');
             const tabPanes = document.querySelectorAll('.tab-pane');
             const instructionMessage = document.getElementById('instruction-message');
-
-            let activeTab = 'money';
+            const LAST_TAB_KEY = 'lastActiveTab'; // localStorage 키
+            
+            // 1. 마지막으로 저장된 탭 이름 로드 (없으면 'money' 기본값)
+            const initialTab = localStorage.getItem(LAST_TAB_KEY) || 'money';
 
             function switchTab(tabName) {
-                activeTab = tabName;
+                // 탭 이름을 저장합니다.
+                localStorage.setItem(LAST_TAB_KEY, tabName);
 
                 // 1. 버튼 스타일 업데이트
                 tabButtons.forEach(button => {
@@ -105,10 +108,18 @@
                     }
                 });
 
-                // 2. 내용 패널 업데이트
+                // 2. 내용 패널 업데이트 및 iFrame 새로고침
                 tabPanes.forEach(pane => {
                     if (pane.id === `content-${tabName}`) {
                         pane.classList.remove('hidden');
+                        
+                        // ⭐️ iFrame 새로고침 (캐싱 문제 해결)
+                        const iframe = document.getElementById(`iframe-${tabName}`);
+                        if (iframe) {
+                            // 현재 src 값을 가져와서, 캐시 무시를 위한 쿼리 파라미터(현재 시간)를 추가합니다.
+                            let src = iframe.getAttribute('src').split('?')[0];
+                            iframe.src = `${src}?_t=${new Date().getTime()}`;
+                        }
                     } else {
                         pane.classList.add('hidden');
                     }
@@ -128,12 +139,9 @@
                 });
             });
 
-            // 초기 로드 시 'money' (매출) 탭을 즉시 활성화합니다.
-            switchTab(activeTab); 
-            
-            if (instructionMessage) {
-                instructionMessage.classList.add('hidden'); 
-            }
+            // 초기 로드 시 마지막으로 활성화되었던 탭을 활성화합니다.
+            // iFrame에 ID를 추가했으므로, 초기 로드 시에도 switchTab을 사용하여 새로고침 로직을 태웁니다.
+            switchTab(initialTab); 
         });
     </script>
 </body>
