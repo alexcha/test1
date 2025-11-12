@@ -571,10 +571,9 @@ cat << CHART_END > money.html
             /* 래퍼 자체는 패딩이 없으므로, 테이블 안쪽에서 패딩을 확보해야 합니다. */
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
-        /* 테이블 자체는 min-width를 확보하여 스크롤이 생기게 하고, fixed layout과 colgroup으로 너비를 배분합니다. */
+        /* 테이블 자체는 100% 너비를 사용하고 fixed layout과 colgroup으로 너비를 배분합니다. */
         .data-table-wrapper table {
              width: 100%;
-             min-width: 500px; /* 테이블이 모바일에서 좁아지는 것을 방지 (최소 500px 확보) */
              table-layout: fixed;
              border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
         }
@@ -669,9 +668,9 @@ ${RAW_TABLE_ROWS}
             <div class="data-table-wrapper">
             <table style="width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px;">
                 <colgroup>
-                    <col style="width: 33%;"> /* 시간 */
-                    <col style="width: 37%;"> /* 값 */
-                    <col style="width: 30%;"> /* 변화 */
+                    <col style="width: 33%;"> 
+                    <col style="width: 37%;"> 
+                    <col style="width: 30%;"> 
                 </colgroup>
                 <thead>
                     <tr>
@@ -906,4 +905,5 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
+
 
