@@ -124,12 +124,11 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 prev_val_num = values_num[i - 1];
                 diff = current_val_num - prev_val_num;
                 
-                # ⭐️ 핵심 수정: 변화가 0이 아니거나 (diff != 0) 또는 첫 번째 데이터 (i == 1)인 경우에만 기록합니다.
-                # 현재 루프는 역순(i=NR부터 1까지)이므로, diff가 0이 아닌 경우와 마지막 데이터(i=NR)를 필터링해야 합니다.
-                # 하지만, AWK 배열에 저장된 순서대로 변화를 계산하고, 마지막에 역순으로 출력하는 것이 일반적입니다.
-                # 현재 로직은 역순으로 순회하며 i-1의 값을 참조합니다. 따라서 i=1일 때만 '---'를 표시하고,
-                # i>1 이고 diff == 0이면 출력하지 않아야 합니다.
-
+                # ⭐️ 핵심 수정: 변화가 0인 경우, 이 행 전체를 건너뜁니다.
+                if (diff == 0 && i != 1) { 
+                    continue; 
+                }
+                
                 if (diff != 0) {
                     diff_display = comma_format(diff); 
 
@@ -142,9 +141,6 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                     # 원본 데이터의 가장 오래된 기록은 변화가 '---'입니다. (역순 루프에서 가장 마지막)
                     diff_display = "---";
                     color_style = "color: #6c757d;";
-                } else {
-                    # 변화가 0인 경우, 이 행 전체를 건너뜁니다.
-                    continue; 
                 }
             } else {
                 # 루프의 마지막 실행 (가장 오래된 데이터)
