@@ -1,66 +1,8 @@
 #!/bin/bash
-# 이 스크립트는 데이터 추출, 계산, 그리고 HTML 대시보드 생성까지 모두 처리합니다.
+# 이 스크립트는 result.txt 파일을 읽어 HTML 대시보드를 생성합니다.
 
 
-
-# 🚨 TZ 환경 변수를 'Asia/Seoul'로 설정하여 date 명령이 정확히 KST를 출력하도록 강제합니다.
-export TZ='Asia/Seoul'
-
-# 1. 데이터 추출 및 계산 로직 시작 (사용자 제공 스크립트 기반)
-# ----------------------------------------------------------------
-
-# 1.1. 스크립트 실행 시간 획득 (이제 정확히 KST 시간이 출력됩니다)
-EXEC_TIME=$(date '+%Y-%m-%d %H:%M:%S KST')
-
-# 1.2. 상수 정의
-URL="https://sss.wemixplay.com/en/lygl?wmsso_sign=check"
-CONSTANT_VALUE=50000
-MULTIPLIER=100
-
-# 1.3. 데이터 가져오기 및 타겟 라인 추출
-TARGET_LINE=$(curl -s "$URL" | html2text | grep 'WEMIX = \$')
-
-# 1.4. WEMIX 총액 (A) 추출 및 정제
-# WEMIX = $48,918 (0.5672)와 같은 패턴에서 $48,918을 추출
-A_RAW=$(echo "$TARGET_LINE" | grep -o 'WEMIX = \$[0-9,]*' | sed -E 's/WEMIX = \$//')
-A_NUM=$(echo "$A_RAW" | tr -d ',' | tr -d ' ' | tr -d '$') # 쉼표, 공백, $ 기호 모두 제거
-
-# 1.5. WEMIX 단가 (B) 추출 및 정제 (예: $0.5672)
-# 패턴: WEMIX = $48,918 (0.5672)
-B_RAW=$(echo "$TARGET_LINE" | grep -o '([0-9.]\+)' | tr -d '()')
-B_NUM=$(echo "$B_RAW" | tr -d '$')
-
-# 1.6. 필수 값 누락 확인 (오류 방지)
-if [ -z "$A_NUM" ] || [ -z "$B_NUM" ]; then
-    echo "오류: 유동적인 두 값을 모두 추출하지 못했습니다. (A_NUM: '$A_NUM', B_NUM: '$B_NUM')" >&2
-    # 데이터를 추출하지 못했으므로, result.txt에 최소한의 오류 레코드를 남기고 스크립트 종료
-    echo "$EXEC_TIME : 0" >> result.txt 
-    exit 1
-fi
-
-# 1.7. 계산 (bc 사용)
-CALC_EXPRESSION="$A_NUM - ($CONSTANT_VALUE * $B_NUM)"
-FINAL_CALC_EXPRESSION="($CALC_EXPRESSION) * $MULTIPLIER"
-
-# scale=0: 소수점 이하를 표시하지 않습니다.
-RESULT=$(echo "scale=0; $FINAL_CALC_EXPRESSION / 1" | bc)
-
-# 1.8. 최종 결과 포맷팅 (쉼표 추가)
-if [ "$RESULT" -lt 0 ]; then
-    ABS_RESULT=$(echo "$RESULT" | tr -d '-')
-    FINAL_RESULT_FORMATTED="-$(echo "$ABS_RESULT" | sed -E ':a;s/^([0-9]+)([0-9]{3})/\1,\2/;ta')"
-else
-    FINAL_RESULT_FORMATTED=$(echo "$RESULT" | sed -E ':a;s/^([0-9]+)([0-9]{3})/\1,\2/;ta')
-fi
-
-# 1.9. 최종 출력 및 result.txt에 기록
-echo "$EXEC_TIME : $FINAL_RESULT_FORMATTED" >> result.txt
-
-
-# 2. HTML 대시보드 생성 로직 시작
-# ----------------------------------------------------------------
-
-# 🚨 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
+# 🚨 1. 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
 # GitHub Actions의 ${{ secrets.GKEY }}가 env: GEMINI_API_KEY로 매핑되어 전달됩니다.
 GEMINI_API_KEY="$GEMINI_API_KEY" 
 
@@ -70,19 +12,24 @@ if [ -z "$GEMINI_API_KEY" ]; then
 fi
 
 
-# 2.1. 데이터 파싱 (차트용 데이터: 변화 값 - 시간 순서대로)
+# 1. 데이터 파싱 (차트용 데이터: 변화 값 - 시간 순서대로)
+# 누적값이 아닌, 직전 값과의 '변화 값' 리스트를 생성합니다. (첫 번째 데이터의 변화는 0)
 JS_VALUES=$(awk -F ' : ' '
     { 
+        # 쉼표 제거 후 숫자값으로 변환
         gsub(/,/, "", $2); 
-        values[NR] = $2 + 0;
+        values[NR] = $2 + 0; # NR starts at 1
     }
     END {
-        change_values[1] = 0;
+        # 변화값 배열
+        change_values[1] = 0; # 첫 번째 데이터 포인트의 변화는 0으로 처리 (시작점)
         
         for (i = 2; i <= NR; i++) {
+            # 변화값 = 현재 값 - 이전 값
             change_values[i] = values[i] - values[i-1];
         }
 
+        # 변화값 출력
         for (j = 1; j <= NR; j++) {
             printf "%s", change_values[j]
             if (j < NR) {
@@ -92,9 +39,10 @@ JS_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2.2. JS_LABELS: 시간 레이블을 "월-일 시" 형식 (MM-DD HH시)으로 포맷합니다.
+# JS_LABELS: 시간 레이블을 "월-일 시" 형식 (MM-DD HH시)으로 포맷합니다.
 JS_LABELS=$(awk -F ' : ' '
     { 
+        # $1 format is YYYY-MM-DD HH:MM:SS. Extract MM-DD HH시
         formatted_label = substr($1, 6, 5) " " substr($1, 12, 2) "시";
         labels[i++] = "\"" formatted_label "\""
     }
@@ -108,7 +56,8 @@ JS_LABELS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2.3. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
+# 2. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
+# 데이터는 최신순(NR에서 1까지 역순)으로 정렬됩니다.
 RAW_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -121,6 +70,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
         } else {
             sign = "";
         }
+        # 절대값 s를 쉼표 포맷
         abs_s = (s < 0) ? -s : s;
         abs_s_str = abs_s ""; 
         result = "";
@@ -132,6 +82,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     } 
 
     {
+        # $1 format is YYYY-MM-DD HH:MM:SS
         formatted_time = substr($1, 6, 5) " " substr($1, 12, 2) "시";
         
         times[NR] = formatted_time; 
@@ -140,6 +91,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
         values_num[NR] = $2 + 0; 
     }
     END {
+        # NR: total number of records. Loop backwards (newest first).
         for (i = NR; i >= 1; i--) {
             time_str = times[i];
             current_val_str = values_str[i]; 
@@ -163,6 +115,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
+            # Print only the <tr> tag, escaped quotes are handled by shell here-doc below
             printf "<tr>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
                 <td style=\"padding: 12px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
@@ -172,7 +125,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2.4. 일별 집계 테이블 생성 (AWK)
+# 3. 일별 집계 테이블 생성 (변경 없음)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -272,7 +225,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2.5. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 변경 없음)
+# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 변경 없음)
 JS_DAILY_VALUES=$(awk -F ' : ' '
     {
         numeric_value = $2;
@@ -304,7 +257,7 @@ JS_DAILY_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2.6. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 변경 없음)
+# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 변경 없음)
 JS_DAILY_LABELS=$(awk -F ' : ' '
     {
         date = substr($1, 1, 10);
@@ -333,7 +286,7 @@ JS_DAILY_LABELS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 2.7. AI 예측용 원본 데이터 문자열 (프롬프트에 삽입)
+# 4. AI 예측용 원본 데이터 문자열 (프롬프트에 삽입 - 변경 없음)
 RAW_DATA_PROMPT_CONTENT=$(awk '
     {
         gsub(/"/, "\\\"", $0);
@@ -346,26 +299,33 @@ RAW_DATA_PROMPT_CONTENT=$(awk '
 ' result.txt)
 
 
-# 2.8. AI 예측 로직 (API 호출 및 결과 처리)
+# --- 5. AI 예측 로직 (스크립트 실행 시 자동 호출 - 변경 없음) ---
 
 MODEL="gemini-2.5-flash"
 API_URL="https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}"
 
-# 다음 날짜 계산
+# 다음 날짜를 계산합니다.
 LAST_DATA_DATE=$(tail -n 1 result.txt | awk -F ' : ' '{print $1}' | cut -d ' ' -f 1)
 TARGET_DATE=$(date -d "$LAST_DATA_DATE + 1 day" +%Y-%m-%d)
 
-# 현재 월의 마지막 날짜 (월말) 계산
+# 현재 월의 마지막 날짜 (월말)를 계산합니다.
 YEAR_MONTH=$(date -d "$LAST_DATA_DATE" +%Y-%m)
+# 다음 달 1일에서 하루를 빼서 현재 월의 마지막 날을 구합니다.
 END_OF_MONTH_DATE=$(date -d "$YEAR_MONTH-01 + 1 month - 1 day" +%Y-%m-%d)
 
 # JSON 페이로드에 들어갈 내용을 이스케이프하는 함수
 escape_json() {
+    # 1. 백슬래시를 먼저 이스케이프 (JSON 문자열에서 백슬래시는 \\로 표현)
+    # 2. 큰따옴표를 이스케이프 (\"로 표현)
+    # 3. 개행 문자를 JSON 이스케이프 문자열로 변환 (\n으로 표현)
     echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
 }
 
 
+# SYSTEM_PROMPT: CONTEXTUAL_PRIORITY와 모바일 게임 맥락을 모두 포함
 SYSTEM_PROMPT="**핵심 고려 사항: ${CONTEXTUAL_PRIORITY}**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
+
+# USER_QUERY: 불필요한 설명 제거 및 간소화
 USER_QUERY="다음은 시계열 누적 데이터입니다. 이 데이터를 분석하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
 
 JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
@@ -377,10 +337,13 @@ PAYLOAD='{
     "tools": [{ "google_search": {} }]
 }'
 
+# AI 예측 헤더 업데이트
 PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE} 및 ${END_OF_MONTH_DATE}"
+# 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
 PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
 if [ -n "$GEMINI_API_KEY" ]; then
+    # curl 호출 및 응답 획득 (출력은 stderr로 리다이렉트)
     API_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" -H "Accept: application/json" "$API_URL" -d "$PAYLOAD" 2>/dev/null)
     CURL_STATUS=$?
 
@@ -388,13 +351,16 @@ if [ -n "$GEMINI_API_KEY" ]; then
         PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">❌ API 호출 실패.</span> Curl 상태 코드: $CURL_STATUS. 네트워크 연결 또는 API 서버 상태를 확인하세요.</div>"
         PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (Curl 오류)"
     elif echo "$API_RESPONSE" | grep -q '"error":'; then
+        # API 오류 메시지 추출
         ERROR_MESSAGE=$(echo "$API_RESPONSE" | grep -o '"message": "[^"]*"' | head -n 1 | sed 's/"message": "//; s/"$//')
         PREDICTION_TEXT_EMBED="<div class=\"error-message\"><span style=\"font-weight: 700;\">⚠️ 예측 결과 실패.</span> API 오류: ${ERROR_MESSAGE}</div>"
         PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (API 오류)"
     else
+        # jq를 사용하여 안정적으로 JSON 파싱 및 텍스트 추출
         RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // ""' 2>/dev/null)
 
         if [ -z "$RAW_TEXT_CONTENT" ]; then
+            # 텍스트가 비어있을 경우, 블록킹 사유를 확인하여 더 자세한 오류 메시지를 제공
             BLOCK_REASON=$(echo "$API_RESPONSE" | jq -r '.candidates[0].finishReason // .promptFeedback.blockReason // ""' 2>/dev/null)
             
             if [ -n "$BLOCK_REASON" ]; then
@@ -405,15 +371,19 @@ if [ -n "$GEMINI_API_KEY" ]; then
                  PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측 (파싱 오류)"
             fi
         else
+            # \n을 <br>로, \t를 공백으로 변환합니다.
             FORMATTED_TEXT=$(echo "$RAW_TEXT_CONTENT" | sed ':a;N;$!ba;s/\n/<br>/g' | sed 's/\t/&nbsp;&nbsp;&nbsp;&nbsp;/g')
 
+            # 출처/Grounding 정보 추출 (jq 사용)
             SOURCES_HTML=""
+            # groundingAttributions 배열에서 uri와 title을 TSV 형식으로 추출 (오류 무시)
             SOURCES_ARRAY=$(echo "$API_RESPONSE" | jq -r '.candidates[0].groundingMetadata.groundingAttributions[] | select(.web) | [.web.uri, .web.title] | @tsv' 2>/dev/null)
             
+            # 첫 번째 출처만 사용
             if [ -n "$SOURCES_ARRAY" ]; then
                 FIRST_SOURCE=$(echo "$SOURCES_ARRAY" | head -n 1)
                 URI=$(echo "$FIRST_SOURCE" | awk '{print $1}')
-                TITLE=$(echo "$FIRST_SOURCE" | awk '{$1=""; print $0}' | xargs)
+                TITLE=$(echo "$FIRST_SOURCE" | awk '{$1=""; print $0}' | xargs) # URI를 제외한 나머지를 제목으로 사용
 
                 if [ ! -z "$URI" ] && [ ! -z "$TITLE" ]; then
                     SOURCES_HTML="<div class=\"sources-container\">
@@ -423,14 +393,13 @@ if [ -n "$GEMINI_API_KEY" ]; then
                 fi
             fi
             
+            # 성공 메시지 (success-message 클래스 사용)
             PREDICTION_TEXT_EMBED="<div class=\"success-message\">${FORMATTED_TEXT}${SOURCES_HTML}</div>"
         fi
     fi
 fi
 
-
-# 2.9. HTML 파일 생성 (money.html)
-# 레이아웃과 내용 표시 문제를 해결한 최종 HTML 구조입니다.
+# 6. HTML 파일 생성 (money.html로 변경)
 cat << CHART_END > money.html
 <!DOCTYPE html>
 <html>
@@ -440,24 +409,22 @@ cat << CHART_END > money.html
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
-        /* 좌우 꽉 참 및 내용 대비 문제 해결 CSS */
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; color: #333; }
-        
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
+        /* 컨테이너 너비를 98%로 늘리고, 최대 너비를 1400px로 확장, 외부 마진/패딩을 줄여 공간 확보 */
         .container { 
-            width: 100%; /* 좌우 꽉 채우기 */
+            width: 98%; 
             max-width: 1400px; 
-            margin: 0 auto; 
-            padding: 10px; /* 내부 여백 최소화 */
+            margin: 10px auto; 
+            padding: 15px; 
             background: white; 
-            border-radius: 0; 
-            box-shadow: none; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); 
         }
-        
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 26px; font-weight: 700; }
-        p.update-time { text-align: center; color: #777; margin-bottom: 20px; font-size: 14px; }
-        
+        p.update-time { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
+        /* 차트 컨테이너가 모바일에서 너무 작아지지 않도록 최소 높이 설정 */
         .chart-container { 
-            margin-bottom: 30px; 
+            margin-bottom: 50px; 
             border: 1px solid #eee; 
             border-radius: 8px; 
             padding: 15px; 
@@ -465,33 +432,32 @@ cat << CHART_END > money.html
             height: 40vh; 
             min-height: 300px; 
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            position: relative; /* 메시지 배치를 위해 추가 */
         }
-        
+        /* h2 스타일: 두 제목 모두 검정색으로 통일 */
         h2 { 
-            margin-top: 30px; 
-            margin-bottom: 10px; 
+            margin-top: 40px; 
+            margin-bottom: 15px; 
             text-align: center; 
             color: #343a40; 
             font-size: 22px; 
             font-weight: 600;
             border-bottom: 2px solid #343a40; 
-            padding-bottom: 8px; 
+            padding-bottom: 10px;
             display: inline-block;
             width: auto;
             margin-left: auto;
             margin-right: auto;
         }
-        
+        /* 일일 집계 차트 제목 마진 조정 */
         #daily-chart-header {
-            margin-top: 40px !important; 
+            margin-top: 60px !important; 
         }
         
-        /* AI 예측 섹션 스타일 */
+        /* --- AI 예측 섹션 스타일 개선 --- */
         .prediction-section {
             padding: 20px;
-            margin-bottom: 30px; 
-            background-color: #f0f8ff; 
+            margin-bottom: 40px;
+            background-color: #f0f8ff; /* Light blue background for success section */
             border: 2px solid #007bff;
             border-radius: 12px;
             text-align: center;
@@ -503,20 +469,18 @@ cat << CHART_END > money.html
             padding-bottom: 0;
             font-size: 24px;
         }
-        
-        /* 오류 메시지 스타일: 대비 강화 */
+        /* 오류 메시지 스타일 */
         .error-message {
             text-align: left;
             padding: 15px;
-            background-color: #ffe0e6; /* 밝은 배경 */
-            border: 1px solid #dc3545; 
-            color: #dc3545; /* 빨간 텍스트 */
+            background-color: #fcebeb; /* Light red for error */
+            border: 1px solid #dc3545; /* Red border */
+            color: #dc3545; /* Red text */
             border-radius: 8px;
             line-height: 1.6;
             font-size: 15px;
             margin-top: 20px;
         }
-        
         /* 성공 메시지 컨테이너 */
         .success-message {
             text-align: left;
@@ -528,30 +492,14 @@ cat << CHART_END > money.html
             font-size: 15px;
             line-height: 1.6;
             margin-top: 20px;
-            color: #333; /* 검은 텍스트 */
         }
-        
         .sources-container {
              margin-top: 20px; 
              border-top: 1px solid #eee; 
              padding-top: 10px;
         }
         
-        /* 데이터 없음 메시지 스타일 */
-        .no-data-message {
-             position: absolute; /* 차트 중앙에 배치 */
-             top: 50%;
-             left: 50%;
-             transform: translate(-50%, -50%);
-             text-align: center; 
-             color: #6c757d; 
-             padding: 20px; 
-             font-size: 16px;
-             font-weight: 600;
-             width: 80%; /* 중앙 정렬을 위해 너비 지정 */
-        }
-
-        /* --- 페이지네이션 및 테이블 스타일 --- (나머지는 동일) */
+        /* --- 페이지네이션 및 테이블 스타일 --- */
         .pagination-controls {
             display: flex;
             justify-content: center;
@@ -583,6 +531,7 @@ cat << CHART_END > money.html
             color: #555;
             font-size: 15px;
         }
+        /* 데이터 테이블 Wrapper */
         .data-table-wrapper {
             width: 100%; 
             max-width: 1000px; 
@@ -614,7 +563,6 @@ cat << CHART_END > money.html
         </div>
         <div class="chart-container">
             <canvas id="dailyChart"></canvas>
-            <p id="dailyChartNoData" class="no-data-message" style="display: none;">일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div>
         
         <div style="text-align: center;">
@@ -629,7 +577,6 @@ cat << CHART_END > money.html
         </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
-            <p id="simpleChartNoData" class="no-data-message" style="display: none;">데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div> 
 
         
@@ -659,7 +606,7 @@ cat << CHART_END > money.html
     // 줄바꿈 문자로 분리하여 <tr> 태그 문자열 배열로 만듭니다.
     const rawRowData = \`
 ${RAW_TABLE_ROWS}
-\`.trim().split('\\n').filter(row => row.trim() !== '');
+\`.trim().split('\n').filter(row => row.trim() !== '');
 
     const ROWS_PER_PAGE = 20;
     let currentPage = 1;
@@ -737,7 +684,7 @@ ${RAW_TABLE_ROWS}
     if (rawRowData.length > 0) {
         renderTable(currentPage);
     } else {
-        document.getElementById('dataRecordsContainer').innerHTML = "<p class='no-data-message'>데이터 기록이 존재하지 않습니다.</p>";
+        document.getElementById('dataRecordsContainer').innerHTML = "<p style='text-align: center; color: #6c757d; padding: 20px; font-size: 16px;'>데이터 기록이 존재하지 않습니다.</p>";
         document.getElementById('paginationControls').innerHTML = '';
     }
 
@@ -749,11 +696,11 @@ ${RAW_TABLE_ROWS}
         let formattedValue; 
 
         if (absValue >= 1000000000) {
-            formattedValue = (value / 1000000000).toFixed(1).replace(/\\.0$/, '') + 'B';
+            formattedValue = (value / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
         } else if (absValue >= 1000000) {
-            formattedValue = (value / 1000000).toFixed(1).replace(/\\.0$/, '') + 'M';
+            formattedValue = (value / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
         } else if (absValue >= 1000) {
-            formattedValue = (value / 1000).toFixed(1).replace(/\\.0$/, '') + 'K';
+            formattedValue = (value / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
         } else {
             // 정수형으로 포맷팅
             formattedValue = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(value);
@@ -779,14 +726,13 @@ ${RAW_TABLE_ROWS}
     // 1. 차트 렌더링 로직 (simpleChart - 빨간색)
     // --------------------------------------------- 
 
-    const simpleChartCanvas = document.getElementById('simpleChart');
+    const ctx = document.getElementById('simpleChart').getContext('2d');
+    
     if (chartData.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
-        simpleChartCanvas.style.display = 'none';
-        document.getElementById('simpleChartNoData').style.display = 'block';
+        console.error("Chart data is empty. Cannot render simpleChart.");
+        document.getElementById('simpleChart').parentNode.innerHTML = "<p style='text-align: center; color: #dc3545; padding: 50px; font-size: 16px;'>데이터가 없어 차트를 그릴 수 없습니다.</p>";
     } else {
-        document.getElementById('simpleChartNoData').style.display = 'none';
-        new Chart(simpleChartCanvas.getContext('2d'), {
+        new Chart(ctx, {
             type: 'line', 
             data: {
                 labels: chartLabels,
@@ -847,15 +793,13 @@ ${RAW_TABLE_ROWS}
     // ---------------------------------------------
     // 2. 차트 렌더링 로직 (dailyChart - 파란색 - 변경 없음)
     // ---------------------------------------------
-    const dailyChartCanvas = document.getElementById('dailyChart');
-    
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d'); 
+
     if (jsDailyValues.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
-        dailyChartCanvas.style.display = 'none';
-        document.getElementById('dailyChartNoData').style.display = 'block';
+        console.error("Daily chart data is empty. Cannot render dailyChart.");
+        document.getElementById('dailyChart').parentNode.innerHTML = "<p style='text-align: center; color: #007bff; padding: 50px; font-size: 16px;'>일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>";
     } else {
-        document.getElementById('dailyChartNoData').style.display = 'none';
-        new Chart(dailyChartCanvas.getContext('2d'), {
+        new Chart(dailyCtx, {
             type: 'line',
             data: {
                 labels: jsDailyLabels,
@@ -914,4 +858,3 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
-
