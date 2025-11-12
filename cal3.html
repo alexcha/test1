@@ -333,6 +333,9 @@
                     } else if (value === 'plusminus') { // 부호 변경
                         handlePlusMinus();
                     }
+                    
+                    // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
+                    currentOpDisplay.blur();
                 });
             });
         };
@@ -416,7 +419,6 @@
             let rawInput = stripCommas(savedText.trim().replace(/\s/g, ''));
 
             // 3. ⭐️ 입력 필터링: 숫자, 연산자, 괄호, 소수점만 허용
-            // allowedChars: 0-9, +, -, *, /, (, ), .
             const sanitizedInput = rawInput.replace(/[^0-9+\-*/().]/g, '');
             const inputWasFiltered = (rawInput !== sanitizedInput);
 
@@ -553,11 +555,13 @@
                 
                 currentExpression = currentExpression.slice(0, -1);
                 resultDisplayed = false;
-                updateDisplay(); // 커서를 끝으로 이동
+                updateDisplay(); 
             } else {
                 localStorage.removeItem(LAST_CALCULATION_KEY);
                 updateDisplay();
             }
+            // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
+            currentOpDisplay.blur();
         }
 
         function handleParentheses() {
@@ -582,7 +586,7 @@
                 openParentheses++;
             }
 
-            updateDisplay(); // 커서를 끝으로 이동
+            updateDisplay(); 
         }
 
 
@@ -590,7 +594,7 @@
             if (resultDisplayed) {
                 let result = parseFloat(currentExpression) * -1;
                 currentExpression = String(result);
-                updateDisplay(); // 커서를 끝으로 이동
+                updateDisplay(); 
                 return;
             }
 
@@ -621,14 +625,14 @@
                 }
                 
                 currentExpression = newExpression;
-                updateDisplay(); // 커서를 끝으로 이동
+                updateDisplay(); 
             } else if (currentExpression.length > 0) {
                 if (currentExpression.startsWith('-')) {
                     currentExpression = currentExpression.slice(1);
                 } else {
                     currentExpression = `-${currentExpression}`;
                 }
-                updateDisplay(); // 커서를 끝으로 이동
+                updateDisplay(); 
             }
         }
 
@@ -667,7 +671,7 @@
                 }
             }
 
-            updateDisplay(); // 커서를 끝으로 이동
+            updateDisplay(); 
         }
 
         function clearDisplay() {
@@ -679,6 +683,8 @@
             localStorage.removeItem(LAST_CALCULATION_KEY);
             // C 버튼은 커서를 끝으로 이동 (0이므로 0 뒤)
             restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
+            // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
+            currentOpDisplay.blur();
         }
 
         function calculate() {
@@ -739,12 +745,16 @@
                 
                 // 계산 후 커서를 끝으로 이동
                 restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
+                // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
+                currentOpDisplay.blur();
 
             } catch (error) {
                 currentOpDisplay.textContent = "수식 오류";
                 previousOpDisplay.textContent = currentExpression.replace(/\*/g, '×').replace(/\//g, '÷');
                 currentExpression = '';
                 resultDisplayed = true;
+                // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
+                currentOpDisplay.blur();
             }
         }
     </script>
