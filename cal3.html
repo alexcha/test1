@@ -146,10 +146,11 @@
             <!-- Display -->
             <div id="display" class="mb-4 rounded-2xl p-4 flex flex-col items-end justify-end font-light overflow-x-auto whitespace-nowrap scrollbar-hide" style="height: 5rem;">
                 <div id="previous-op" class="text-sm h-6"></div>
-                <!-- contenteditable="true" 추가 및 oninput 이벤트 바인딩 -->
+                <!-- inputmode="decimal"을 추가하여 모바일 환경에서 숫자 키패드를 유도합니다. -->
                 <div id="current-op" contenteditable="true" spellcheck="false" 
                      class="text-4xl font-normal h-10 focus:outline-none" 
-                     oninput="syncInputAndFormat(this)">0</div>
+                     oninput="syncInputAndFormat(this)"
+                     inputmode="decimal">0</div>
             </div>
 
             <!-- Button Grid (Image-based Layout) -->
@@ -415,6 +416,7 @@
             let rawInput = stripCommas(savedText.trim().replace(/\s/g, ''));
 
             // 3. ⭐️ 입력 필터링: 숫자, 연산자, 괄호, 소수점만 허용
+            // allowedChars: 0-9, +, -, *, /, (, ), .
             const sanitizedInput = rawInput.replace(/[^0-9+\-*/().]/g, '');
             const inputWasFiltered = (rawInput !== sanitizedInput);
 
@@ -434,11 +436,11 @@
             element.textContent = formattedText || '0';
 
             // 7. 커서 위치 복원
-            if (inputWasFiltered || savedPos === null) {
-                // 필터링이 발생했거나 커서 위치를 알 수 없으면, 끝으로 이동
+            if (inputWasFiltered || savedPos === null || savedText === formattedText) {
+                // 필터링이 발생했거나 커서 위치를 알 수 없거나 텍스트가 변하지 않은 경우, 끝으로 이동
                 restoreCursorPosition(element, formattedText.length);
             } else {
-                // 필터링이 없었다면, 커서 위치를 최대한 보존합니다. (콤마 변화 반영)
+                // 필터링이 없었다면, 커서 위치를 최대한 보존합니다.
                 
                 // 원본 텍스트(savedText)에서 커서 앞 문자열을 추출하고 콤마를 제거하여 원본 문자 수 계산
                 const originalTextBeforeCursor = savedText.substring(0, savedPos);
@@ -448,16 +450,21 @@
                 let newPos = 0;
                 let currentRawCount = 0;
                 for (let i = 0; i < formattedText.length; i++) {
+                    // 콤마가 아닌 문자가 원본 텍스트와 일치할 경우에만 카운트 증가
                     if (formattedText[i] !== ',') {
                         currentRawCount++;
                     }
                     if (currentRawCount === rawCharCountBeforeCursor) {
-                        newPos = i + 1;
+                        newPos = i; // 콤마가 제거되지 않은 상태에서의 위치
+                        // 바로 다음 문자가 콤마라면 콤마를 건너뛴 위치로 설정
+                        if (formattedText[newPos] === ',') {
+                            newPos++;
+                        }
                         break;
                     }
-                    newPos = i + 1; // 끝까지 못 찾으면 끝으로 이동 (안전 장치)
+                    newPos = i + 1; 
                 }
-
+                
                 restoreCursorPosition(element, newPos);
             }
 
