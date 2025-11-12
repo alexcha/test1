@@ -175,13 +175,12 @@
 </head>
 <body>
     <div class="container">
-        <!-- <h1>데이터 변화 추이 대시보드</h1> 제목 제거됨 -->
-        <p class="update-time">최근 업데이트 시간: 2025-11-13 07:02:39 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-13 07:07:59 KST</p>
         
         <div class="prediction-section">
             <h2 id="prediction-header">AI 기반 추이 분석 및 예측: 2025-11-14 및 2025-11-30</h2>
             <div id="predictionResult">
-                <div class="success-message">제공된 데이터를 분석한 결과, 모바일 게임의 일별 누적 매출은 최근 3일간 약 60만~70만 달러 증가하며 비교적 안정적인 상승 추이를 보이고 있습니다. 이러한 추정치를 바탕으로, 2025년 11월 14일의 예상 최종 누적 매출은 약 11,200,000 달러에 도달할 것으로 보입니다. 또한, 이달 말인 2025년 11월 30일에는 약 21,600,000 달러의 누적 매출을 기록할 것으로 추정됩니다.</div>
+                <div class="success-message">제공된 데이터를 분석한 결과, 모바일 게임의 누적 매출은 현재 꾸준히 상승하는 추세를 보입니다. 이러한 추세를 바탕으로 2025년 11월 14일의 예상 최종 누적 매출은 약 11,200,000 달러, 11월 말(2025년 11월 30일)의 예상 최종 누적 매출은 약 21,600,000 달러로 추정됩니다. 이는 최근의 일별 매출 증가폭을 고려한 예측치입니다.</div>
             </div>
         </div>
         
@@ -253,6 +252,7 @@
     // 3. 페이지네이션을 위한 전체 ROW 데이터 (AWK에서 최신순으로 생성)
     // 줄바꿈 문자로 분리하여 <tr> 태그 문자열 배열로 만듭니다.
     const rawRowData = `
+<tr>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;">11-13 07시</td>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;">10,121,300</td>                <td style="padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;">11-13 07시</td>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;">10,121,300</td>                <td style="padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; color: #dc3545; font-weight: 600;">+18,700</td>            </tr>
 <tr>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;">11-13 06시</td>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;">10,102,600</td>                <td style="padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; color: #333; font-weight: 600;">0</td>            </tr>
 <tr>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;">11-13 06시</td>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;">10,102,600</td>                <td style="padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; color: #333; font-weight: 600;">0</td>            </tr>
