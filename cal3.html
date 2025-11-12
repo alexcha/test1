@@ -150,9 +150,9 @@
             <!-- Button Grid (Image-based Layout) -->
             <div id="main-button-grid" class="grid grid-cols-4 gap-3">
                 
-                <!-- Row 1: C, %, ÷, ⌫ (Backspace) - 순서 변경됨 -->
+                <!-- Row 1: C, (), ÷, ⌫ (Backspace) -->
                 <button class="clear-key text-white text-2xl p-5 aspect-square rounded-full shadow-md" onclick="clearDisplay()">C</button>
-                <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="%">%</button>
+                <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="paren">()</button>
                 <button class="operator text-2xl p-5 aspect-square rounded-full shadow-md" data-value="/">÷</button>
                 <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" onclick="deleteLast()">⌫</button>
                 
@@ -222,10 +222,8 @@
                     const value = button.getAttribute('data-value');
                     if (value && value.length === 1) { // 숫자, . , 연산자
                         appendToDisplay(value);
-                    } else if (value === 'paren') { 
-                        // handleParentheses(); // 괄호 버튼이 삭제되었으므로 로직도 제거
-                    } else if (value === '%') { // 퍼센트
-                        handlePercent();
+                    } else if (value === 'paren') { // 괄호
+                        handleParentheses();
                     } else if (value === 'plusminus') { // 부호 변경
                         handlePlusMinus();
                     }
@@ -351,9 +349,14 @@
          */
         function deleteLast() {
             if (currentExpression.length > 0) {
-                // 괄호 카운터는 괄호 버튼이 삭제되었으므로 간단히 처리
-                // if (currentExpression.slice(-1) === ')') { openParentheses++; } 
-                // else if (currentExpression.slice(-1) === '(') { openParentheses--; }
+                const lastChar = currentExpression.slice(-1);
+                
+                // 괄호 카운터 업데이트
+                if (lastChar === ')') { 
+                    openParentheses++; 
+                } else if (lastChar === '(') { 
+                    openParentheses--; 
+                }
                 
                 currentExpression = currentExpression.slice(0, -1);
                 currentOpDisplay.textContent = currentExpression || '0';
@@ -364,41 +367,37 @@
             }
         }
 
-
         /**
-         * 괄호 입력 처리 (버튼은 삭제되었으나, 필요시 유지)
+         * 괄호 입력 처리
          */
-        /* function handleParentheses() {
-            // ... (생략)
-        }
-        */
+        function handleParentheses() {
+            const lastChar = currentExpression.slice(-1);
+            const isOperator = /[+\-*/]$/.test(lastChar);
+            const isNumber = /[0-9]$/.test(lastChar);
 
-        /**
-         * 퍼센트 입력 처리 (현재 숫자 / 100)
-         */
-        function handlePercent() {
             if (resultDisplayed) {
-                // 결과에 퍼센트 적용
-                let result = parseFloat(currentExpression) / 100;
-                currentExpression = String(result);
-                previousOpDisplay.textContent = `${previousOpDisplay.textContent.replace('=', '')} % =`;
-                currentOpDisplay.textContent = currentExpression;
-                saveExpression();
-                return;
+                clearDisplay();
             }
 
-            // 현재 수식에서 마지막 숫자 추출
-            const match = currentExpression.match(/([0-9.]+)$/);
-            if (match) {
-                let number = parseFloat(match[1]);
-                let percentValue = number / 100;
-                
-                // 마지막 숫자를 퍼센트 값으로 대체
-                currentExpression = currentExpression.slice(0, match.index) + String(percentValue);
-                currentOpDisplay.textContent = currentExpression;
-                saveExpression();
+            if (openParentheses > 0 && (isNumber || lastChar === ')')) {
+                // 숫자가 끝났거나 닫는 괄호 뒤에 닫는 괄호 (현재 닫을 괄호가 남아있을 때)
+                currentExpression += ')';
+                openParentheses--;
+            } else if (currentExpression === '' || isOperator || lastChar === '(') {
+                // 수식이 비었거나, 연산자 뒤거나, 열린 괄호 뒤면 여는 괄호
+                currentExpression += '(';
+                openParentheses++;
+            } else if (isNumber) {
+                // 숫자 뒤에 여는 괄호를 누르면 곱셈으로 간주
+                currentExpression += '*(';
+                openParentheses++;
             }
+
+            currentOpDisplay.textContent = currentExpression || '0';
+            currentOpDisplay.scrollLeft = currentOpDisplay.scrollWidth;
+            saveExpression();
         }
+
 
         /**
          * 부호 변경 처리 (±)
@@ -527,9 +526,12 @@
             if (currentExpression === '' || resultDisplayed) return;
 
             try {
-                // 닫히지 않은 괄호가 있다면 모두 닫아줍니다. (괄호 버튼이 없으므로 단순화)
+                // 닫히지 않은 괄호가 있다면 모두 닫아줍니다.
                 let expressionToCalculate = currentExpression;
-                // while(openParentheses > 0) { expressionToCalculate += ')'; openParentheses--; }
+                while(openParentheses > 0) { 
+                    expressionToCalculate += ')'; 
+                    openParentheses--; 
+                }
                 
                 expressionToCalculate = expressionToCalculate
                     .replace(/÷/g, '/')
