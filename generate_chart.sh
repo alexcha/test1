@@ -125,7 +125,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (max-width 1000px -> 950px로 수정)
+# 3. 일별 집계 테이블 생성 (max-width 950px -> 900px로 수정)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -176,7 +176,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        print "<table style=\"width: 100%; max-width: 950px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        print "<table style=\"width: 100%; max-width: 900px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
@@ -531,10 +531,10 @@ cat << CHART_END > money.html
             color: #555;
             font-size: 15px;
         }
-        /* 데이터 테이블 Wrapper - max-width 1000px -> 950px로 수정 */
+        /* 데이터 테이블 Wrapper - max-width 950px -> 900px로 수정 */
         .data-table-wrapper {
             width: 100%; 
-            max-width: 950px; 
+            max-width: 900px; 
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
