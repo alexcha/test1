@@ -29,7 +29,7 @@
         }
         .operator:active { transform: scale(0.95); }
 
-        /* C, (), % 버튼 스타일 */
+        /* C, %, ±, ⌫ 버튼 스타일 */
         .utility-key {
             background-color: #D1D5DB; /* Gray-300 Utility Key */
             color: #1F2937;
@@ -150,11 +150,11 @@
             <!-- Button Grid (Image-based Layout) -->
             <div id="main-button-grid" class="grid grid-cols-4 gap-3">
                 
-                <!-- Row 1: C, ( ), %, ÷ -->
+                <!-- Row 1: C, %, ÷, ⌫ (Backspace) - 순서 변경됨 -->
                 <button class="clear-key text-white text-2xl p-5 aspect-square rounded-full shadow-md" onclick="clearDisplay()">C</button>
-                <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="paren">()</button>
                 <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="%">%</button>
                 <button class="operator text-2xl p-5 aspect-square rounded-full shadow-md" data-value="/">÷</button>
+                <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" onclick="deleteLast()">⌫</button>
                 
                 <!-- Row 2: 7, 8, 9, × -->
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="7">7</button>
@@ -222,8 +222,8 @@
                     const value = button.getAttribute('data-value');
                     if (value && value.length === 1) { // 숫자, . , 연산자
                         appendToDisplay(value);
-                    } else if (value === 'paren') { // 괄호
-                        handleParentheses();
+                    } else if (value === 'paren') { 
+                        // handleParentheses(); // 괄호 버튼이 삭제되었으므로 로직도 제거
                     } else if (value === '%') { // 퍼센트
                         handlePercent();
                     } else if (value === 'plusminus') { // 부호 변경
@@ -344,44 +344,34 @@
         }
 
 
-        // --- 계산기 핵심 로직 (새 버튼 로직 추가) ---
+        // --- 계산기 핵심 로직 ---
 
         /**
-         * 괄호 입력 처리
+         * 마지막 문자를 삭제합니다 (백스페이스).
          */
-        function handleParentheses() {
-            const lastChar = currentExpression.slice(-1);
-            const isOperator = /[+\-*/]$/.test(lastChar);
-            const isNumber = /[0-9]$/.test(lastChar);
-
-            if (resultDisplayed) {
-                clearDisplay();
+        function deleteLast() {
+            if (currentExpression.length > 0) {
+                // 괄호 카운터는 괄호 버튼이 삭제되었으므로 간단히 처리
+                // if (currentExpression.slice(-1) === ')') { openParentheses++; } 
+                // else if (currentExpression.slice(-1) === '(') { openParentheses--; }
+                
+                currentExpression = currentExpression.slice(0, -1);
+                currentOpDisplay.textContent = currentExpression || '0';
+                resultDisplayed = false;
+                saveExpression();
+            } else {
+                localStorage.removeItem(LAST_CALCULATION_KEY);
             }
-
-            if (openParentheses > 0 && isNumber) {
-                // 숫자가 끝났고, 열린 괄호가 있으면 닫는 괄호
-                currentExpression += ')';
-                openParentheses--;
-            } else if (currentExpression === '' || isOperator || lastChar === '(') {
-                // 수식이 비었거나, 연산자 뒤거나, 열린 괄호 뒤면 여는 괄호
-                currentExpression += '(';
-                openParentheses++;
-            } else if (isNumber) {
-                // 숫자가 끝났고, 열린 괄호가 없거나 닫는 괄호가 우선일 때 (자동 닫기)
-                // 이 계산기는 간단하게 닫는 괄호만 허용
-                 if (openParentheses > 0) {
-                    currentExpression += ')';
-                    openParentheses--;
-                } else {
-                    // 예외: 현재 수식이 10+20과 같을 때 ()를 누르면 10+20*()가 되는 것 방지
-                    return; 
-                }
-            }
-
-            currentOpDisplay.textContent = currentExpression || '0';
-            currentOpDisplay.scrollLeft = currentOpDisplay.scrollWidth;
-            saveExpression();
         }
+
+
+        /**
+         * 괄호 입력 처리 (버튼은 삭제되었으나, 필요시 유지)
+         */
+        /* function handleParentheses() {
+            // ... (생략)
+        }
+        */
 
         /**
          * 퍼센트 입력 처리 (현재 숫자 / 100)
@@ -438,7 +428,7 @@
                 } else if (operator === '+') {
                     // 10 + 20 -> 10 - 20
                     newExpression += `-${number}`;
-                } else if (operator === '' || lastChar === '(') { 
+                } else if (operator === '' || currentExpression.slice(-1) === '(') { 
                     // 20 -> -20 또는 (-20)
                     if (currentExpression.startsWith('-')) {
                         newExpression = currentExpression.slice(1);
@@ -508,16 +498,6 @@
                     } else {
                         currentExpression += value;
                     }
-                } else if (value === '(' && /[0-9.)]/.test(lastChar)) {
-                    // 숫자나 닫는 괄호 뒤에 여는 괄호는 곱셈 기호 *를 추가합니다.
-                    currentExpression += '*' + value;
-                    openParentheses++;
-                } else if (value === ')' && /[0-9)]/.test(lastChar) && openParentheses > 0) {
-                    currentExpression += value;
-                    openParentheses--;
-                } else if (value === '(') {
-                    currentExpression += value;
-                    openParentheses++;
                 } else {
                     currentExpression += value;
                 }
@@ -547,12 +527,9 @@
             if (currentExpression === '' || resultDisplayed) return;
 
             try {
-                // 닫히지 않은 괄호가 있다면 모두 닫아줍니다.
+                // 닫히지 않은 괄호가 있다면 모두 닫아줍니다. (괄호 버튼이 없으므로 단순화)
                 let expressionToCalculate = currentExpression;
-                while(openParentheses > 0) {
-                    expressionToCalculate += ')';
-                    openParentheses--;
-                }
+                // while(openParentheses > 0) { expressionToCalculate += ')'; openParentheses--; }
                 
                 expressionToCalculate = expressionToCalculate
                     .replace(/÷/g, '/')
