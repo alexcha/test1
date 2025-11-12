@@ -19,10 +19,10 @@
             min-height: 100vh;
         }
 
-        /* ⭐️ iFrame 컨테이너 높이 계산 (이전과 동일하게 유지) */
+        /* ⭐️ iFrame 컨테이너 높이 계산 (하단 탭 공간을 90px에서 60px로 줄여 높이 확장) */
         .iframe-fixed-height {
-            /* 100vh - 최소화된 상단 탭 높이 */
-            height: calc(100vh - 90px); 
+            /* 100vh - (최소화된 상단 탭 높이 + 하단 여백) -> 60px로 수정 */
+            height: calc(100vh - 60px); 
         }
 
         /* iFrame이 부모 높이를 채우도록 합니다. */
@@ -46,7 +46,7 @@
             <button id="tab-cal"
                     class="tab-button flex-1 py-1 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
                     data-tab="cal">
-                주식계산기
+                매도 계산기
             </button>
             <button id="tab-cal2"
                     class="tab-button flex-1 py-1 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
@@ -146,3 +146,4 @@
     </script>
 </body>
 </html>
+
