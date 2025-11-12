@@ -62,6 +62,8 @@
         }
         #current-op {
             color: #1F2937; /* Dark Text for current op */
+            /* 입력 모드 시 스타일 */
+            caret-color: #10B981; /* 커서 색상 변경 */
         }
 
         /* 히스토리 사이드바 (라이트 모드 적용) */
@@ -144,7 +146,10 @@
             <!-- Display -->
             <div id="display" class="mb-4 rounded-2xl p-4 flex flex-col items-end justify-end font-light overflow-x-auto whitespace-nowrap scrollbar-hide" style="height: 5rem;">
                 <div id="previous-op" class="text-sm h-6"></div>
-                <div id="current-op" class="text-4xl font-normal h-10">0</div>
+                <!-- contenteditable="true" 추가 및 oninput 이벤트 바인딩 -->
+                <div id="current-op" contenteditable="true" spellcheck="false" 
+                     class="text-4xl font-normal h-10 focus:outline-none" 
+                     oninput="syncInputAndFormat(this)">0</div>
             </div>
 
             <!-- Button Grid (Image-based Layout) -->
@@ -224,15 +229,12 @@
                 number = String(number);
             }
             
-            // 부호와 소수점 부분을 분리합니다.
             const parts = number.split('.');
             let integerPart = parts[0];
             const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
             const sign = integerPart.startsWith('-') ? '-' : '';
             
-            // 부호 제거 후 정수 부분에 콤마 추가
             integerPart = integerPart.replace('-', '');
-            // 정규 표현식: 숫자가 3개 단위로 반복되는 곳의 앞에 콤마 삽입
             integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             
             return sign + integerPart + decimalPart;
@@ -247,6 +249,72 @@
             if (typeof str !== 'string') return String(str);
             return str.replace(/,/g, '');
         }
+
+        // --- 커서 관리 유틸리티 ---
+
+        /**
+         * 커서 위치를 정수로 저장합니다 (문자열 길이 기반).
+         * @param {HTMLElement} element 
+         * @returns {number | null}
+         */
+        function saveCursorPosition(element) {
+            const selection = window.getSelection();
+            if (selection.rangeCount === 0 || !element.contains(selection.anchorNode)) return null;
+
+            const range = selection.getRangeAt(0);
+            const preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(element);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            
+            // 텍스트 콘텐츠 기준으로 길이 반환
+            return preCaretRange.toString().length;
+        }
+
+        /**
+         * 저장된 커서 위치를 복원합니다.
+         * @param {HTMLElement} element 
+         * @param {number} position 
+         */
+        function restoreCursorPosition(element, position) {
+            const range = document.createRange();
+            const selection = window.getSelection();
+
+            let charCount = 0;
+            let found = false;
+
+            function traverse(node) {
+                if (found) return;
+
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const nodeLength = node.textContent.length;
+                    if (charCount + nodeLength >= position) {
+                        range.setStart(node, position - charCount);
+                        range.collapse(true);
+                        found = true;
+                    }
+                    charCount += nodeLength;
+                } else {
+                    for (let i = 0; i < node.childNodes.length; i++) {
+                        traverse(node.childNodes[i]);
+                        if (found) return;
+                    }
+                }
+            }
+
+            traverse(element);
+
+            if (found) {
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // 커서가 범위 밖인 경우, 끝으로 이동
+                range.selectNodeContents(element);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+
 
         // --- 초기화 및 데이터 로드 ---
         window.onload = function() {
@@ -275,7 +343,7 @@
             const savedExpression = localStorage.getItem(LAST_CALCULATION_KEY);
             if (savedExpression) {
                 currentExpression = savedExpression; // 콤마 없는 원본 수식 로드
-                updateDisplay(); // 포맷팅하여 표시
+                updateDisplay(false); // 포맷팅하여 표시하고 커서를 끝으로 이동
             } else {
                 currentOpDisplay.textContent = '0';
             }
@@ -284,10 +352,9 @@
             if (savedHistory) {
                 try {
                     history = JSON.parse(savedHistory);
-                    // 로드 시에도 최대 항목 수 유지 (오래된 항목 제거)
                     if (history.length > MAX_HISTORY_ITEMS) {
                         history.splice(0, history.length - MAX_HISTORY_ITEMS);
-                        saveHistory(); // 변경된 배열 저장
+                        saveHistory();
                     }
                 } catch (e) {
                     console.error("Failed to parse history from localStorage:", e);
@@ -300,7 +367,6 @@
          * 현재 수식을 로컬 스토리지에 저장합니다.
          */
         function saveExpression() {
-            // currentExpression은 콤마 없이 저장됩니다.
             localStorage.setItem(LAST_CALCULATION_KEY, currentExpression);
         }
 
@@ -312,31 +378,95 @@
         }
         
         /**
-         * 현재 수식을 포맷팅하여 화면에 표시합니다.
+         * 프로그램적으로 현재 수식을 포맷팅하여 화면에 표시합니다.
+         * @param {boolean} updateCursor - 커서를 끝으로 이동시킬지 여부
          */
-        function updateDisplay() {
+        function updateDisplay(updateCursor = true) {
             // 수식 문자열을 숫자, 연산자, 괄호 등으로 분리하여 포맷팅을 적용합니다.
             const formattedExpression = currentExpression.split(/([+\-*/()])/)
                 .map(part => {
-                    // 숫자, 소수점, 부호로만 이루어진 부분을 찾고 콤마 포맷팅 적용
-                    // part가 비어있지 않고, 숫자나 소수점을 포함하며, 연산자/괄호가 아닌 경우 (즉, 숫자 항인 경우)
                     if (part.length > 0 && (/[0-9]/.test(part) || part === '0.') && !/[+\-*/()]/.test(part)) {
                         return formatNumberWithCommas(part);
                     }
-                    return part; // 연산자, 괄호 등은 그대로 반환
+                    return part;
                 }).join('');
             
             currentOpDisplay.textContent = formattedExpression || '0';
             currentOpDisplay.scrollLeft = currentOpDisplay.scrollWidth;
+
+            if (updateCursor) {
+                // 버튼 클릭 등 프로그램적 업데이트는 커서를 맨 끝으로 보냅니다.
+                restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
+            }
+
             saveExpression();
         }
 
+        /**
+         * 사용자가 직접 입력 필드를 수정할 때 호출되어, 콤마를 포맷하고 문자를 필터링하며 커서를 유지합니다.
+         * @param {HTMLElement} element - currentOpDisplay
+         */
+        function syncInputAndFormat(element) {
+            // 1. 현재 커서 위치를 콤마가 포함된 문자열 기준으로 저장
+            const savedText = element.textContent || '';
+            const savedPos = saveCursorPosition(element);
+            
+            // 2. 콤마, 공백 제거하여 rawInput을 얻습니다.
+            let rawInput = stripCommas(savedText.trim().replace(/\s/g, ''));
+
+            // 3. ⭐️ 입력 필터링: 숫자, 연산자, 괄호, 소수점만 허용
+            const sanitizedInput = rawInput.replace(/[^0-9+\-*/().]/g, '');
+            const inputWasFiltered = (rawInput !== sanitizedInput);
+
+            // 4. 내부 표현식 업데이트
+            currentExpression = sanitizedInput;
+
+            // 5. 포맷팅
+            const formattedText = currentExpression.split(/([+\-*/()])/)
+                .map(part => {
+                    if (part.length > 0 && (/[0-9]/.test(part) || part === '0.') && !/[+\-*/()]/.test(part)) {
+                        return formatNumberWithCommas(part);
+                    }
+                    return part;
+                }).join('');
+            
+            // 6. 디스플레이 텍스트 업데이트
+            element.textContent = formattedText || '0';
+
+            // 7. 커서 위치 복원
+            if (inputWasFiltered || savedPos === null) {
+                // 필터링이 발생했거나 커서 위치를 알 수 없으면, 끝으로 이동
+                restoreCursorPosition(element, formattedText.length);
+            } else {
+                // 필터링이 없었다면, 커서 위치를 최대한 보존합니다. (콤마 변화 반영)
+                
+                // 원본 텍스트(savedText)에서 커서 앞 문자열을 추출하고 콤마를 제거하여 원본 문자 수 계산
+                const originalTextBeforeCursor = savedText.substring(0, savedPos);
+                const rawCharCountBeforeCursor = stripCommas(originalTextBeforeCursor).length;
+                
+                // 포맷된 텍스트에서 rawCharCountBeforeCursor와 일치하는 위치 찾기
+                let newPos = 0;
+                let currentRawCount = 0;
+                for (let i = 0; i < formattedText.length; i++) {
+                    if (formattedText[i] !== ',') {
+                        currentRawCount++;
+                    }
+                    if (currentRawCount === rawCharCountBeforeCursor) {
+                        newPos = i + 1;
+                        break;
+                    }
+                    newPos = i + 1; // 끝까지 못 찾으면 끝으로 이동 (안전 장치)
+                }
+
+                restoreCursorPosition(element, newPos);
+            }
+
+            saveExpression();
+            resultDisplayed = false;
+        }
 
         // --- 히스토리 기능 구현 ---
         
-        /**
-         * 히스토리를 렌더링하고 비어있을 때 메시지를 표시합니다.
-         */
         function renderHistory() {
             historyList.innerHTML = '';
             
@@ -352,7 +482,6 @@
                 const item = history[i];
 
                 const div = document.createElement('div');
-                // 히스토리 항목의 클래스를 Light 테마에 맞게 조정
                 div.className = 'history-item history-item-dark p-3 rounded-xl shadow-sm flex justify-between items-start border';
                 
                 const contentDiv = document.createElement('div');
@@ -361,7 +490,6 @@
                     <div class="text-sm text-gray-500">${item.expression.replace(/\*/g, '×').replace(/\//g, '÷')} =</div>
                     <div class="text-xl text-gray-900 font-semibold">${formatNumberWithCommas(item.result)}</div>
                 `;
-                // ⭐️ 항목 클릭 시 전체 'item' 객체를 전달하도록 수정
                 contentDiv.addEventListener('click', () => loadFromHistory(item));
 
 
@@ -383,33 +511,20 @@
             }
         }
 
-        /**
-         * ⭐️ 히스토리 항목을 클릭했을 때 수식과 결과를 현재 계산기에 로드합니다.
-         * @param {object} item - 히스토리 항목 객체 ({expression, result})
-         */
         function loadFromHistory(item) {
-            // 히스토리에 저장된 원본 수식 로드 (콤마 없음)
             currentExpression = item.expression; 
-            
-            // 이전 수식창을 비우고 새로운 계산을 시작할 준비를 합니다.
             previousOpDisplay.textContent = ''; 
+            resultDisplayed = false; 
             
-            resultDisplayed = false; // 수식을 불러왔으므로 결과 표시 상태를 해제합니다.
-            
-            // 괄호 카운터를 수식에 맞게 재설정
             openParentheses = 0;
             currentExpression.split('').forEach(char => {
                 if (char === '(') openParentheses++;
                 if (char === ')') openParentheses--;
             });
 
-            updateDisplay(); // 포맷팅하여 표시
+            updateDisplay(); // 포맷팅하여 표시하고 커서를 끝으로 이동
         }
 
-        /**
-         * 지정된 인덱스의 히스토리 항목을 개별적으로 삭제합니다.
-         * @param {number} index - history 배열에서의 항목 인덱스
-         */
         function deleteHistoryItem(index) {
             history.splice(index, 1); 
             saveHistory();
@@ -417,16 +532,12 @@
         }
 
 
-        // --- 계산기 핵심 로직 ---
+        // --- 계산기 핵심 로직 (버튼 입력 시 커서 끝으로 이동) ---
 
-        /**
-         * 마지막 문자를 삭제합니다 (백스페이스).
-         */
         function deleteLast() {
             if (currentExpression.length > 0) {
                 const lastChar = currentExpression.slice(-1);
                 
-                // 괄호 카운터 업데이트
                 if (lastChar === ')') { 
                     openParentheses++; 
                 } else if (lastChar === '(') { 
@@ -435,16 +546,13 @@
                 
                 currentExpression = currentExpression.slice(0, -1);
                 resultDisplayed = false;
-                updateDisplay();
+                updateDisplay(); // 커서를 끝으로 이동
             } else {
                 localStorage.removeItem(LAST_CALCULATION_KEY);
                 updateDisplay();
             }
         }
 
-        /**
-         * 괄호 입력 처리
-         */
         function handleParentheses() {
             const lastChar = currentExpression.slice(-1);
             const isOperator = /[+\-*/]/.test(lastChar);
@@ -454,41 +562,31 @@
                 clearDisplay();
             }
 
-            // 1. 닫는 괄호 입력 조건: 열린 괄호가 있고, 마지막이 숫자 또는 닫는 괄호일 때
             if (openParentheses > 0 && (isNumber || lastChar === ')')) {
                 currentExpression += ')';
                 openParentheses--;
             } 
-            // 2. 여는 괄호 입력 조건: 수식이 비었거나, 연산자 뒤거나, 열린 괄호 뒤일 때
             else if (currentExpression === '' || isOperator || lastChar === '(') {
                 currentExpression += '(';
                 openParentheses++;
             } 
-            // 3. 숫자 뒤에 여는 괄호를 누를 때 (자동 곱셈 비활성화)
             else if (isNumber) {
-                // 곱셈 기호 없이 바로 여는 괄호만 추가
                 currentExpression += '(';
                 openParentheses++;
             }
 
-            updateDisplay();
+            updateDisplay(); // 커서를 끝으로 이동
         }
 
 
-        /**
-         * 부호 변경 처리 (±)
-         */
         function handlePlusMinus() {
             if (resultDisplayed) {
-                // 결과에 부호 변경 적용
                 let result = parseFloat(currentExpression) * -1;
                 currentExpression = String(result);
-                updateDisplay();
+                updateDisplay(); // 커서를 끝으로 이동
                 return;
             }
 
-            // 현재 수식에서 마지막 숫자 (부호 포함) 추출
-            // 예: 10 + 20 -> 10 + (-20)
             const match = currentExpression.match(/([+\-*/]?\s*)\(?-?([0-9.]+)$/);
             if (match) {
                 const operator = match[1].trim();
@@ -497,24 +595,18 @@
                 let newExpression = currentExpression.slice(0, match.index);
                 
                 if (operator === '-') {
-                    // 10 - 20 -> 10 + 20
                     newExpression += `+${number}`;
                 } else if (operator === '+') {
-                    // 10 + 20 -> 10 - 20
                     newExpression += `-${number}`;
                 } else if (operator === '' || currentExpression.slice(-1) === '(') { 
-                    // 20 -> -20 또는 (-20)
                     if (currentExpression.startsWith('-')) {
                         newExpression = currentExpression.slice(1);
                     } else {
                         newExpression = `-${currentExpression}`;
                     }
                 } else {
-                    // 연산자 뒤에 부호 변경 적용 (복잡성 때문에 간단히 처리)
-                    // 예: 10 * 20 -> 10 * (-20) 
                     newExpression += operator;
                     if (currentExpression.includes('(') || currentExpression.includes(')')) {
-                         // 이미 괄호가 있으면 복잡해지므로 단순화
                         newExpression += `(-${number})`;
                     } else {
                         newExpression += `(-${number})`;
@@ -522,23 +614,18 @@
                 }
                 
                 currentExpression = newExpression;
-                updateDisplay();
+                updateDisplay(); // 커서를 끝으로 이동
             } else if (currentExpression.length > 0) {
-                 // 숫자가 아닌 복잡한 수식일 경우 전체 부호 변경만 시도
                 if (currentExpression.startsWith('-')) {
                     currentExpression = currentExpression.slice(1);
                 } else {
                     currentExpression = `-${currentExpression}`;
                 }
-                updateDisplay();
+                updateDisplay(); // 커서를 끝으로 이동
             }
         }
 
 
-        /**
-         * 화면에 값 또는 연산자를 추가하고 저장합니다.
-         * @param {string} value - 입력된 값 (숫자, 연산자, . )
-         */
         function appendToDisplay(value) {
             if (resultDisplayed && /[0-9.]/.test(value)) {
                 currentExpression = value;
@@ -546,20 +633,18 @@
                 previousOpDisplay.textContent = '';
             } else {
                 if (resultDisplayed && /[+\-*/]/.test(value)) {
-                    // 결과 후 연산자 입력 시: 결과값을 첫 항으로
                     resultDisplayed = false;
                     previousOpDisplay.textContent = '';
                 } else if (resultDisplayed) {
                     resultDisplayed = false;
                 }
                 
-                // 입력 유효성 검사
                 const lastChar = currentExpression.slice(-1);
                 const isOperator = /[+\-*/]/.test(value);
                 const isLastCharOperator = /[+\-*/(]/.test(lastChar);
                 
                 if (isOperator && /[+\-*/]/.test(lastChar)) {
-                    currentExpression = currentExpression.slice(0, -1) + value; // 연산자 대체
+                    currentExpression = currentExpression.slice(0, -1) + value; 
                 } else if (value === '.') {
                     const parts = currentExpression.split(/[+\-*/()]/);
                     const currentNumber = parts[parts.length - 1];
@@ -575,12 +660,9 @@
                 }
             }
 
-            updateDisplay(); // 포맷팅 및 저장
+            updateDisplay(); // 커서를 끝으로 이동
         }
 
-        /**
-         * C (Clear) 기능: 계산을 초기화하고 저장된 값을 지웁니다.
-         */
         function clearDisplay() {
             currentExpression = '';
             currentOpDisplay.textContent = '0';
@@ -588,16 +670,14 @@
             resultDisplayed = false;
             openParentheses = 0;
             localStorage.removeItem(LAST_CALCULATION_KEY);
+            // C 버튼은 커서를 끝으로 이동 (0이므로 0 뒤)
+            restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
         }
 
-        /**
-         * 계산을 수행하고 결과를 화면에 표시하며, 히스토리에 추가합니다.
-         */
         function calculate() {
             if (currentExpression === '' || resultDisplayed) return;
 
             try {
-                // 닫히지 않은 괄호가 있다면 모두 닫아줍니다.
                 let expressionToCalculate = currentExpression;
                 while(openParentheses > 0) { 
                     expressionToCalculate += ')'; 
@@ -607,9 +687,8 @@
                 expressionToCalculate = expressionToCalculate
                     .replace(/÷/g, '/')
                     .replace(/×/g, '*')
-                    .replace(/-{2}/g, '+'); // --를 +로 변환
+                    .replace(/-{2}/g, '+');
                 
-                // 마지막 문자가 연산자라면 계산하지 않고 제거
                 if (/[+\-*/]$/.test(expressionToCalculate)) { 
                      expressionToCalculate = expressionToCalculate.slice(0, -1);
                 }
@@ -620,7 +699,7 @@
                 }
 
                 let result = eval(expressionToCalculate);
-                let originalExpression = currentExpression; // 괄호 닫기 전 수식 저장
+                let originalExpression = currentExpression;
 
                 if (!isFinite(result)) {
                     currentOpDisplay.textContent = "오류: 0으로 나눔";
@@ -634,11 +713,10 @@
                 
                 const historyItem = {
                     expression: originalExpression,
-                    result: String(result) // 콤마 없이 저장 (계산 가능 형태로)
+                    result: String(result)
                 };
                 history.push(historyItem);
                 
-                // ⭐️ 최대 항목 수 초과 시 가장 오래된 항목(첫 번째 항목) 제거
                 if (history.length > MAX_HISTORY_ITEMS) {
                     history.shift(); 
                 }
@@ -648,10 +726,12 @@
 
                 previousOpDisplay.textContent = `${originalExpression.replace(/\*/g, '×').replace(/\//g, '÷')} =`;
                 currentExpression = String(result);
-                // 최종 결과에 콤마 포맷팅을 적용하여 화면에 표시
                 currentOpDisplay.textContent = formatNumberWithCommas(currentExpression); 
                 resultDisplayed = true;
                 saveExpression();
+                
+                // 계산 후 커서를 끝으로 이동
+                restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
 
             } catch (error) {
                 currentOpDisplay.textContent = "수식 오류";
@@ -663,4 +743,5 @@
     </script>
 </body>
 </html>
+
 
