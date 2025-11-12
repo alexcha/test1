@@ -113,44 +113,43 @@
                 <div id="current-op" class="text-4xl text-gray-900 h-10">0</div>
             </div>
 
-            <!-- Button Grid -->
-            <div class="grid grid-cols-4 gap-3">
-                <!-- Row 1: Memory, %, AC, Backspace -->
-                <div class="key text-2xl p-4 rounded-full shadow-md text-gray-500 bg-gray-300 opacity-50 flex items-center justify-center" title="Memory Not Implemented">M</div>
-                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="%">%</button>
-                <button class="clear-key text-white text-2xl p-4 rounded-full shadow-md hover:brightness-110 transition-all duration-150" onclick="clearDisplay()">AC</button>
-                <button class="backspace-key text-2xl p-4 rounded-full shadow-md hover:brightness-110 transition-all duration-150" onclick="deleteLast()">⌫</button>
-
-                <!-- Row 2: Numbers 7, 8, 9, Multiply -->
+            <!-- Button Grid (Revised Layout) -->
+            <div id="main-button-grid" class="grid grid-cols-4 gap-3">
+                <!-- Row 1: Operators ÷, ×, -, + (Full Top Row, requested order) -->
+                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="/">÷</button>
+                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="*">×</button>
+                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="-">-</button>
+                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="+">+</button>
+                
+                <!-- Row 2: Numbers 7, 8, 9, Backspace (Utility) -->
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="7">7</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="8">8</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="9">9</button>
-                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="*">×</button>
+                <button class="backspace-key text-2xl p-4 rounded-full shadow-md hover:brightness-110 transition-all duration-150" onclick="deleteLast()">⌫</button>
 
-                <!-- Row 3: Numbers 4, 5, 6, Subtract -->
+                <!-- Row 3: Numbers 4, 5, 6, AC (Utility) -->
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="4">4</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="5">5</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="6">6</button>
-                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="-">-</button>
+                <button class="clear-key text-white text-2xl p-4 rounded-full shadow-md hover:brightness-110 transition-all duration-150" onclick="clearDisplay()">AC</button>
 
-                <!-- Row 4: Numbers 1, 2, 3, Add -->
+                <!-- Row 4: Numbers 1, 2, 3, Equals (Utility, spans 2 rows) -->
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="1">1</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="2">2</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value="3">3</button>
-                <button class="operator text-2xl p-4 rounded-full shadow-md" data-value="+">+</button>
-
-                <!-- Row 5: 0, Decimal, Equals -->
+                <button class="equal text-2xl p-4 rounded-full shadow-md row-span-2" onclick="calculate()">=</button> 
+                
+                <!-- Row 5: 0 (spans 2 columns), Decimal -->
                 <button class="key text-2xl p-4 rounded-full col-span-2 shadow-md" data-value="0">0</button>
                 <button class="key text-2xl p-4 rounded-full shadow-md" data-value=".">.</button>
-                <button class="equal text-2xl p-4 rounded-full shadow-md" onclick="calculate()">=</button>
+                <!-- Column 4 is occupied by row-span-2 "=" -->
             </div>
         </div>
 
         <!-- History Sidebar (Right/Bottom) -->
-        <div class="history-sidebar w-full md:w-80 bg-white rounded-3xl shadow-xl p-5 overflow-y-auto history-sidebar">
+        <div class="history-sidebar w-full md:w-80 bg-white rounded-3xl shadow-xl p-5 overflow-y-auto">
             <div class="mb-4 border-b border-gray-300 pb-2">
                 <h2 class="text-xl font-bold text-gray-800">계산 기록 (History)</h2>
-                <!-- "전체 기록 삭제" 버튼을 제거했습니다. -->
             </div>
             
             <!-- History List -->
@@ -333,7 +332,7 @@
                 previousOpDisplay.textContent = '';
             } else {
                 // 결과가 표시된 상태에서 연산자를 누르면, 결과값을 첫 항으로 사용합니다.
-                if (resultDisplayed && /[+\-*/%]/.test(value)) {
+                if (resultDisplayed && /[+\-*/]/.test(value)) {
                     resultDisplayed = false;
                     previousOpDisplay.textContent = '';
                 } else if (resultDisplayed) {
@@ -342,13 +341,13 @@
                 
                 // 입력 유효성 검사
                 const lastChar = currentExpression.slice(-1);
-                const isOperator = /[+\-*/%]/.test(value);
-                const isLastCharOperator = /[+\-*/%]/.test(lastChar);
+                const isOperator = /[+\-*/]/.test(value);
+                const isLastCharOperator = /[+\-*/]/.test(lastChar);
                 
                 if (isOperator && isLastCharOperator) {
                     currentExpression = currentExpression.slice(0, -1) + value; // 연산자 대체
                 } else if (value === '.') {
-                    const parts = currentExpression.split(/[+\-*/%]/);
+                    const parts = currentExpression.split(/[+\-*/]/);
                     const currentNumber = parts[parts.length - 1];
                     if (currentNumber.includes('.')) return;
                     
@@ -410,12 +409,11 @@
             try {
                 // 수식 정리 및 유효성 검사
                 let expressionToCalculate = currentExpression
-                    .replace(/%/g, '/100*')
                     .replace(/÷/g, '/')
                     .replace(/×/g, '*');
                 
                 // 마지막 문자가 연산자라면 계산하지 않고 제거
-                if (/[+\-*/%]$/.test(expressionToCalculate)) {
+                if (/[+\-*/]$/.test(expressionToCalculate)) { 
                      expressionToCalculate = expressionToCalculate.slice(0, -1);
                 }
                 
