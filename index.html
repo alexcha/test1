@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>탭으로 파일 보기</title>
-    <!-- Tailwind CSS CDN -->
+    <title>주요 도구 통합 탭 보기</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Inter 폰트 설정 및 기본 스타일 */
@@ -22,47 +21,45 @@
 <body class="flex flex-col">
 
     <div id="app" class="w-full max-w-4xl mx-auto p-4 flex flex-col">
-        <!-- 이전 Header (제목 및 부제목) 부분은 요청에 따라 제거되었습니다. -->
-
-        <!-- Tab Buttons (Navigation) -->
+        
         <div class="flex bg-white p-2 rounded-xl shadow-md space-x-2 mb-4 sticky top-0 z-10">
-            <button id="tab-c"
+            <button id="tab-cal"
                     class="tab-button flex-1 py-3 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
-                    data-tab="c">
-                매출 (Cal.html)
+                    data-tab="cal">
+                매출 (cal.html)
             </button>
             <button id="tab-money"
                     class="tab-button flex-1 py-3 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
                     data-tab="money">
                 주식계산기 (money.html)
             </button>
+            <button id="tab-cal2"
+                    class="tab-button flex-1 py-3 px-4 text-sm font-semibold rounded-lg transition-all duration-200"
+                    data-tab="cal2">
+                예산 (cal2.html)
+            </button>
         </div>
 
-        <!-- Tab Content Area -->
         <div id="tab-content" class="flex-1 bg-white p-0 rounded-xl shadow-xl overflow-hidden flex flex-col">
 
-            <!-- Content for Cal.html (iframe) -->
-            <div id="content-c" class="tab-pane w-full h-full flex-1">
-                <!-- 
-                    TODO: 아래 iframe의 src 속성을 실제 Cal.html 파일 경로로 변경하세요.
-                    예: src="/Cal.html" 또는 src="https://yourdomain.com/Cal.html" 
-                -->
+            <div id="content-cal" class="tab-pane w-full h-full flex-1 hidden">
                 <iframe src="about:blank" class="w-full h-full border-0"></iframe>
             </div>
 
-            <!-- Content for money.html (iframe) -->
             <div id="content-money" class="tab-pane w-full h-full flex-1 hidden">
-                <!-- 
-                    TODO: 아래 iframe의 src 속성을 실제 money.html 파일 경로로 변경하세요.
-                    예: src="/money.html" 또는 src="https://yourdomain.com/money.html" 
-                -->
                 <iframe src="about:blank" class="w-full h-full border-0"></iframe>
             </div>
             
-            <!-- Instructions/Placeholder for when the page is first loaded (optional, for clarity) -->
+            <div id="content-cal2" class="tab-pane w-full h-full flex-1 hidden">
+                <iframe src="about:blank" class="w-full h-full border-0"></iframe>
+            </div>
+            
             <div id="instruction-message" class="p-8 text-center text-gray-500">
-                <p class="text-lg">파일 내용을 보려면 탭을 선택하세요.</p>
-                <p class="text-sm mt-2">주의: 현재 iFrame은 "about:blank"로 설정되어 있습니다. 실제 파일을 호스팅하고 `src` 속성을 변경해야 내용이 표시됩니다.</p>
+                <p class="text-xl font-bold text-indigo-600">파일 내용을 보려면 탭을 선택하세요.</p>
+                <p class="text-sm mt-3 border-t pt-3">
+                    **주의:** 현재 iFrame의 `src`는 "about:blank"로 설정되어 있습니다. 
+                    **실제 파일을 호스팅**하고 각 iFrame의 `src` 속성을 (`cal.html`, `money.html`, `cal2.html`) 경로에 맞게 변경해야 내용이 표시됩니다.
+                </p>
             </div>
 
         </div>
@@ -76,12 +73,12 @@
             const tabPanes = document.querySelectorAll('.tab-pane');
             const instructionMessage = document.getElementById('instruction-message');
 
-            // Set initial active tab (default to 'c')
-            let activeTab = 'c';
+            // 기본 활성화 탭을 'cal'로 설정합니다.
+            let activeTab = 'cal';
 
             /**
              * 탭 상태를 업데이트하고 UI를 변경합니다.
-             * @param {string} tabName 활성화할 탭 이름 ('c' 또는 'money')
+             * @param {string} tabName 활성화할 탭 이름 ('cal', 'money', 'cal2')
              */
             function switchTab(tabName) {
                 activeTab = tabName;
@@ -117,31 +114,19 @@
 
             // 이벤트 리스너 부착
             tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const tabName = button.getAttribute('data-tab');
-                    switchTab(tabName);
-                });
-            });
-
-            // 초기 로드 시 'c' 탭 활성화 및 버튼 스타일 적용
-            // 다만, iFrame이 실제 컨텐츠를 로드하지 않으므로, 초기에는 안내 메시지를 보여주고 탭 선택 시 로드하도록 합니다.
-            switchTab('c'); // 초기 탭을 설정하여 버튼 스타일은 적용
-            document.getElementById('content-c').classList.add('hidden'); // Content는 숨김
-            document.getElementById('content-money').classList.add('hidden'); // Content는 숨김
-            if (instructionMessage) {
-                instructionMessage.classList.remove('hidden'); // 안내 메시지 표시
-            }
-
-            // 탭 버튼 클릭 시 안내 메시지를 제거하고 해당 탭 내용을 보여줍니다.
-            tabButtons.forEach(button => {
                 button.addEventListener('click', (e) => {
                     const tabName = e.currentTarget.getAttribute('data-tab');
                     switchTab(tabName);
                 });
             });
+
+            // 초기 로드 시: 'cal' 탭 버튼 스타일은 적용하되, 실제 내용은 숨기고 안내 메시지를 표시합니다.
+            switchTab('cal'); 
+            tabPanes.forEach(pane => pane.classList.add('hidden')); 
+            if (instructionMessage) {
+                instructionMessage.classList.remove('hidden'); 
+            }
         });
     </script>
 </body>
 </html>
-
-
