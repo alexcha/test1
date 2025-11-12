@@ -2,6 +2,7 @@
 # 이 스크립트는 데이터 추출, 계산, 그리고 HTML 대시보드 생성까지 모두 처리합니다.
 
 
+
 # 🚨 TZ 환경 변수를 'Asia/Seoul'로 설정하여 date 명령이 정확히 KST를 출력하도록 강제합니다.
 export TZ='Asia/Seoul'
 
