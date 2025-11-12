@@ -57,7 +57,6 @@ JS_LABELS=$(awk -F ' : ' '
 ' result.txt) 
 
 # 2. 메인 HTML 테이블 ROW 데이터 생성 (JS 페이지네이션을 위해 <tr> 태그만 생성)
-# 폰트/패딩 조정 유지
 RAW_TABLE_ROWS=$(awk -F ' : ' '
     function comma_format(n) {
         if (n == 0) return "0";
@@ -125,7 +124,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (max-width 설정 제거 및 table-layout: fixed 추가 유지)
+# 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -176,9 +175,9 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # max-width 제거, font-size: 13px, table-layout: fixed 유지
-        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
-        # 각 열의 너비를 비율로 지정하여 칸이 좁아지지 않도록 합니다.
+        # max-width, min-width 제거 (CSS 클래스가 제어)
+        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
+        # 각 열의 너비를 비율로 지정
         print "<colgroup>\
             <col style=\"width: 33%;\">\
             <col style=\"width: 37%;\">\
@@ -559,31 +558,25 @@ cat << CHART_END > money.html
             color: #555;
             font-size: 15px;
         }
-        /* 데이터 테이블 Wrapper - 테이블 래퍼가 잘리지 않도록 overflow-x: auto를 추가합니다. */
+        /* 데이터 테이블 Wrapper - 가장 중요한 요소: overflow-x: auto로 잘림 방지 */
         .data-table-wrapper {
             width: 100%; 
-            /* max-width는 브라우저 폭에 맞춰야 하므로 제거합니다 */
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
-            min-width: 300px; 
+            min-width: 300px; /* 테이블 래퍼의 최소 너비 설정 유지 */
             border-radius: 8px; 
             overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
             -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 */
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
         /* 테이블 자체는 100% 너비로 설정하고, fixed layout을 사용하여 너비를 분할합니다. */
+        /* min-width를 모바일 뷰에 맞게 설정 (ex. 320px) */
         .data-table-wrapper table {
              width: 100%;
-             min-width: 400px; /* 테이블이 너무 작아지는 것을 방지 */
+             min-width: 400px; /* 테이블이 모바일에서 너무 좁아지는 것을 방지 (최소 400px 확보) */
+             table-layout: fixed;
         }
-        /* 일별 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
-        div table {
-            width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
     </style>
 </head>
 <body>
