@@ -411,7 +411,16 @@ cat << CHART_END > money.html
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
-        .container { width: 97%; max-width: 1200px; margin: 20px auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); }
+        /* 컨테이너 너비를 98%로 늘리고, 최대 너비를 1400px로 확장, 외부 마진/패딩을 줄여 공간 확보 */
+        .container { 
+            width: 98%; 
+            max-width: 1400px; 
+            margin: 10px auto; 
+            padding: 15px; 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); 
+        }
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 26px; font-weight: 700; }
         p.update-time { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
         /* 차트 컨테이너가 모바일에서 너무 작아지지 않도록 최소 높이 설정 */
@@ -540,6 +549,7 @@ cat << CHART_END > money.html
 </head>
 <body>
     <div class="container">
+        <!-- <h1>데이터 변화 추이 대시보드</h1> 제목 제거됨 -->
         <p class="update-time">최근 업데이트 시간: $(tail -n 1 result.txt | awk -F ' : ' '{print $1}')</p>
         
         <div class="prediction-section">
@@ -849,3 +859,4 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
+
