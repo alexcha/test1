@@ -73,7 +73,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
         abs_s = (s < 0) ? -s : s;
         abs_s_str = abs_s ""; 
         result = "";
-        while (length(abs_s_str) > 3) {
+        while (abs_s_str ~ /[0-9]{4}/) {
             result = "," substr(abs_s_str, length(abs_s_str)-2) result;
             abs_s_str = substr(abs_s_str, 1, length(abs_s_str)-3);
         }
@@ -114,17 +114,17 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
                 color_style = "color: #6c757d;";
             } 
 
-            # padding: 1px 0.5px로 축소된 상태 유지
+            # padding: 8px, font-size: 13px (이전 조정 유지)
             printf "<tr>\
-                <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
-                <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
-                <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; font-weight: bold; color: #333; background-color: white;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
             </tr>\n", time_str, current_val_str, color_style, diff_display
         }
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (AWK에서 max-width: 80% 적용)
+# 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -132,7 +132,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
         if (s < 0) { s = -s; }
         s = s ""; 
         result = "";
-        while (length(s) > 3) {
+        while (s ~ /[0-9]{4}/) {
             result = "," substr(s, length(s)-2) result;
             s = substr(s, 1, length(s)-3);
         }
@@ -147,7 +147,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
         else { return "0"; }
         s = s ""; 
         result = "";
-        while (length(s) > 3) {
+        while (s ~ /[0-9]{4}/) {
             result = "," substr(s, length(s)-2) result;
             s = substr(s, 1, length(s)-3);
         }
@@ -175,15 +175,19 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # max-width: 80% 적용
-        print "<table style=\"width: auto; max-width: 80%; border-collapse: collapse; border-spacing: 0; font-size: 11px; border-radius: 8px; overflow: hidden; margin: 0 auto; table-layout: auto;\">"; 
-        # <colgroup> 제거
-
-        # th padding: 1px 0.5px 로 수정
+        # max-width, min-width 제거 (CSS 클래스가 제어)
+        print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 13px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
+        # 각 열의 너비를 비율로 지정
+        print "<colgroup>\
+            <col style=\"width: 33%;\">\
+            <col style=\"width: 37%;\">\
+            <col style=\"width: 30%;\">\
+        </colgroup>";
+        # th padding: 8px로 수정
         print "<thead><tr>\
-            <th style=\"padding: 1px 0.5px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
-            <th style=\"padding: 1px 0.5px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
-            <th style=\"padding: 1px 0.5px; background-color: white; text-align: right; color: #333;\">변화</th>\
+            <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
+            <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
+            <th style=\"padding: 8px; background-color: white; text-align: right; color: #333;\">변화</th>\
         </tr></thead>";
         print "<tbody>"; 
 
@@ -211,14 +215,18 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # td padding: 1px 0.5px 로 수정
-            printf "<tr>\
-                <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
-                <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
-                <td style=\"padding: 1px 0.5px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
-            </tr>", date, current_value_display, color_style, diff_display; 
+            # td padding: 8px로 수정
+            row_data[i] = sprintf("<tr>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: bold; color: #333;\">%s</td>\
+                <td style=\"padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; %s\">%s</td>\
+            </tr>", date, current_value_display, color_style, diff_display); 
 
             prev_value = current_value;
+        } 
+
+        for (i = num_dates - 1; i >= 0; i--) {
+            print row_data[i];
         } 
 
         print "</tbody></table>";
@@ -340,7 +348,7 @@ PAYLOAD='{
 # AI 예측 헤더 업데이트
 PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측: ${TARGET_DATE} 및 ${END_OF_MONTH_DATE}"
 # 기본값: 키 없음 오류 메시지 (error-message 클래스 사용)
-PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인하세요.</div>' 
+PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다. GitHub Actions의 Secret(GKEY) 설정 및 워크플로우 변수 매핑을 확인해주세요.</div>' 
 
 if [ -n "$GEMINI_API_KEY" ]; then
     # curl 호출 및 응답 획득 (출력은 stderr로 리다이렉트)
@@ -411,9 +419,9 @@ cat << CHART_END > money.html
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background-color: #f7f7f7; color: #333; }
         
         .container { 
-            width: 80%; /* 화면의 80% 너비로 제한 */
+            width: 100%; /* 좌우 꽉 채우기 */
             max-width: 1400px; 
-            margin: 0 auto; /* 가운데 정렬 */
+            margin: 0 auto; 
             padding: 10px; /* 내부 여백 최소화 */
             background: white; 
             border-radius: 0; 
@@ -556,24 +564,24 @@ cat << CHART_END > money.html
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
-            border: none; /* 래퍼의 테두리 제거 */
+            border: 1px solid #ddd; /* 경계를 래퍼로 옮겨서 스크롤바에 포함되도록 합니다. */
             border-radius: 8px; 
             overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
             -webkit-overflow-scrolling: touch; 
+            /* 래퍼 자체는 패딩이 없으므로, 테이블 안쪽에서 패딩을 확보해야 합니다. */
             /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
-        /* 테이블 자체는 max-width: 80%를 적용하고 내용물에 따라 너비가 결정되도록 변경 */
+        /* 테이블 자체는 min-width를 확보하여 스크롤이 생기게 하고, fixed layout과 colgroup으로 너비를 배분합니다. */
         .data-table-wrapper table {
-             max-width: 80%; /* 테이블 최대 너비 80% 제한 */
-             width: auto;
-             table-layout: auto; /* fixed 제거 */
-             border: none; 
-             margin: 0 auto; /* 중앙 정렬 */
+             width: 100%;
+             min-width: 500px; /* 테이블이 모바일에서 좁아지는 것을 방지 (최소 500px 확보) */
+             table-layout: fixed;
+             border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
         }
-        /* 인라인 스타일을 오버라이드하기 위해 table-layout: fixed를 적용합니다. */
-        .data-table-wrapper table th, .data-table-wrapper table td {
-             white-space: nowrap; /* 텍스트 줄바꿈 방지 */
-        }
+        /* 일일 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
+        /* 이 부분은 data-table-wrapper 클래스를 적용하면서 필요 없어졌습니다. */
+        /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
+
     </style>
 </head>
 <body>
@@ -599,7 +607,6 @@ cat << CHART_END > money.html
         <div style="text-align: center;">
             <h2>일일 집계 기록 (최신순)</h2>
         </div>
-        <!-- 래퍼 div에 overflow-x: auto를 적용합니다. -->
         <div class="data-table-wrapper">
             ${DAILY_SUMMARY_TABLE}
         </div> 
@@ -657,15 +664,20 @@ ${RAW_TABLE_ROWS}
         const rows = getPageRows(page);
         const container = document.getElementById('dataRecordsContainer');
         
-        // 테이블 구조 생성: max-width: 80% 적용
+        // 테이블 구조 생성
         const tableHtml = \`
             <div class="data-table-wrapper">
-            <table style="width: auto; max-width: 80%; border-collapse: collapse; border-spacing: 0; table-layout: auto; font-size: 11px; margin: 0 auto;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px;">
+                <colgroup>
+                    <col style="width: 33%;"> /* 시간 */
+                    <col style="width: 37%;"> /* 값 */
+                    <col style="width: 30%;"> /* 변화 */
+                </colgroup>
                 <thead>
                     <tr>
-                        <th style="padding: 1px 0.5px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th> 
-                        <th style="padding: 1px 0.5px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
-                        <th style="padding: 1px 0.5px; background-color: white; text-align: right; color: #333;">변화</th>
+                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;">시간</th>
+                        <th style="padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;">값</th>
+                        <th style="padding: 8px; background-color: white; text-align: right; color: #333;">변화</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -774,77 +786,61 @@ ${RAW_TABLE_ROWS}
                     label: '변화 값', 
                     data: chartData,
                     borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.4)',
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    fill: 'start',
-                    tension: 0.1 // 부드러운 곡선
+                    backgroundColor: 'rgba(255, 99, 132, 0.4)', 
+                    borderWidth: 1, 
+                    tension: 0.4,
+                    pointRadius: 1, 
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
+                    pointHoverRadius: 3, 
+                    fill: 'start'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false 
-                    },
-                    title: {
-                        display: true,
-                        text: '기록 시간별 변화 값 추이',
-                        font: {
-                            size: 16,
-                            weight: '600'
-                        },
-                        color: '#333',
-                        padding: {
-                            top: 10,
-                            bottom: 10
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: formatTooltip
-                        }
-                    }
-                },
                 scales: {
                     x: {
-                        title: {
-                            display: true,
-                            text: '시간',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            }
-                        },
-                        grid: {
-                            display: false // x축 세로선 제거
+                        type: 'category', 
+                        title: { display: true, text: '시간 (MM-DD HH시)', font: { size: 14, weight: 'bold' } }, 
+                        ticks: {
+                            maxRotation: 45, 
+                            minRotation: 45,
+                            autoSkip: true,
+                            maxTicksLimit: 15, 
+                            font: { size: 12 }
                         }
                     },
                     y: {
-                        title: {
-                            display: true,
-                            text: '변화 값',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            }
-                        },
-                        ticks: {
-                            callback: formatYAxisTick // 축약 포맷 적용
-                        }
+                        title: { display: true, text: '변화 값', font: { size: 14, weight: 'bold' } }, 
+                        beginAtZero: true, 
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { callback: formatYAxisTick }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        bodyFont: { size: 14 },
+                        callbacks: { label: formatTooltip }
+                    },
+                    title: {
+                        display: true,
+                        text: '시간별 변화 값 추이 (MM-DD HH시)', 
+                        font: { size: 18, weight: 'bold' },
+                        padding: { top: 10, bottom: 10 }
                     }
                 }
             }
         });
-    }
-
+    } 
 
     // ---------------------------------------------
-    // 2. 일일 집계 차트 렌더링 로직 (dailyChart - 파란색)
+    // 2. 차트 렌더링 로직 (dailyChart - 파란색 - 변경 없음)
     // ---------------------------------------------
-
     const dailyChartCanvas = document.getElementById('dailyChart');
+    
     if (jsDailyValues.length === 0) {
         // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
         dailyChartCanvas.style.display = 'none';
@@ -852,74 +848,55 @@ ${RAW_TABLE_ROWS}
     } else {
         document.getElementById('dailyChartNoData').style.display = 'none';
         new Chart(dailyChartCanvas.getContext('2d'), {
-            type: 'bar', // 누적 값을 막대 그래프로 표시
+            type: 'line',
             data: {
                 labels: jsDailyLabels,
                 datasets: [{
-                    label: '누적 값',
+                    label: '일일 최종 값',
                     data: jsDailyValues,
-                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1,
-                    borderRadius: 5, // 막대 모서리 둥글게
-                    barPercentage: 0.9, // 막대 너비 조정
-                    categoryPercentage: 0.8 // 막대 간격 조정
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)', 
+                    borderWidth: 4, 
+                    tension: 0.3, 
+                    pointRadius: 6,
+                    pointBackgroundColor: 'rgba(0, 123, 255, 1)', 
+                    pointHoverRadius: 8,
+                    fill: 'start' 
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: '일일 최종 누적 값 추이',
-                        font: {
-                            size: 16,
-                            weight: '600'
-                        },
-                        color: '#333',
-                        padding: {
-                            top: 10,
-                            bottom: 10
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: formatTooltip
-                        }
-                    }
-                },
                 scales: {
                     x: {
-                        title: {
-                            display: true,
-                            text: '날짜',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            }
-                        },
-                        grid: {
-                            display: false // x축 세로선 제거
+                        type: 'category', 
+                        title: { display: true, text: '날짜', font: { size: 14, weight: 'bold' } },
+                        ticks: { 
+                            font: { size: 12 },
+                            maxRotation: 45, 
+                            minRotation: 45 
                         }
                     },
                     y: {
-                        title: {
-                            display: true,
-                            text: '누적 값',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            }
-                            
-                        },
-                        beginAtZero: true,
-                        ticks: {
-                            callback: formatYAxisTick // 축약 포맷 적용
-                        }
+                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
+                        beginAtZero: false,
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        ticks: { callback: formatYAxisTick }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        bodyFont: { size: 14 },
+                        callbacks: { label: formatTooltip }
+                    },
+                    title: {
+                        display: true,
+                        text: '일별 최종 값 변화 추이 (YYYY-MM-DD)',
+                        font: { size: 18, weight: 'bold' },
+                        padding: { top: 10, bottom: 10 }
                     }
                 }
             }
@@ -929,5 +906,4 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
-
 
