@@ -211,6 +211,42 @@
         const LAST_CALCULATION_KEY = 'last_calculation';
         const HISTORY_KEY = 'calculation_history';
         const MAX_HISTORY_ITEMS = 10; // ⭐️ 최대 기록 항목 수 (10개)
+        
+        // --- 포맷팅 유틸리티 함수 ---
+
+        /**
+         * 숫자에 콤마(천 단위 구분 기호)를 추가합니다.
+         * @param {string | number} number - 포맷팅할 숫자 또는 숫자 문자열
+         * @returns {string} 콤마가 추가된 문자열
+         */
+        function formatNumberWithCommas(number) {
+            if (typeof number !== 'string') {
+                number = String(number);
+            }
+            
+            // 부호와 소수점 부분을 분리합니다.
+            const parts = number.split('.');
+            let integerPart = parts[0];
+            const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+            const sign = integerPart.startsWith('-') ? '-' : '';
+            
+            // 부호 제거 후 정수 부분에 콤마 추가
+            integerPart = integerPart.replace('-', '');
+            // 정규 표현식: 숫자가 3개 단위로 반복되는 곳의 앞에 콤마 삽입
+            integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            
+            return sign + integerPart + decimalPart;
+        }
+
+        /**
+         * 콤마(천 단위 구분 기호)를 제거합니다. (계산용)
+         * @param {string} str - 콤마가 포함된 문자열
+         * @returns {string} 콤마가 제거된 문자열
+         */
+        function stripCommas(str) {
+            if (typeof str !== 'string') return String(str);
+            return str.replace(/,/g, '');
+        }
 
         // --- 초기화 및 데이터 로드 ---
         window.onload = function() {
@@ -238,8 +274,8 @@
         function loadState() {
             const savedExpression = localStorage.getItem(LAST_CALCULATION_KEY);
             if (savedExpression) {
-                currentExpression = savedExpression;
-                currentOpDisplay.textContent = currentExpression;
+                currentExpression = savedExpression; // 콤마 없는 원본 수식 로드
+                updateDisplay(); // 포맷팅하여 표시
             } else {
                 currentOpDisplay.textContent = '0';
             }
@@ -264,6 +300,7 @@
          * 현재 수식을 로컬 스토리지에 저장합니다.
          */
         function saveExpression() {
+            // currentExpression은 콤마 없이 저장됩니다.
             localStorage.setItem(LAST_CALCULATION_KEY, currentExpression);
         }
 
@@ -273,6 +310,27 @@
         function saveHistory() {
             localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
         }
+        
+        /**
+         * 현재 수식을 포맷팅하여 화면에 표시합니다.
+         */
+        function updateDisplay() {
+            // 수식 문자열을 숫자, 연산자, 괄호 등으로 분리하여 포맷팅을 적용합니다.
+            const formattedExpression = currentExpression.split(/([+\-*/()])/)
+                .map(part => {
+                    // 숫자, 소수점, 부호로만 이루어진 부분을 찾고 콤마 포맷팅 적용
+                    // part가 비어있지 않고, 숫자나 소수점을 포함하며, 연산자/괄호가 아닌 경우 (즉, 숫자 항인 경우)
+                    if (part.length > 0 && (/[0-9]/.test(part) || part === '0.') && !/[+\-*/()]/.test(part)) {
+                        return formatNumberWithCommas(part);
+                    }
+                    return part; // 연산자, 괄호 등은 그대로 반환
+                }).join('');
+            
+            currentOpDisplay.textContent = formattedExpression || '0';
+            currentOpDisplay.scrollLeft = currentOpDisplay.scrollWidth;
+            saveExpression();
+        }
+
 
         // --- 히스토리 기능 구현 ---
         
@@ -301,7 +359,7 @@
                 contentDiv.className = 'flex-grow';
                 contentDiv.innerHTML = `
                     <div class="text-sm text-gray-500">${item.expression.replace(/\*/g, '×').replace(/\//g, '÷')} =</div>
-                    <div class="text-xl text-gray-900 font-semibold">${item.result}</div>
+                    <div class="text-xl text-gray-900 font-semibold">${formatNumberWithCommas(item.result)}</div>
                 `;
                 // ⭐️ 항목 클릭 시 전체 'item' 객체를 전달하도록 수정
                 contentDiv.addEventListener('click', () => loadFromHistory(item));
@@ -330,8 +388,8 @@
          * @param {object} item - 히스토리 항목 객체 ({expression, result})
          */
         function loadFromHistory(item) {
-            currentExpression = item.expression;
-            currentOpDisplay.textContent = currentExpression;
+            // 히스토리에 저장된 원본 수식 로드 (콤마 없음)
+            currentExpression = item.expression; 
             
             // 이전 수식창을 비우고 새로운 계산을 시작할 준비를 합니다.
             previousOpDisplay.textContent = ''; 
@@ -345,7 +403,7 @@
                 if (char === ')') openParentheses--;
             });
 
-            saveExpression();
+            updateDisplay(); // 포맷팅하여 표시
         }
 
         /**
@@ -376,11 +434,11 @@
                 }
                 
                 currentExpression = currentExpression.slice(0, -1);
-                currentOpDisplay.textContent = currentExpression || '0';
                 resultDisplayed = false;
-                saveExpression();
+                updateDisplay();
             } else {
                 localStorage.removeItem(LAST_CALCULATION_KEY);
+                updateDisplay();
             }
         }
 
@@ -413,9 +471,7 @@
                 openParentheses++;
             }
 
-            currentOpDisplay.textContent = currentExpression || '0';
-            currentOpDisplay.scrollLeft = currentOpDisplay.scrollWidth;
-            saveExpression();
+            updateDisplay();
         }
 
 
@@ -427,8 +483,7 @@
                 // 결과에 부호 변경 적용
                 let result = parseFloat(currentExpression) * -1;
                 currentExpression = String(result);
-                currentOpDisplay.textContent = currentExpression;
-                saveExpression();
+                updateDisplay();
                 return;
             }
 
@@ -467,8 +522,7 @@
                 }
                 
                 currentExpression = newExpression;
-                currentOpDisplay.textContent = currentExpression;
-                saveExpression();
+                updateDisplay();
             } else if (currentExpression.length > 0) {
                  // 숫자가 아닌 복잡한 수식일 경우 전체 부호 변경만 시도
                 if (currentExpression.startsWith('-')) {
@@ -476,8 +530,7 @@
                 } else {
                     currentExpression = `-${currentExpression}`;
                 }
-                currentOpDisplay.textContent = currentExpression;
-                saveExpression();
+                updateDisplay();
             }
         }
 
@@ -522,9 +575,7 @@
                 }
             }
 
-            currentOpDisplay.textContent = currentExpression || '0';
-            currentOpDisplay.scrollLeft = currentOpDisplay.scrollWidth;
-            saveExpression();
+            updateDisplay(); // 포맷팅 및 저장
         }
 
         /**
@@ -583,7 +634,7 @@
                 
                 const historyItem = {
                     expression: originalExpression,
-                    result: result
+                    result: String(result) // 콤마 없이 저장 (계산 가능 형태로)
                 };
                 history.push(historyItem);
                 
@@ -597,7 +648,8 @@
 
                 previousOpDisplay.textContent = `${originalExpression.replace(/\*/g, '×').replace(/\//g, '÷')} =`;
                 currentExpression = String(result);
-                currentOpDisplay.textContent = currentExpression;
+                // 최종 결과에 콤마 포맷팅을 적용하여 화면에 표시
+                currentOpDisplay.textContent = formatNumberWithCommas(currentExpression); 
                 resultDisplayed = true;
                 saveExpression();
 
@@ -611,5 +663,4 @@
     </script>
 </body>
 </html>
-
 
