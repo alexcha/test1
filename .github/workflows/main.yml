@@ -59,7 +59,7 @@ jobs:
         
         # 7. Git 커밋 및 푸시
         echo "7. Git 커밋 및 푸시..."
-        git add result.txt index.html
+        git add result.txt money.html
         
         git config --global user.email "github-actions-bot@example.com"
         git config --global user.name "GitHub Actions Bot"
