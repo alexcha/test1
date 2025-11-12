@@ -125,7 +125,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (변경 없음)
+# 3. 일별 집계 테이블 생성 (max-width 1000px -> 950px로 수정)
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -176,7 +176,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        print "<table style=\"width: 100%; max-width: 1000px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
+        print "<table style=\"width: 100%; max-width: 950px; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; min-width: 300px; border-radius: 8px; overflow: hidden; margin-top: 20px;\">";
         print "<thead><tr>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
             <th style=\"padding: 14px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
@@ -410,21 +410,21 @@ cat << CHART_END > money.html
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: #f7f7f7; color: #333; }
-        /* 컨테이너 너비를 98%로 늘리고, 최대 너비를 1400px로 확장, 외부 마진/패딩을 줄여 공간 확보 */
+        /* 컨테이너의 너비를 100%로 설정하여 좌우 꽉 채우고, 내부 여백을 최소화합니다. */
         .container { 
-            width: 98%; 
+            width: 100%; 
             max-width: 1400px; 
-            margin: 10px auto; 
-            padding: 15px; 
+            margin: 0 auto; /* 상하 마진 0, 좌우 자동 */
+            padding: 10px; /* 내부 여백 최소화 */
             background: white; 
-            border-radius: 12px; 
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); 
+            border-radius: 0; 
+            box-shadow: none; 
         }
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 26px; font-weight: 700; }
-        p.update-time { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
+        p.update-time { text-align: center; color: #777; margin-bottom: 20px; font-size: 14px; }
         /* 차트 컨테이너가 모바일에서 너무 작아지지 않도록 최소 높이 설정 */
         .chart-container { 
-            margin-bottom: 50px; 
+            margin-bottom: 30px; 
             border: 1px solid #eee; 
             border-radius: 8px; 
             padding: 15px; 
@@ -435,14 +435,14 @@ cat << CHART_END > money.html
         }
         /* h2 스타일: 두 제목 모두 검정색으로 통일 */
         h2 { 
-            margin-top: 40px; 
-            margin-bottom: 15px; 
+            margin-top: 30px; 
+            margin-bottom: 10px; 
             text-align: center; 
             color: #343a40; 
             font-size: 22px; 
             font-weight: 600;
             border-bottom: 2px solid #343a40; 
-            padding-bottom: 10px;
+            padding-bottom: 8px;
             display: inline-block;
             width: auto;
             margin-left: auto;
@@ -450,13 +450,13 @@ cat << CHART_END > money.html
         }
         /* 일일 집계 차트 제목 마진 조정 */
         #daily-chart-header {
-            margin-top: 60px !important; 
+            margin-top: 40px !important; 
         }
         
         /* --- AI 예측 섹션 스타일 개선 --- */
         .prediction-section {
             padding: 20px;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             background-color: #f0f8ff; /* Light blue background for success section */
             border: 2px solid #007bff;
             border-radius: 12px;
@@ -531,10 +531,10 @@ cat << CHART_END > money.html
             color: #555;
             font-size: 15px;
         }
-        /* 데이터 테이블 Wrapper */
+        /* 데이터 테이블 Wrapper - max-width 1000px -> 950px로 수정 */
         .data-table-wrapper {
             width: 100%; 
-            max-width: 1000px; 
+            max-width: 950px; 
             margin: 0 auto; 
             border-collapse: separate; 
             border-spacing: 0; 
@@ -858,3 +858,5 @@ ${RAW_TABLE_ROWS}
 </body>
 </html>
 CHART_END
+
+
