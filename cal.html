@@ -440,7 +440,18 @@
         if (totalBuyCost > 0) {
             simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
         }
-        const simpleProfitRateText = (isFinite(simpleProfitRate) ? simpleProfitRate.toFixed(2) : 'N/A') + '%';
+        
+        // 단순 수익률 표시를 위한 값과 부호 결정 (핵심 수정 부분)
+        let simpleProfitRateValue = isFinite(simpleProfitRate) ? formatCurrency(Math.abs(simpleProfitRate), 2) : 'N/A';
+        let simpleProfitPrefix = '';
+        
+        if (simpleProfit > 0) {
+            simpleProfitPrefix = '+';
+        } else if (simpleProfit < 0) {
+            simpleProfitPrefix = '-';
+        }
+        
+        const simpleProfitRateText = simpleProfitRateValue + '%';
 
 
         const tableHTML = `
@@ -491,7 +502,7 @@
                 <tr>
                     <th>참고: 단순 수익률 (세전)</th>
                     <td class="value-col">
-                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'}">${simpleProfit > 0 ? '+' : (simpleProfit < 0 ? '-' : '')}${simpleProfitRateText}</span>
+                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'}">${simpleProfitPrefix}${simpleProfitRateText}</span>
                     </td>
                 </tr>
             </tbody>
@@ -558,4 +569,5 @@
 </script>
 </body>
 </html>
+
 
