@@ -49,7 +49,7 @@
             margin-right: auto;
         }
         
-        #daily-chart-header, #daily-summary-chart-header {
+        #daily-chart-header, #daily-change-chart-header, #daily-summary-chart-header {
             margin-top: 40px !important; 
         }
         
@@ -159,8 +159,6 @@
             border-radius: 8px; 
             overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
             -webkit-overflow-scrolling: touch; 
-            /* 래퍼 자체는 패딩이 없으므로, 테이블 안쪽에서 패딩을 확보해야 합니다. */
-            /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
         /* 테이블 자체는 100% 너비를 사용하고 fixed layout과 colgroup으로 너비를 배분합니다. */
         .data-table-wrapper table {
@@ -168,24 +166,21 @@
              table-layout: fixed;
              border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
         }
-        /* 일일 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
-        /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
-
     </style>
 </head>
 <body>
     <div class="container">
-        <p class="update-time">최근 업데이트 시간: 2025-11-13 20:06:51 KST</p>
+        <p class="update-time">최근 업데이트 시간: 2025-11-13 20:13:45 KST</p>
         
         <div class="prediction-section">
-            <h2 id="prediction-header">AI 기반 추이 분석 및 예측 (API 오류)</h2>
+            <h2 id="prediction-header">AI 기반 추이 분석 및 예측: 2025-11-14 및 2025-11-30</h2>
             <div id="predictionResult">
-                <div class="error-message"><span style="font-weight: 700;">⚠️ 예측 결과 실패.</span> API 오류: The model is overloaded. Please try again later.</div>
+                <div class="success-message">모바일 게임의 누적 매출은 지속적인 상승 추세를 보이고 있습니다. 현재 추정치로는 2025년 11월 14일의 예상 최종 누적 매출은 약 $11,200,000에 이를 것으로 예상되며, 11월 말인 2025년 11월 30일에는 약 $21,580,000에 도달할 것으로 추정됩니다. 이는 최근 일별 매출 증가액을 기반으로 한 추정치입니다.</div>
             </div>
         </div>
         
         <div style="text-align: center;">
-            <h2 id="daily-chart-header">일일 집계 추이</h2>
+            <h2 id="daily-chart-header">일일 **누적** 값 추이 (꺾은선 차트)</h2>
         </div>
         <div class="chart-container">
             <canvas id="dailyChart"></canvas>
@@ -193,15 +188,15 @@
         </div>
         
         <div style="text-align: center;">
-            <h2 id="daily-summary-chart-header">일일 집계 기록 (차트)</h2>
+            <h2 id="daily-change-chart-header">일일 **변화량** 추이 (막대 차트)</h2>
         </div>
         <div class="chart-container">
-            <canvas id="dailyRecordsChart"></canvas>
-            <p id="dailyRecordsChartNoData" class="no-data-message" style="display: none;">일일 집계 기록 데이터가 없어 차트를 그릴 수 없습니다.</p>
+            <canvas id="dailyChangeChart"></canvas>
+            <p id="dailyChangeChartNoData" class="no-data-message" style="display: none;">일일 변화량 데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div>
         
         <div style="text-align: center;">
-            <h2>일일 집계 기록 (최신순)</h2>
+            <h2 id="daily-summary-chart-header">일일 집계 기록 (요약 테이블)</h2>
         </div>
         <div class="data-table-wrapper">
             <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;">
@@ -227,7 +222,7 @@
         </div> 
         
         <div style="text-align: center;">
-            <h2>기록 시간별 변화 값 추이</h2>
+            <h2>기록 시간별 변화 값 추이 (꺾은선 차트)</h2>
         </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
@@ -236,7 +231,7 @@
 
         
         <div style="text-align: center;">
-            <h2>데이터 기록 (최신순)</h2>
+            <h2>데이터 기록 (시간별 - 최신순)</h2>
         </div>
         
         <div id="dataRecordsContainer">
@@ -249,16 +244,18 @@
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
-    // 1. 차트 데이터
+    // 1. 시간별 변화 데이터
     const chartData = [0, 30600, 33700, 28200, -2100, 17100, 16900, 23600, 21500, 21800, 26300, 75300, 36500, 32500, 35700, 80400, 28700, -10200, 23900, 17400, 31000, 30400, 66300, 12600, 44600, 32500, 39500, 74300, 47600, 63300, 28700, 22000, 15000, 19300, 44700, 18800, 89800, 57800, 29300, 25700, 43700, 55500, 26300, 47000, 21900, 47300, 46300, 31400, 21100, 41700, 22400, 25100, 28300, 32100, 26100, 27400, 8700, 49200, 18700, 22900, 29000, 28100, 39300, 37200, 30500, 23300, 52400, 27100, 37800, 82200, 41700, 40900, 29600, 22800, 32200, 17900, 55200, 30100, 10900, 12600, 21400, 32900, 23800, -9700, 17500, 48000, 58400, 27300, 17600, 24600, 800, 10600, 17300, 21100, 13600, 16800, -4400, 8000, 76800, 42200, -4500, 2800, 64800, 34300, 52900, 51100, 49900, 65800, 51300, 41500, 36000, -6100, 33100, 18400, 18700, 18100, 14800, 25800, 45700, 33000, 1600, 35500, 21000, 31000, 10800, 14900, 43500, 78700, 31000, 42000, 29100, 17000, 31400, 20700, 20500, 22300, 16500, 19900, 70500, 26200, 11900, 26300, -101500, 28200, 29500, 36300, 42700, 5900, 33400, 19500, 38600, 55500, -319200, 45000, 239300, 40500, 47600, 17800, -5300, 41600, 61900, 34000, 27500, 22200, 31800, 12200, 6700, 20000, -47400, 38800, -121900, 96700, 77500, -139800, 10800, 60900, 28300, 137800, 35700, 24700, 21700, 60700, 31800, 89100, 15600, -4900, 23700, 14000, 7800, 14300, 1300, 13700, 20300, -5500, 19100, 33800, 24100, 34300, 26000, 12300, 37000, 16600, 11600, 7600, 11700, 14700, 12800, 16600, -300, 2800, 6300, 21600, 12400, 11900, 36800, 6500, 400, 48900, -15500, 24000, 47400, 25200, 22100, 20900, 18000, 5900, 60400, 11100, 24900, -13700, 12400, 107000, -7900, 54800, 36800, 20700, 66900, 84600, 42200, 7900, 400, 5700, 59500, 35000, 37700, 2500, 13600, 9300, 4700, -3300, 10000, -11000, 55300, 54300, 98600, 55300, 28400, 31700, 96600, 20700, -1100, 112800, 56600, 33500, 25500, 23400, 22400, 34500, 25200, 18200, 104000, -25900, 44400, 28900, 20600, 14400, 43400, 10000, 1200, 39900, -34000, 36800, 1500, -18800, 22800, 10400, 55300, 17300, 25100, 90700, 18700, 40100, 18300, 9800, 9100, 17900, 2300, -6100, 45200, 16700, 107900, 45200, -82300];
     const chartLabels = ["10-30 22시", "10-30 23시", "10-31 00시", "10-31 01시", "10-31 02시", "10-31 03시", "10-31 04시", "10-31 05시", "10-31 06시", "10-31 07시", "10-31 08시", "10-31 10시", "10-31 11시", "10-31 12시", "10-31 13시", "10-31 14시", "10-31 15시", "10-31 16시", "10-31 17시", "10-31 18시", "10-31 19시", "10-31 20시", "10-31 21시", "10-31 22시", "10-31 23시", "11-01 00시", "11-01 01시", "11-01 02시", "11-01 03시", "11-01 04시", "11-01 05시", "11-01 06시", "11-01 07시", "11-01 08시", "11-01 10시", "11-01 11시", "11-01 14시", "11-01 15시", "11-01 16시", "11-01 17시", "11-01 18시", "11-01 20시", "11-01 21시", "11-01 22시", "11-01 23시", "11-02 00시", "11-02 01시", "11-02 02시", "11-02 03시", "11-02 04시", "11-02 05시", "11-02 06시", "11-02 07시", "11-02 08시", "11-02 09시", "11-02 11시", "11-02 12시", "11-02 14시", "11-02 15시", "11-02 16시", "11-02 17시", "11-02 18시", "11-02 19시", "11-02 20시", "11-02 21시", "11-02 22시", "11-02 23시", "11-03 00시", "11-03 01시", "11-03 02시", "11-03 03시", "11-03 04시", "11-03 05시", "11-03 06시", "11-03 07시", "11-03 08시", "11-03 11시", "11-03 12시", "11-03 13시", "11-03 16시", "11-03 17시", "11-03 18시", "11-03 19시", "11-03 20시", "11-03 21시", "11-03 22시", "11-03 23시", "11-04 00시", "11-04 01시", "11-04 02시", "11-04 03시", "11-04 04시", "11-04 05시", "11-04 06시", "11-04 07시", "11-04 08시", "11-04 11시", "11-04 12시", "11-04 13시", "11-04 14시", "11-04 15시", "11-04 16시", "11-04 17시", "11-04 18시", "11-04 19시", "11-04 20시", "11-04 22시", "11-04 23시", "11-05 00시", "11-05 01시", "11-05 02시", "11-05 03시", "11-05 04시", "11-05 05시", "11-05 06시", "11-05 07시", "11-05 08시", "11-05 11시", "11-05 12시", "11-05 13시", "11-05 14시", "11-05 15시", "11-05 16시", "11-05 17시", "11-05 18시", "11-05 19시", "11-05 20시", "11-05 22시", "11-05 23시", "11-06 00시", "11-06 01시", "11-06 02시", "11-06 03시", "11-06 04시", "11-06 05시", "11-06 06시", "11-06 07시", "11-06 08시", "11-06 11시", "11-06 12시", "11-06 13시", "11-06 14시", "11-06 15시", "11-06 16시", "11-06 17시", "11-06 18시", "11-06 19시", "11-06 20시", "11-06 21시", "11-06 22시", "11-06 23시", "11-07 00시", "11-07 01시", "11-07 02시", "11-07 03시", "11-07 04시", "11-07 05시", "11-07 06시", "11-07 07시", "11-07 08시", "11-07 11시", "11-07 12시", "11-07 13시", "11-07 14시", "11-07 15시", "11-07 16시", "11-07 17시", "11-07 18시", "11-07 19시", "11-07 20시", "11-07 21시", "11-07 22시", "11-07 23시", "11-08 00시", "11-08 01시", "11-08 02시", "11-08 03시", "11-08 04시", "11-08 05시", "11-08 06시", "11-08 07시", "11-08 08시", "11-08 11시", "11-08 12시", "11-08 13시", "11-08 14시", "11-08 15시", "11-08 16시", "11-08 17시", "11-08 18시", "11-08 19시", "11-08 20시", "11-08 21시", "11-08 22시", "11-08 23시", "11-09 00시", "11-09 01시", "11-09 02시", "11-09 03시", "11-09 04시", "11-09 05시", "11-09 06시", "11-09 07시", "11-09 08시", "11-09 11시", "11-09 12시", "11-09 13시", "11-09 14시", "11-09 15시", "11-09 16시", "11-09 17시", "11-09 18시", "11-09 19시", "11-09 20시", "11-09 21시", "11-09 22시", "11-09 23시", "11-10 00시", "11-10 01시", "11-10 02시", "11-10 03시", "11-10 04시", "11-10 05시", "11-10 06시", "11-10 07시", "11-10 08시", "11-10 11시", "11-10 12시", "11-10 13시", "11-10 14시", "11-10 15시", "11-10 16시", "11-10 17시", "11-10 18시", "11-10 19시", "11-10 20시", "11-10 21시", "11-10 22시", "11-10 23시", "11-11 00시", "11-11 01시", "11-11 02시", "11-11 03시", "11-11 04시", "11-11 05시", "11-11 06시", "11-11 07시", "11-11 08시", "11-11 11시", "11-11 12시", "11-11 13시", "11-11 14시", "11-11 15시", "11-11 16시", "11-11 17시", "11-11 18시", "11-11 19시", "11-11 20시", "11-11 21시", "11-11 22시", "11-11 23시", "11-12 00시", "11-12 01시", "11-12 02시", "11-12 03시", "11-12 04시", "11-12 05시", "11-12 06시", "11-12 07시", "11-12 08시", "11-12 11시", "11-12 12시", "11-12 13시", "11-12 14시", "11-12 15시", "11-12 16시", "11-12 17시", "11-12 18시", "11-12 19시", "11-12 20시", "11-12 21시", "11-12 22시", "11-12 23시", "11-13 00시", "11-13 01시", "11-13 02시", "11-13 03시", "11-13 04시", "11-13 05시", "11-13 06시", "11-13 07시", "11-13 08시", "11-13 10시", "11-13 11시", "11-13 12시", "11-13 13시", "11-13 14시", "11-13 15시", "11-13 16시", "11-13 17시", "11-13 18시", "11-13 19시", "11-13 20시"]; 
 
-    // 2. 일별 최종 값 데이터
-    const jsDailyValues = [2201000, 2893100, 3695800, 4384300, 5017600, 5607000, 6205300, 6692200, 7115000, 7596100, 7953600, 8650700, 9262500, 9899800, 10345400];
+    // 2. 일별 최종 값 데이터 (누적)
+    const jsDailyValues = [2201000, 2893100, 3695800, 4384300, 5017600, 5607000, 6205300, 6692200, 7115000, 7596100, 7953600, 8650700, 9262500, 9899800, 10345400]; 
     const jsDailyLabels = ["2025-10-30", "2025-10-31", "2025-11-01", "2025-11-02", "2025-11-03", "2025-11-04", "2025-11-05", "2025-11-06", "2025-11-07", "2025-11-08", "2025-11-09", "2025-11-10", "2025-11-11", "2025-11-12", "2025-11-13"]; 
+    
+    // 3. 일별 변화량 데이터 (새로 추가)
+    const jsDailyChanges = [];
 
-    // 3. 페이지네이션을 위한 전체 ROW 데이터 (AWK에서 최신순으로 생성)
-    // 줄바꿈 문자로 분리하여 <tr> 태그 문자열 배열로 만듭니다.
+    // 4. 페이지네이션을 위한 전체 ROW 데이터
     const rawRowData = `
 <tr>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;">11-13 20시</td>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;">10,345,400</td>                <td style="padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; color: #007bff; font-weight: 600;">-82,300</td>            </tr>
 <tr>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; font-size: 14px; color: #343a40;">11-13 19시</td>                <td style="padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;">10,427,700</td>                <td style="padding: 8px; border-top: 1px solid #eee; text-align: right; background-color: white; font-size: 14px; color: #dc3545; font-weight: 600;">+45,200</td>            </tr>
@@ -567,7 +564,7 @@
 
     const ROWS_PER_PAGE = 20;
     let currentPage = 1;
-    const totalPages = Math.ceil(rawRowData.length / ROWS_PER_PAGE);
+    const totalPages = Math.ceil(rawRowData.length / ROWS_PER_PER_PAGE);
 
     // --- 페이지네이션 로직 ---
 
@@ -677,7 +674,7 @@
         }
         if (context.parsed.y !== null) {
             // 변화값은 부호를 포함하여 포맷팅
-            const isChangeValue = context.chart.options.plugins.title.text.includes('변화 값');
+            const isChangeValue = context.chart.options.plugins.title.text.includes('변화');
             label += new Intl.NumberFormat('ko-KR', { signDisplay: isChangeValue ? 'always' : 'auto', maximumFractionDigits: 0 }).format(context.parsed.y);
         }
         return label;
@@ -690,7 +687,6 @@
 
     const simpleChartCanvas = document.getElementById('simpleChart');
     if (chartData.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
         simpleChartCanvas.style.display = 'none';
         document.getElementById('simpleChartNoData').style.display = 'block';
     } else {
@@ -754,12 +750,11 @@
     } 
 
     // ---------------------------------------------
-    // 2. 차트 렌더링 로직 (dailyChart - 일일 최종 값 추이)
+    // 2. 차트 렌더링 로직 (dailyChart - 일일 최종 값 (누적))
     // ---------------------------------------------
     const dailyChartCanvas = document.getElementById('dailyChart');
     
     if (jsDailyValues.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
         dailyChartCanvas.style.display = 'none';
         document.getElementById('dailyChartNoData').style.display = 'block';
     } else {
@@ -769,7 +764,7 @@
             data: {
                 labels: jsDailyLabels,
                 datasets: [{
-                    label: '일일 최종 값',
+                    label: '일일 최종 값 (누적)',
                     data: jsDailyValues,
                     borderColor: 'rgba(0, 123, 255, 1)',
                     backgroundColor: 'rgba(0, 123, 255, 0.2)', 
@@ -795,7 +790,7 @@
                         }
                     },
                     y: {
-                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
+                        title: { display: true, text: '최종 누적 값', font: { size: 14, weight: 'bold' } },
                         beginAtZero: false,
                         grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { callback: formatYAxisTick }
@@ -811,7 +806,7 @@
                     },
                     title: {
                         display: true,
-                        text: '일별 최종 값 변화 추이',
+                        text: '일별 최종 누적 값 추이',
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -821,25 +816,43 @@
     }
 
     // ---------------------------------------------
-    // 3. 차트 렌더링 로직 (dailyRecordsChart - 일일 집계 기록)
+    // 3. 차트 렌더링 로직 (dailyChangeChart - 일일 변화량)
     // ---------------------------------------------
-    const dailyRecordsChartCanvas = document.getElementById('dailyRecordsChart');
+    const dailyChangeChartCanvas = document.getElementById('dailyChangeChart');
     
-    if (jsDailyValues.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
-        dailyRecordsChartCanvas.style.display = 'none';
-        document.getElementById('dailyRecordsChartNoData').style.display = 'block';
+    if (jsDailyChanges.length === 0 || jsDailyChanges.every(val => val === 0)) {
+        dailyChangeChartCanvas.style.display = 'none';
+        document.getElementById('dailyChangeChartNoData').style.display = 'block';
     } else {
-        document.getElementById('dailyRecordsChartNoData').style.display = 'none';
-        new Chart(dailyRecordsChartCanvas.getContext('2d'), {
-            type: 'bar', // Bar Chart로 변경하여 구분감을 줌
+        document.getElementById('dailyChangeChartNoData').style.display = 'none';
+        new Chart(dailyChangeChartCanvas.getContext('2d'), {
+            type: 'bar', // 막대 차트 사용
             data: {
                 labels: jsDailyLabels,
                 datasets: [{
-                    label: '일일 최종 값',
-                    data: jsDailyValues,
-                    backgroundColor: 'rgba(75, 192, 192, 0.7)', // 색상 변경
-                    borderColor: 'rgba(75, 192, 192, 1)',
+                    label: '일일 변화량',
+                    data: jsDailyChanges,
+                    backgroundColor: function(context) {
+                        // 변화량에 따라 색상 변경 (양수는 빨간색, 음수는 파란색)
+                        const value = context.parsed.y;
+                        if (value > 0) {
+                            return 'rgba(220, 53, 69, 0.8)'; // Red (상승)
+                        } else if (value < 0) {
+                            return 'rgba(0, 123, 255, 0.8)'; // Blue (하락)
+                        } else {
+                            return 'rgba(108, 117, 125, 0.8)'; // Gray (변화 없음)
+                        }
+                    },
+                    borderColor: function(context) {
+                        const value = context.parsed.y;
+                        if (value > 0) {
+                            return 'rgba(220, 53, 69, 1)';
+                        } else if (value < 0) {
+                            return 'rgba(0, 123, 255, 1)';
+                        } else {
+                            return 'rgba(108, 117, 125, 1)';
+                        }
+                    },
                     borderWidth: 1
                 }]
             },
@@ -857,8 +870,8 @@
                         }
                     },
                     y: {
-                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
-                        beginAtZero: false,
+                        title: { display: true, text: '변화량', font: { size: 14, weight: 'bold' } },
+                        beginAtZero: true, // 변화량은 0을 기준으로
                         grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { callback: formatYAxisTick }
                     }
@@ -873,7 +886,7 @@
                     },
                     title: {
                         display: true,
-                        text: '일일 집계 기록 (막대 차트)',
+                        text: '일일 변화량 추이',
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
