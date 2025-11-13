@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>히스토리 계산기 (라이트모드)</title>
-    <!-- Tailwind CSS CDN 로드 -->
+    <title>히스토리 계산기 (라이트모드 with Haptic Feedback)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Inter 폰트 설정 및 라이트 모드 스타일 */
@@ -141,62 +140,50 @@
 <body class="min-h-screen pt-8 p-4 md:p-8">
 
     <div class="main-grid">
-        <!-- Calculator Card (Left/Top) -->
         <div id="calculator" class="calculator-card w-full max-w-sm bg-white shadow-xl p-5 rounded-3xl transition-all duration-300 mx-auto">
-            <!-- Display -->
             <div id="display" class="mb-4 rounded-2xl p-4 flex flex-col items-end justify-end font-light overflow-x-auto whitespace-nowrap scrollbar-hide" style="height: 5rem;">
                 <div id="previous-op" class="text-sm h-6"></div>
-                <!-- inputmode="decimal"을 추가하여 모바일 환경에서 숫자 키패드를 유도합니다. -->
                 <div id="current-op" contenteditable="true" spellcheck="false" 
                      class="text-4xl font-normal h-10 focus:outline-none" 
                      oninput="syncInputAndFormat(this)"
                      inputmode="decimal">0</div>
             </div>
 
-            <!-- Button Grid (Image-based Layout) -->
             <div id="main-button-grid" class="grid grid-cols-4 gap-3">
                 
-                <!-- Row 1: C, (), ÷, ⌫ (Backspace) -->
-                <button class="clear-key text-white text-2xl p-5 aspect-square rounded-full shadow-md" onclick="clearDisplay()">C</button>
+                <button class="clear-key text-white text-2xl p-5 aspect-square rounded-full shadow-md" data-action="clear">C</button>
                 <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="paren">()</button>
                 <button class="operator text-2xl p-5 aspect-square rounded-full shadow-md" data-value="/">÷</button>
-                <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" onclick="deleteLast()">⌫</button>
+                <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-action="delete">⌫</button>
                 
-                <!-- Row 2: 7, 8, 9, × -->
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="7">7</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="8">8</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="9">9</button>
                 <button class="operator text-2xl p-5 aspect-square rounded-full shadow-md" data-value="*">×</button>
 
-                <!-- Row 3: 4, 5, 6, - -->
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="4">4</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="5">5</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="6">6</button>
                 <button class="operator text-2xl p-5 aspect-square rounded-full shadow-md" data-value="-">-</button>
 
-                <!-- Row 4: 1, 2, 3, + -->
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="1">1</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="2">2</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="3">3</button>
                 <button class="operator text-2xl p-5 aspect-square rounded-full shadow-md" data-value="+">+</button>
                 
-                <!-- Row 5: +/-, 0, ., = -->
                 <button class="utility-key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="plusminus">±</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value="0">0</button>
                 <button class="key text-2xl p-5 aspect-square rounded-full shadow-md" data-value=".">.</button>
-                <button class="equal text-2xl p-5 aspect-square rounded-full shadow-md" onclick="calculate()">=</button> 
+                <button class="equal text-2xl p-5 aspect-square rounded-full shadow-md" data-action="calculate">=</button> 
             </div>
         </div>
 
-        <!-- History Sidebar (Right/Bottom) -->
         <div class="history-sidebar w-full md:w-96 bg-white shadow-xl rounded-3xl p-5 overflow-y-auto">
             <div class="mb-4 border-b pb-2">
                 <h2 class="text-xl font-bold">계산 기록 (History)</h2>
             </div>
             
-            <!-- History List -->
             <div id="history-list" class="space-y-3">
-                <!-- History items will be inserted here -->
                 <p id="history-empty" class="text-gray-500 text-center text-sm mt-8">기록이 없습니다.</p>
             </div>
         </div>
@@ -218,6 +205,20 @@
         const HISTORY_KEY = 'calculation_history';
         const MAX_HISTORY_ITEMS = 10; // ⭐️ 최대 기록 항목 수 (10개)
         
+        // --- 햅틱 피드백 함수 ---
+
+        /**
+         * Vibration API를 지원하는 경우 짧은 진동을 발생시킵니다.
+         */
+        function vibrateOnButtonClick() {
+            // 'vibrate' in navigator가 true일 때만 실행됩니다. (주로 모바일 기기 지원, iOS Safari 미지원)
+            if ('vibrate' in navigator) {
+                // 50 밀리초(ms) 동안 진동
+                navigator.vibrate(50); 
+            }
+        }
+
+
         // --- 포맷팅 유틸리티 함수 ---
 
         /**
@@ -322,11 +323,24 @@
             loadState();
             renderHistory();
             
-            // 모든 버튼에 이벤트 리스너를 추가합니다.
-            document.querySelectorAll('.key, .operator, .utility-key').forEach(button => {
+            // ⭐️ 모든 버튼에 이벤트 리스너를 추가하고 햅틱 피드백을 연결합니다.
+            document.querySelectorAll('#main-button-grid button').forEach(button => {
                 button.addEventListener('click', () => {
+                    // 1. 햅틱 피드백 실행
+                    vibrateOnButtonClick(); 
+
+                    // 2. 계산기 로직 실행
                     const value = button.getAttribute('data-value');
-                    if (value && value.length === 1) { // 숫자, . , 연산자
+                    const action = button.getAttribute('data-action');
+
+                    if (action === 'clear') {
+                        clearDisplay();
+                    } else if (action === 'calculate') {
+                        calculate();
+                    } else if (action === 'delete') {
+                        deleteLast();
+                    }
+                    else if (value && value.length === 1) { // 숫자, . , 연산자
                         appendToDisplay(value);
                     } else if (value === 'paren') { // 괄호
                         handleParentheses();
@@ -334,7 +348,7 @@
                         handlePlusMinus();
                     }
                     
-                    // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
+                    // 3. 소프트 키보드 숨기기
                     currentOpDisplay.blur();
                 });
             });
@@ -418,7 +432,7 @@
             // 2. 콤마, 공백 제거하여 rawInput을 얻습니다.
             let rawInput = stripCommas(savedText.trim().replace(/\s/g, ''));
 
-            // 3. ⭐️ 입력 필터링: 숫자, 연산자, 괄호, 소수점만 허용
+            // 3. 입력 필터링: 숫자, 연산자, 괄호, 소수점만 허용
             const sanitizedInput = rawInput.replace(/[^0-9+\-*/().]/g, '');
             const inputWasFiltered = (rawInput !== sanitizedInput);
 
@@ -494,7 +508,7 @@
                 div.className = 'history-item history-item-dark p-3 rounded-xl shadow-sm flex justify-between items-start border';
                 
                 const contentDiv = document.createElement('div');
-                contentDiv.className = 'flex-grow';
+                contentDiv.className = 'flex-grow cursor-pointer'; // 클릭 가능하도록
                 contentDiv.innerHTML = `
                     <div class="text-sm text-gray-500">${item.expression.replace(/\*/g, '×').replace(/\//g, '÷')} =</div>
                     <div class="text-xl text-gray-900 font-semibold">${formatNumberWithCommas(item.result)}</div>
@@ -541,9 +555,10 @@
         }
 
 
-        // --- 계산기 핵심 로직 (버튼 입력 시 커서 끝으로 이동) ---
+        // --- 계산기 핵심 로직 ---
 
         function deleteLast() {
+            // (vibrateOnButtonClick()은 window.onload 이벤트 리스너에서 호출됨)
             if (currentExpression.length > 0) {
                 const lastChar = currentExpression.slice(-1);
                 
@@ -560,17 +575,16 @@
                 localStorage.removeItem(LAST_CALCULATION_KEY);
                 updateDisplay();
             }
-            // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
-            currentOpDisplay.blur();
         }
 
         function handleParentheses() {
+            // (vibrateOnButtonClick()은 window.onload 이벤트 리스너에서 호출됨)
             const lastChar = currentExpression.slice(-1);
             const isOperator = /[+\-*/]/.test(lastChar);
             const isNumber = /[0-9]$/.test(lastChar);
 
             if (resultDisplayed) {
-                clearDisplay();
+                clearDisplay(false); // 햅틱 없이 클리어
             }
 
             if (openParentheses > 0 && (isNumber || lastChar === ')')) {
@@ -591,6 +605,7 @@
 
 
         function handlePlusMinus() {
+            // (vibrateOnButtonClick()은 window.onload 이벤트 리스너에서 호출됨)
             if (resultDisplayed) {
                 let result = parseFloat(currentExpression) * -1;
                 currentExpression = String(result);
@@ -638,6 +653,7 @@
 
 
         function appendToDisplay(value) {
+            // (vibrateOnButtonClick()은 window.onload 이벤트 리스너에서 호출됨)
             if (resultDisplayed && /[0-9.]/.test(value)) {
                 currentExpression = value;
                 resultDisplayed = false;
@@ -675,6 +691,7 @@
         }
 
         function clearDisplay() {
+            // (vibrateOnButtonClick()은 window.onload 이벤트 리스너에서 호출됨)
             currentExpression = '';
             currentOpDisplay.textContent = '0';
             previousOpDisplay.textContent = '';
@@ -683,11 +700,10 @@
             localStorage.removeItem(LAST_CALCULATION_KEY);
             // C 버튼은 커서를 끝으로 이동 (0이므로 0 뒤)
             restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
-            // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
-            currentOpDisplay.blur();
         }
 
         function calculate() {
+            // (vibrateOnButtonClick()은 window.onload 이벤트 리스너에서 호출됨)
             if (currentExpression === '' || resultDisplayed) return;
 
             try {
@@ -745,20 +761,14 @@
                 
                 // 계산 후 커서를 끝으로 이동
                 restoreCursorPosition(currentOpDisplay, currentOpDisplay.textContent.length);
-                // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
-                currentOpDisplay.blur();
 
             } catch (error) {
                 currentOpDisplay.textContent = "수식 오류";
                 previousOpDisplay.textContent = currentExpression.replace(/\*/g, '×').replace(/\//g, '÷');
                 currentExpression = '';
                 resultDisplayed = true;
-                // ⭐️ 버튼 클릭 후 소프트 키보드를 숨기기 위해 포커스 제거
-                currentOpDisplay.blur();
             }
         }
     </script>
 </body>
 </html>
-
-
