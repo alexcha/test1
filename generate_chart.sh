@@ -1,7 +1,5 @@
 # 이 스크립트는 result.txt 파일을 읽어 HTML 대시보드를 생성합니다.
 
-
-
 # 🚨 1. 환경 변수 설정 (GitHub Actions 환경 변수 이름과 일치시킴)
 # GitHub Actions의 ${{ secrets.GKEY }}가 env: GEMINI_API_KEY로 매핑되어 전달됩니다.
 GEMINI_API_KEY="$GEMINI_API_KEY" 
@@ -13,7 +11,7 @@ fi
 
 
 # 1. 데이터 파싱 (차트용 데이터: 변화 값 - 시간 순서대로)
-# JS_VALUES: 누적값이 아닌, 직전 값과의 '변화 값' 리스트를 생성합니다. (첫 번째 데이터의 변화는 0)
+# JS_VALUES: 누적값이 아닌, 직전 값과의 '변화 값' 리스트를 생성합니다.
 # ⭐️ 변경: 변화가 0인 모든 데이터 포인트는 필터링하여 제외합니다. (요청에 따라)
 JS_VALUES=$(awk -F ' : ' '
     { 
@@ -159,7 +157,7 @@ RAW_TABLE_ROWS=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3. 일별 집계 테이블 생성 (AWK에서 너비 설정 제거)
+# 3. 일별 집계 테이블 생성
 DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     function comma_format_sum_only(n) {
         if (n == 0) return "0";
@@ -210,16 +208,12 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
             }
         } 
 
-        # max-width, min-width 제거 (CSS 클래스가 제어)
-        # 테이블 전체 폰트 사이즈를 14px로 통일
         print "<table style=\"width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd; font-size: 14px; border-radius: 8px; overflow: hidden; margin-top: 20px; table-layout: fixed;\">";
-        # 각 열의 너비를 비율로 지정
         print "<colgroup>\
             <col style=\"width: 33%;\">\
             <col style=\"width: 37%;\">\
             <col style=\"width: 30%;\">\
         </colgroup>";
-        # th padding: 8px로 수정
         print "<thead><tr>\
             <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: left; color: #333;\">날짜</th>\
             <th style=\"padding: 8px; background-color: white; border-right: 1px solid #ccc; text-align: right; color: #333;\">값</th>\
@@ -251,7 +245,6 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
                 }
             }
             
-            # td padding: 8px, font-size: 14px (숫자 폰트 크기 일관성 유지)
             row_data[i] = sprintf("<tr>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: left; background-color: white; color: #343a40; font-size: 14px;\">%s</td>\
                 <td style=\"padding: 8px; border-top: 1px solid #eee; border-right: 1px solid #eee; text-align: right; background-color: white; font-weight: 600; color: #333; font-size: 14px;\">%s</td>\
@@ -269,7 +262,7 @@ DAILY_SUMMARY_TABLE=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 변경 없음)
+# 3-1. 일별 집계 차트용 값 파싱 (JS_DAILY_VALUES - 누적 값)
 JS_DAILY_VALUES=$(awk -F ' : ' '
     {
         numeric_value = $2;
@@ -301,7 +294,66 @@ JS_DAILY_VALUES=$(awk -F ' : ' '
     }
 ' result.txt) 
 
-# 3-2. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 변경 없음)
+# 3-2. 일별 집계 차트용 **변화량** 값 파싱 (JS_DAILY_CHANGES - 새로 추가)
+JS_DAILY_CHANGES=$(awk -F ' : ' '
+    function get_sorted_dates(dates_arr, num_dates) {
+        # 배열을 복사하여 정렬
+        for (i = 0; i < num_dates; i++) {
+            sorted_dates[i] = dates_arr[i];
+        }
+        for (i = 0; i < num_dates; i++) {
+            for (j = i + 1; j < num_dates; j++) {
+                if (sorted_dates[i] > sorted_dates[j]) {
+                    temp = sorted_dates[i];
+                    sorted_dates[i] = sorted_dates[j];
+                    sorted_dates[j] = temp;
+                }
+            }
+        }
+        return sorted_dates;
+    }
+    
+    {
+        numeric_value = $2;
+        gsub(/,/, "", numeric_value);
+        date = substr($1, 1, 10);
+        last_value[date] = numeric_value + 0;
+        if (!(date in added_dates)) {
+            dates_arr[num_dates++] = date;
+            added_dates[date] = 1;
+        }
+    }
+    END {
+        if (num_dates == 0) { exit 0; }
+
+        # 날짜를 오름차순으로 정렬
+        sorted_dates = get_sorted_dates(dates_arr, num_dates);
+        
+        prev_value = 0;
+        
+        for (i = 0; i < num_dates; i++) {
+            current_value = last_value[sorted_dates[i]];
+            change = current_value - prev_value;
+            
+            # 첫 번째 날짜는 변화량이 0이 아니라 누적값 그 자체가 일일 변화입니다.
+            # 하지만 그래프 일관성을 위해, 첫 번째 날은 변화량 차트에서 변화로 간주합니다.
+            if (i == 0) {
+                 # 첫 날의 변화량은 첫 날의 최종값과 동일
+                 change = current_value; 
+            }
+            
+            printf "%s", change
+            if (i < num_dates - 1) {
+                printf ", "
+            }
+            
+            prev_value = current_value;
+        }
+    }
+' result.txt)
+
+
+# 3-3. 일별 집계 차트용 레이블 파싱 (JS_DAILY_LABELS - 변경 없음)
 JS_DAILY_LABELS=$(awk -F ' : ' '
     {
         date = substr($1, 1, 10);
@@ -359,15 +411,12 @@ END_OF_MONTH_DATE=$(date -d "$YEAR_MONTH-01 + 1 month - 1 day" +%Y-%m-%d)
 
 # JSON 페이로드에 들어갈 내용을 이스케이프하는 함수
 escape_json() {
-    # 1. 백슬래시를 먼저 이스케이프 (JSON 문자열에서 백슬래시는 \\로 표현)
-    # 2. 큰따옴표를 이스케이프 (\"로 표현)
-    # 3. 개행 문자를 JSON 이스케이프 문자열로 변환 (\n으로 표현)
     echo "$1" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;s/\n/\\n/g;ta'
 }
 
 
 # SYSTEM_PROMPT: CONTEXTUAL_PRIORITY와 모바일 게임 맥락을 모두 포함
-SYSTEM_PROMPT="**핵심 고려 사항: ${CONTEXTUAL_PRIORITY}**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
+SYSTEM_PROMPT="**핵심 고려 사항: CONTEXTUAL_PRIORITY**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
 
 # USER_QUERY: 불필요한 설명 제거 및 간소화
 USER_QUERY="다음은 시계열 누적 데이터입니다. 이 데이터를 분석하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
@@ -404,7 +453,6 @@ if [ -n "$GEMINI_API_KEY" ]; then
         RAW_TEXT_CONTENT=$(echo "$API_RESPONSE" | jq -r '.candidates[0].content.parts[0].text // ""' 2>/dev/null)
 
         if [ -z "$RAW_TEXT_CONTENT" ]; then
-            # 텍스트가 비어있을 경우, 블록킹 사유를 확인하여 더 자세한 오류 메시지를 제공
             BLOCK_REASON=$(echo "$API_RESPONSE" | jq -r '.candidates[0].finishReason // .promptFeedback.blockReason // ""' 2>/dev/null)
             
             if [ -n "$BLOCK_REASON" ]; then
@@ -445,8 +493,9 @@ fi
 # ⭐️⭐️⭐️ 디버깅 출력 추가 ⭐️⭐️⭐️
 echo "--- AWK 파싱 결과 디버깅 정보 (result.txt 확인 필요) ---"
 echo "1. JS_VALUES (시간별 변화 값): [${JS_VALUES}]"
-echo "2. JS_DAILY_VALUES (일별 최종 값): [${JS_DAILY_VALUES}]"
-echo "3. RAW_TABLE_ROWS (시간별 기록 TR 태그):"
+echo "2. JS_DAILY_VALUES (일별 최종 값 - 누적): [${JS_DAILY_VALUES}]"
+echo "3. JS_DAILY_CHANGES (일별 변화량 - 새로 추가): [${JS_DAILY_CHANGES}]"
+echo "4. RAW_TABLE_ROWS (시간별 기록 TR 태그):"
 echo "${RAW_TABLE_ROWS}"
 echo "--------------------------------------------------------"
 # ⭐️⭐️⭐️ 디버깅 출력 끝 ⭐️⭐️⭐️
@@ -505,7 +554,7 @@ cat << CHART_END > money.html
             margin-right: auto;
         }
         
-        #daily-chart-header, #daily-summary-chart-header {
+        #daily-chart-header, #daily-change-chart-header, #daily-summary-chart-header {
             margin-top: 40px !important; 
         }
         
@@ -615,8 +664,6 @@ cat << CHART_END > money.html
             border-radius: 8px; 
             overflow-x: auto; /* 좌우 스크롤바를 허용하여 잘림 방지 */
             -webkit-overflow-scrolling: touch; 
-            /* 래퍼 자체는 패딩이 없으므로, 테이블 안쪽에서 패딩을 확보해야 합니다. */
-            /* 폰트 크기는 AWK에서 인라인 스타일로 제어 */
         }
         /* 테이블 자체는 100% 너비를 사용하고 fixed layout과 colgroup으로 너비를 배분합니다. */
         .data-table-wrapper table {
@@ -624,9 +671,6 @@ cat << CHART_END > money.html
              table-layout: fixed;
              border: none; /* 래퍼에 이미 테두리가 있으므로 제거 */
         }
-        /* 일일 집계 테이블의 인라인 스타일을 오버라이드하기 위해 래퍼를 사용하지 않는 부분의 테이블 스타일 조정 */
-        /* div table { width: 100%; max-width: 100%; margin: 0 auto; } */
-
     </style>
 </head>
 <body>
@@ -641,7 +685,7 @@ cat << CHART_END > money.html
         </div>
         
         <div style="text-align: center;">
-            <h2 id="daily-chart-header">일일 집계 추이</h2>
+            <h2 id="daily-chart-header">일일 **누적** 값 추이 (꺾은선 차트)</h2>
         </div>
         <div class="chart-container">
             <canvas id="dailyChart"></canvas>
@@ -649,22 +693,22 @@ cat << CHART_END > money.html
         </div>
         
         <div style="text-align: center;">
-            <h2 id="daily-summary-chart-header">일일 집계 기록 (차트)</h2>
+            <h2 id="daily-change-chart-header">일일 **변화량** 추이 (막대 차트)</h2>
         </div>
         <div class="chart-container">
-            <canvas id="dailyRecordsChart"></canvas>
-            <p id="dailyRecordsChartNoData" class="no-data-message" style="display: none;">일일 집계 기록 데이터가 없어 차트를 그릴 수 없습니다.</p>
+            <canvas id="dailyChangeChart"></canvas>
+            <p id="dailyChangeChartNoData" class="no-data-message" style="display: none;">일일 변화량 데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div>
         
         <div style="text-align: center;">
-            <h2>일일 집계 기록 (최신순)</h2>
+            <h2 id="daily-summary-chart-header">일일 집계 기록 (요약 테이블)</h2>
         </div>
         <div class="data-table-wrapper">
             ${DAILY_SUMMARY_TABLE}
         </div> 
         
         <div style="text-align: center;">
-            <h2>기록 시간별 변화 값 추이</h2>
+            <h2>기록 시간별 변화 값 추이 (꺾은선 차트)</h2>
         </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
@@ -673,7 +717,7 @@ cat << CHART_END > money.html
 
         
         <div style="text-align: center;">
-            <h2>데이터 기록 (최신순)</h2>
+            <h2>데이터 기록 (시간별 - 최신순)</h2>
         </div>
         
         <div id="dataRecordsContainer">
@@ -686,23 +730,25 @@ cat << CHART_END > money.html
     <script>
     // 🚨 셸 스크립트에서 파싱된 동적 데이터가 여기에 삽입됩니다.
     
-    // 1. 차트 데이터
+    // 1. 시간별 변화 데이터
     const chartData = [${JS_VALUES}];
     const chartLabels = [${JS_LABELS}]; 
 
-    // 2. 일별 최종 값 데이터
-    const jsDailyValues = [${JS_DAILY_VALUES}];
+    // 2. 일별 최종 값 데이터 (누적)
+    const jsDailyValues = [${JS_DAILY_VALUES}]; 
     const jsDailyLabels = [${JS_DAILY_LABELS}]; 
+    
+    // 3. 일별 변화량 데이터 (새로 추가)
+    const jsDailyChanges = [${JS_DAILY_CHANGES}];
 
-    // 3. 페이지네이션을 위한 전체 ROW 데이터 (AWK에서 최신순으로 생성)
-    // 줄바꿈 문자로 분리하여 <tr> 태그 문자열 배열로 만듭니다.
+    // 4. 페이지네이션을 위한 전체 ROW 데이터
     const rawRowData = \`
 ${RAW_TABLE_ROWS}
 \`.trim().split('\\n').filter(row => row.trim() !== '');
 
     const ROWS_PER_PAGE = 20;
     let currentPage = 1;
-    const totalPages = Math.ceil(rawRowData.length / ROWS_PER_PAGE);
+    const totalPages = Math.ceil(rawRowData.length / ROWS_PER_PER_PAGE);
 
     // --- 페이지네이션 로직 ---
 
@@ -812,7 +858,7 @@ ${RAW_TABLE_ROWS}
         }
         if (context.parsed.y !== null) {
             // 변화값은 부호를 포함하여 포맷팅
-            const isChangeValue = context.chart.options.plugins.title.text.includes('변화 값');
+            const isChangeValue = context.chart.options.plugins.title.text.includes('변화');
             label += new Intl.NumberFormat('ko-KR', { signDisplay: isChangeValue ? 'always' : 'auto', maximumFractionDigits: 0 }).format(context.parsed.y);
         }
         return label;
@@ -825,7 +871,6 @@ ${RAW_TABLE_ROWS}
 
     const simpleChartCanvas = document.getElementById('simpleChart');
     if (chartData.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
         simpleChartCanvas.style.display = 'none';
         document.getElementById('simpleChartNoData').style.display = 'block';
     } else {
@@ -889,12 +934,11 @@ ${RAW_TABLE_ROWS}
     } 
 
     // ---------------------------------------------
-    // 2. 차트 렌더링 로직 (dailyChart - 일일 최종 값 추이)
+    // 2. 차트 렌더링 로직 (dailyChart - 일일 최종 값 (누적))
     // ---------------------------------------------
     const dailyChartCanvas = document.getElementById('dailyChart');
     
     if (jsDailyValues.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
         dailyChartCanvas.style.display = 'none';
         document.getElementById('dailyChartNoData').style.display = 'block';
     } else {
@@ -904,7 +948,7 @@ ${RAW_TABLE_ROWS}
             data: {
                 labels: jsDailyLabels,
                 datasets: [{
-                    label: '일일 최종 값',
+                    label: '일일 최종 값 (누적)',
                     data: jsDailyValues,
                     borderColor: 'rgba(0, 123, 255, 1)',
                     backgroundColor: 'rgba(0, 123, 255, 0.2)', 
@@ -930,7 +974,7 @@ ${RAW_TABLE_ROWS}
                         }
                     },
                     y: {
-                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
+                        title: { display: true, text: '최종 누적 값', font: { size: 14, weight: 'bold' } },
                         beginAtZero: false,
                         grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { callback: formatYAxisTick }
@@ -946,7 +990,7 @@ ${RAW_TABLE_ROWS}
                     },
                     title: {
                         display: true,
-                        text: '일별 최종 값 변화 추이',
+                        text: '일별 최종 누적 값 추이',
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
@@ -956,25 +1000,43 @@ ${RAW_TABLE_ROWS}
     }
 
     // ---------------------------------------------
-    // 3. 차트 렌더링 로직 (dailyRecordsChart - 일일 집계 기록)
+    // 3. 차트 렌더링 로직 (dailyChangeChart - 일일 변화량)
     // ---------------------------------------------
-    const dailyRecordsChartCanvas = document.getElementById('dailyRecordsChart');
+    const dailyChangeChartCanvas = document.getElementById('dailyChangeChart');
     
-    if (jsDailyValues.length === 0) {
-        // 차트 캔버스를 숨기고 데이터 없음 메시지를 표시합니다.
-        dailyRecordsChartCanvas.style.display = 'none';
-        document.getElementById('dailyRecordsChartNoData').style.display = 'block';
+    if (jsDailyChanges.length === 0 || jsDailyChanges.every(val => val === 0)) {
+        dailyChangeChartCanvas.style.display = 'none';
+        document.getElementById('dailyChangeChartNoData').style.display = 'block';
     } else {
-        document.getElementById('dailyRecordsChartNoData').style.display = 'none';
-        new Chart(dailyRecordsChartCanvas.getContext('2d'), {
-            type: 'bar', // Bar Chart로 변경하여 구분감을 줌
+        document.getElementById('dailyChangeChartNoData').style.display = 'none';
+        new Chart(dailyChangeChartCanvas.getContext('2d'), {
+            type: 'bar', // 막대 차트 사용
             data: {
                 labels: jsDailyLabels,
                 datasets: [{
-                    label: '일일 최종 값',
-                    data: jsDailyValues,
-                    backgroundColor: 'rgba(75, 192, 192, 0.7)', // 색상 변경
-                    borderColor: 'rgba(75, 192, 192, 1)',
+                    label: '일일 변화량',
+                    data: jsDailyChanges,
+                    backgroundColor: function(context) {
+                        // 변화량에 따라 색상 변경 (양수는 빨간색, 음수는 파란색)
+                        const value = context.parsed.y;
+                        if (value > 0) {
+                            return 'rgba(220, 53, 69, 0.8)'; // Red (상승)
+                        } else if (value < 0) {
+                            return 'rgba(0, 123, 255, 0.8)'; // Blue (하락)
+                        } else {
+                            return 'rgba(108, 117, 125, 0.8)'; // Gray (변화 없음)
+                        }
+                    },
+                    borderColor: function(context) {
+                        const value = context.parsed.y;
+                        if (value > 0) {
+                            return 'rgba(220, 53, 69, 1)';
+                        } else if (value < 0) {
+                            return 'rgba(0, 123, 255, 1)';
+                        } else {
+                            return 'rgba(108, 117, 125, 1)';
+                        }
+                    },
                     borderWidth: 1
                 }]
             },
@@ -992,8 +1054,8 @@ ${RAW_TABLE_ROWS}
                         }
                     },
                     y: {
-                        title: { display: true, text: '최종 값', font: { size: 14, weight: 'bold' } },
-                        beginAtZero: false,
+                        title: { display: true, text: '변화량', font: { size: 14, weight: 'bold' } },
+                        beginAtZero: true, // 변화량은 0을 기준으로
                         grid: { color: 'rgba(0, 0, 0, 0.05)' },
                         ticks: { callback: formatYAxisTick }
                     }
@@ -1008,7 +1070,7 @@ ${RAW_TABLE_ROWS}
                     },
                     title: {
                         display: true,
-                        text: '일일 집계 기록 (막대 차트)',
+                        text: '일일 변화량 추이',
                         font: { size: 18, weight: 'bold' },
                         padding: { top: 10, bottom: 10 }
                     }
