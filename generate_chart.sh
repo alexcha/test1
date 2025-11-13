@@ -352,7 +352,7 @@ echo "4. RAW_TABLE_ROWS (시간별 기록 TR 태그):"
 echo "${RAW_TABLE_ROWS}"
 echo "--------------------------------------------------------"
 
-# 7. HTML 파일 생성
+# 7. HTML 파일 생성 (H2 태그 제거)
 cat << CHART_END > money.html
 <!DOCTYPE html>
 <html>
@@ -368,6 +368,7 @@ cat << CHART_END > money.html
         h1 { text-align: center; color: #333; margin-bottom: 5px; font-size: 26px; font-weight: 700; }
         p.update-time { text-align: center; color: #777; margin-bottom: 20px; font-size: 14px; }
         .chart-container { margin-bottom: 30px; border: 1px solid #eee; border-radius: 8px; padding: 15px; background: #fff; height: 40vh; min-height: 300px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); position: relative; }
+        /* 이 부분의 H2 스타일은 차트 제목 대신 테이블 제목에만 적용되도록 남겨둡니다. */
         h2 { margin-top: 30px; margin-bottom: 10px; text-align: center; color: #343a40; font-size: 22px; font-weight: 600; border-bottom: 2px solid #343a40; padding-bottom: 8px; display: inline-block; width: auto; margin-left: auto; margin-right: auto; }
         #daily-chart-header, #daily-change-chart-header, #daily-summary-chart-header { margin-top: 40px !important; }
         .prediction-section { padding: 20px; margin-bottom: 30px; background-color: #f0f8ff; border: 2px solid #007bff; border-radius: 12px; text-align: center; }
@@ -396,17 +397,11 @@ cat << CHART_END > money.html
             </div>
         </div>
         
-        <div style="text-align: center;">
-            <h2 id="daily-chart-header">일일 **누적** 값 추이 (꺾은선 차트)</h2>
-        </div>
         <div class="chart-container">
             <canvas id="dailyChart"></canvas>
             <p id="dailyChartNoData" class="no-data-message" style="display: none;">일일 집계 데이터가 없어 차트를 그릴 수 없습니다.</p>
         </div>
         
-        <div style="text-align: center;">
-            <h2 id="daily-change-chart-header">일일 **변화량** 추이 (막대 차트)</h2>
-        </div>
         <div class="chart-container">
             <canvas id="dailyChangeChart"></canvas>
             <p id="dailyChangeChartNoData" class="no-data-message" style="display: none;">일일 변화량 데이터가 없어 차트를 그릴 수 없습니다.</p>
@@ -419,9 +414,6 @@ cat << CHART_END > money.html
             ${DAILY_SUMMARY_TABLE}
         </div> 
         
-        <div style="text-align: center;">
-            <h2>기록 시간별 변화 값 추이 (꺾은선 차트)</h2>
-        </div>
         <div class="chart-container">
             <canvas id="simpleChart"></canvas>
             <p id="simpleChartNoData" class="no-data-message" style="display: none;">데이터가 없어 차트를 그릴 수 없습니다.</p>
@@ -563,7 +555,10 @@ ${RAW_TABLE_ROWS}
         let label = context.dataset.label || '';
         if (label) { label += ': '; }
         if (context.parsed.y !== null) {
-            const isChangeValue = context.chart.options.plugins.title.text.includes('변화');
+            // JS Chart.js title을 변경했으므로, 툴팁 포맷은 dataset.label을 기반으로 결정
+            // title을 제거했으므로, 차트 이름에 직접 "변화" 또는 "누적"을 포함해야 합니다.
+            const chartId = context.chart.canvas.id;
+            const isChangeValue = chartId.includes('Change') || chartId.includes('simple'); 
             label += new Intl.NumberFormat('ko-KR', { signDisplay: isChangeValue ? 'always' : 'auto', maximumFractionDigits: 0 }).format(context.parsed.y);
         }
         return label;
@@ -584,7 +579,7 @@ ${RAW_TABLE_ROWS}
             data: {
                 labels: chartLabels,
                 datasets: [{
-                    label: '변화 값', 
+                    label: '시간별 변화 값', 
                     data: chartData,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.4)', 
@@ -615,9 +610,9 @@ ${RAW_TABLE_ROWS}
                     }
                 },
                 plugins: {
-                    legend: { display: false },
+                    legend: { display: true }, // 범례를 보여주어 차트 제목 역할을 대체
                     tooltip: { mode: 'index', intersect: false, bodyFont: { size: 14 }, callbacks: { label: formatTooltip } },
-                    title: { display: true, text: '시간별 변화 값 추이', font: { size: 18, weight: 'bold' }, padding: { top: 10, bottom: 10 } }
+                    title: { display: false } // 제목 제거
                 }
             }
         });
@@ -661,9 +656,9 @@ ${RAW_TABLE_ROWS}
                     }
                 },
                 plugins: {
-                    legend: { display: false },
+                    legend: { display: true }, // 범례를 보여주어 차트 제목 역할을 대체
                     tooltip: { mode: 'index', intersect: false, bodyFont: { size: 14 }, callbacks: { label: formatTooltip } },
-                    title: { display: true, text: '일별 최종 누적 값 추이', font: { size: 18, weight: 'bold' }, padding: { top: 10, bottom: 10 } }
+                    title: { display: false } // 제목 제거
                 }
             }
         });
@@ -717,9 +712,9 @@ ${RAW_TABLE_ROWS}
                     }
                 },
                 plugins: {
-                    legend: { display: false },
+                    legend: { display: true }, // 범례를 보여주어 차트 제목 역할을 대체
                     tooltip: { mode: 'index', intersect: false, bodyFont: { size: 14 }, callbacks: { label: formatTooltip } },
-                    title: { display: true, text: '일일 변화량 추이', font: { size: 18, weight: 'bold' }, padding: { top: 10, bottom: 10 } }
+                    title: { display: false } // 제목 제거
                 }
             }
         });
