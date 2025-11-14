@@ -74,18 +74,19 @@
     <script>
         /**
          * @fileoverview 금융감독원 API를 통해 예금 상품 목록을 로드하고 필터링하는 스크립트입니다.
-         * 실제 API 연동을 위해 OPENDART_KEY 변수를 사용합니다.
+         * OPENDART_KEY는 빌드 시점에 이 파일의 스크립트 내부에 직접 주입되어야 합니다.
          */
 
-        let allProducts = []; // 원본 데이터를 저장할 전역 변수
-        let isDataLoaded = false; // 데이터 로드 성공 여부 플래그
+        let allProducts = [];
+        let isDataLoaded = false;
 
         // ----------------------------------------------------
         // 1. API Endpoint 및 Key 정의
         // ----------------------------------------------------
         
-        // GitHub Secrets 등 환경에서 주입된 전역 변수 window.OPENDART_KEY를 사용합니다.
-        const OPENDART_KEY = window.OPENDART_KEY || ""; 
+        // ⚠️ 빌드 스크립트가 ${OPENDART_KEY_PLACEHOLDER}를 실제 값으로 치환해야 합니다.
+        // 예: const OPENDART_KEY = "발급받은 실제 키 값";
+        const OPENDART_KEY = "${OPENDART_KEY_PLACEHOLDER}"; 
         
         // 실제 FSS 금융상품 API URL
         const REAL_FSS_API_URL = "http://finlife.fss.or.kr/finlifeapi/depositProductsSearch.json";
@@ -93,7 +94,7 @@
 
         /**
          * FSS API 응답 데이터를 앱에서 사용하기 쉬운 구조로 변환합니다.
-         * 실제 API 연동 시 이 함수를 구현해야 합니다. (FSS API 응답 구조는 매우 복잡합니다.)
+         * 실제 API 연동 시 이 함수를 구현해야 합니다. 
          * @param {Object} fssData - FSS API에서 받은 원본 JSON 데이터
          * @returns {Array<Object>} 변환된 상품 목록
          */
@@ -102,8 +103,6 @@
              // FSS API는 baseList(기본 정보)와 optionList(금리 정보)를 따로 제공하므로,
              // 두 목록을 PRODUCT_CD를 기준으로 결합하고, 필요한 정보(은행명, 상품명, 최고금리, 기간, 가입 방식)를 추출해야 합니다.
              console.error("⚠️ transformFssData 함수가 실제 FSS API 응답에 맞게 구현되지 않았습니다. API 호출 성공 시 빈 목록이 표시될 수 있습니다.");
-
-             // 현재는 Mock 데이터가 없으므로 빈 배열을 반환합니다.
              return []; 
         }
 
@@ -115,8 +114,8 @@
         async function fetchDepositProducts() {
             document.getElementById('loading-indicator').classList.remove('hidden');
 
-            if (!OPENDART_KEY) {
-                console.error("API Key (OPENDART_KEY) is missing. Cannot fetch data.");
+            if (OPENDART_KEY === "" || OPENDART_KEY === "${OPENDART_KEY_PLACEHOLDER}") {
+                console.error("API Key is missing or not properly injected by the build script.");
                 document.getElementById('loading-indicator').classList.add('hidden');
                 return []; 
             }
@@ -131,24 +130,25 @@
             const apiUrl = `${REAL_FSS_API_URL}?${params.toString()}`;
 
             try {
-                // 참고: 이 미리보기 환경에서는 CORS 문제로 인해 실제 API 호출이 실패할 수 있습니다.
-                // 실제 배포 서버 환경(Proxy 또는 CORS 설정이 된 곳)에서 테스트해야 합니다.
+                // 참고: 브라우저 CORS 문제로 인해 이 미리보기 환경에서는 실패할 수 있습니다.
                 const response = await fetch(apiUrl);
                 
                 if (!response.ok) { 
+                    // FSS API가 200 OK를 반환해도 내부에 에러 코드가 있을 수 있으나, 일단 HTTP 오류만 처리
                     throw new Error(`HTTP error! status: ${response.status} - Failed to fetch data from FSS API.`); 
                 }
                 
                 const data = await response.json();
                 
-                const transformedData = transformFssData(data);
+                // 데이터를 앱 구조에 맞게 변환
+                const transformedData = transformFssData(data); 
                 document.getElementById('loading-indicator').classList.add('hidden');
                 
-                // 데이터 로드 성공 플래그 설정
                 isDataLoaded = true;
 
                 // 금리 순으로 정렬 (금리 정보가 정상적으로 변환되었다고 가정)
-                return transformedData.sort((a, b) => b.maxRate - a.maxRate);
+                // transformedData의 각 객체가 { maxRate: number }를 가진다고 가정합니다.
+                return transformedData.sort((a, b) => (b.maxRate || 0) - (a.maxRate || 0));
 
             } catch (error) {
                 console.error("FSS API call failed:", error);
@@ -160,11 +160,8 @@
 
         /**
          * 가입 방식에 따른 배지 스타일을 반환합니다.
-         * @param {string} type - 가입 방식 문자열
-         * @returns {string} Tailwind CSS 클래스
          */
         function getJoinTypeBadge(type) {
-            // 실제 API 응답 데이터의 가입 방식 필드에 따라 로직을 구현해야 합니다.
             switch (type) {
                 case "온라인 전용":
                     return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">온라인</span>`;
@@ -179,7 +176,6 @@
 
         /**
          * 가져온 상품 데이터를 HTML 테이블에 렌더링합니다.
-         * @param {Array<Object>} products - 렌더링할 상품 목록
          */
         function renderProducts(products) {
             const listBody = document.getElementById('product-list');
@@ -187,15 +183,15 @@
 
             if (!isDataLoaded && products.length === 0) {
                 listBody.innerHTML = `<tr class="table-row"><td colspan="5" class="text-center py-8 text-red-600 font-semibold">
-                    API 키가 없거나 데이터를 불러오는 데 실패했습니다.
-                    <p class="text-sm text-gray-500 mt-1">OPENDART_KEY 설정과 네트워크 상태를 확인하세요.</p>
+                    API 키가 주입되지 않았거나, 데이터를 불러오는 데 실패했습니다.
+                    <p class="text-sm text-gray-500 mt-1">빌드 스크립트와 네트워크 상태를 확인하세요.</p>
                 </td></tr>`;
                 return;
             }
 
             if (products.length === 0) {
                  listBody.innerHTML = `<tr class="table-row"><td colspan="5" class="text-center py-8 text-gray-500">
-                    검색 결과가 없습니다.
+                    검색 결과가 없거나 불러온 상품이 없습니다.
                 </td></tr>`;
                 return;
             }
@@ -206,7 +202,7 @@
 
                 row.className = `table-row transition duration-150 ${rowBg}`;
                 
-                // 실제 API 데이터의 필드 이름에 맞게 수정해야 합니다 (예: product.intr_rate2)
+                // 실제 API 데이터 필드에 따라 'product.maxRate' 등을 'product.intr_rate2' 등으로 수정해야 합니다.
                 const rate = product.maxRate ? product.maxRate.toFixed(2) : '-';
                 const rateColor = product.maxRate && product.maxRate >= 4.0 ? 'text-green-600 font-bold' : 'text-gray-800';
 
@@ -239,12 +235,11 @@
             }
 
             const filtered = allProducts.filter(product => {
-                // 실제 API 데이터의 필드 이름에 맞게 수정해야 합니다 (예: product.kor_co_nm)
+                // 실제 API 데이터의 필드 이름에 맞게 수정해야 합니다.
                 const bankName = (product.bankName || '').toLowerCase();
                 const productName = (product.productName || '').toLowerCase();
                 const joinType = (product.joinType || '').toLowerCase();
                 
-                // 은행명, 상품명, 또는 가입 방식에 검색어가 포함되는지 확인
                 return bankName.includes(filterTerm) || productName.includes(filterTerm) || joinType.includes(filterTerm);
             });
 
@@ -260,16 +255,12 @@
          * 애플리케이션 초기화 (데이터 로드 및 렌더링)
          */
         async function initializeApp() {
-            // 초기 로딩 스피너 표시
             document.getElementById('loading-indicator').classList.remove('hidden');
 
-            // 1. 원본 데이터 로드 시도
             allProducts = await fetchDepositProducts();
             
-            // 2. 초기 렌더링 (필터 없이 전체 목록)
             renderProducts(allProducts); 
 
-            // 로딩 스피너 숨기기
             document.getElementById('loading-indicator').classList.add('hidden');
         }
 
