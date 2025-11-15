@@ -69,7 +69,7 @@ jobs:
                 const data = await response.json();
                 
                 // ----------------------------------------------------
-                // 응답 구조 유효성 검사
+                // 응답 구조 유효성 검사 (OPENDART_KEY 오류 처리 포함)
                 // ----------------------------------------------------
                 const resultData = data.result;
 
@@ -81,7 +81,6 @@ jobs:
                   
                   console.error(errorMessage);
                   console.error('Raw API Response Data (for debugging):', JSON.stringify(data, null, 2));
-                  // process.exit(1)로 실패하더라도, continue-on-error: true 덕분에 다음 단계는 실행됩니다.
                   process.exit(1); 
                 }
                 
@@ -158,8 +157,16 @@ jobs:
         run: |
           echo "--- Git Commit and Push Start ---"
           
-          # FSS 및 스트리밍 업데이트로 생성/수정된 모든 파일 추가
-          git add bank-data.txt result.txt money.html
+          # 🚨 bank-data.txt 파일 존재 여부 확인 후 추가
+          if [ -f "bank-data.txt" ]; then
+              git add bank-data.txt
+              echo "bank-data.txt added."
+          else
+              echo "bank-data.txt was not created (FSS fetch failed), skipping git add for this file."
+          fi
+
+          # 나머지 파일들은 스트리밍 스크립트가 생성했다고 가정하고 추가
+          git add result.txt money.html
           
           git config --global user.email "github-actions-bot@example.com"
           git config --global user.name "GitHub Actions Bot"
