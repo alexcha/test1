@@ -1,74 +1,158 @@
-name: Streaming list update
+name: Combined Sequential Data Updates
 
-on: 
+on:
   push:
     branches: [ main ]
+  # 두 스케줄을 매 시간 5분에 실행되도록 통일
   schedule:
-    # 3시간에 한 번 실행 (UTC 기준 0시, 3시, 6시, 9시, 12시, 15시, 18시, 21시 0분에 실행)
-    - cron: '10 * * * *' 
-  
+    - cron: '5 * * * *'  # FSS 데이터 및 스트리밍 리스트 업데이트 (UTC 기준 매 시간 5분)
+  workflow_dispatch:
+
 jobs:
-  build:
+  update-all-data:
     runs-on: ubuntu-latest
+    
+    # 두 작업 모두에 필요한 모든 Secret을 환경 변수로 설정
+    env:
+      OPENDART_KEY: ${{ secrets.OPENDART_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GKEY }} # GKEY를 GEMINI_API_KEY로 사용
+
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4 
-      
-    - name: Github Action gen-sh-unittest
-      id: action-gen-sh-unittest
-      uses: vargiuscuola/gen-sh-unittest@master
-      
-    - name: Get Unittest Result
-      run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
-      
-    - name: Run Script, Generate Chart, and Commit
-      # 🚨 Secret GKEY를 GEMINI_API_KEY 환경 변수로 셸 스크립트에 전달
-      env:
-        GEMINI_API_KEY: ${{ secrets.GKEY }}
-      run: |
-        echo "--- 워크플로우 시작: 환경 설정 및 실행 ---"
-        
-        # 1. 상수 정의
-        WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
-        WGET_CHART_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/generate_chart.sh"
-        WGET_RESULT_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/result.txt"
+      - name: Checkout repository (Full history)
+        uses: actions/checkout@v4
+        # 모든 파일 변경사항을 커밋하기 위해 전체 히스토리와 함께 Checkout
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js (for FSS API fetch)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-        # 2. 필수 패키지 설치: html2text, jq, curl (AI 예측 및 파싱에 필요)
-        sudo apt-get -y update
-        sudo apt-get -y install html2text jq curl
+      # 기존 build 작업의 unittest 단계 유지
+      - name: Github Action gen-sh-unittest
+        id: action-gen-sh-unittest
+        uses: vargiuscuola/gen-sh-unittest@master
+        
+      - name: Get Unittest Result
+        run: echo "The result of gensh-unittest Action was ${{ steps.action-gen-sh-unittest.outputs.result }}"
+        
+      # =================================================================
+      # 1. FSS 데이터를 가져와 bank-data.txt를 생성/업데이트
+      # =================================================================
+      - name: Fetch FSS Data and Save to bank-data.txt
+        id: fetch_fss_data
+        run: |
+          echo "--- FSS Data Fetching Start ---"
+          
+          # API Key 검증
+          if [ -z "$OPENDART_KEY" ]; then
+            echo "::error::OPENDART_KEY is not set in secrets."
+            exit 1
+          fi
 
-        # 3. result.txt 다운로드 및 초기화
-        echo "3. 기존 result.txt 다운로드 시도..."
-        wget "$WGET_RESULT_URL" -O result.txt || { touch result.txt && echo "result.txt not found, starting fresh."; }
-        INITIAL_SIZE=$(wc -c < result.txt)
-        echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
-        
-        # 4. check.sh 및 generate_chart.sh 다운로드 및 실행 권한 부여
-        echo "4. 스크립트 다운로드 및 권한 부여..."
-        wget "$WGET_CHECK_URL" -O check.sh || { echo "ERROR: check.sh 다운로드 실패" >&2; exit 1; }
-        wget "$WGET_CHART_URL" -O generate_chart.sh || { echo "ERROR: generate_chart.sh 다운로드 실패" >&2; exit 1; }
-        chmod +x check.sh generate_chart.sh
-        
-        # 5. check.sh 실행 및 result.txt 업데이트
-        echo "5. check.sh 실행 및 result.txt에 새로운 데이터 추가"
-        ./check.sh | tee -a result.txt
-        
-        # 6. generate_chart.sh 실행 (index.html 생성 및 AI 예측 실행)
-        echo "6. generate_chart.sh 실행 및 index.html 생성..."
-        ./generate_chart.sh
-        
-        # 7. Git 커밋 및 푸시
-        echo "7. Git 커밋 및 푸시..."
-        git add result.txt money.html
-        
-        git config --global user.email "github-actions-bot@example.com"
-        git config --global user.name "GitHub Actions Bot"
+          echo "Fetching data from FSS API..."
+          
+          # FSS API 호출 URL 구성
+          API_URL="http://finlife.fss.or.kr/finlifeapi/depositProductsSearch.json?auth=$OPENDART_KEY&topFinGrpNo=020000&pageNo=1"
 
-        if git diff --cached --exit-code; then
-          echo "No changes to commit."
-        else
-          echo "Committing changes..."
-          git commit -m "Automated update: data and index.html (chart)"
-          git branch -M main
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
-        fi
+          # Node.js를 사용하여 API 호출 및 JSON 파일 저장
+          node -e "
+            async function fetchData() {
+              try {
+                const response = await fetch('$API_URL');
+                if (!response.ok) {
+                  throw new Error(\`HTTP error! status: \${response.status}\`);
+                }
+                const data = await response.json();
+                
+                // 데이터 가공 
+                const processedProducts = data.result.baseList.map(item => ({
+                  bankName: item.kor_co_nm,
+                  productName: item.fin_prdt_nm,
+                  joinType: item.join_way,
+                  term: 12, 
+                  maxRate: 3.50 
+                }));
+                
+                // 업데이트 시간 추가
+                const updateTime = new Date().toISOString(); 
+                
+                const finalData = {
+                  updatedAt: updateTime,
+                  products: processedProducts
+                };
+                
+                // bank-data.txt 파일에 JSON 형태로 저장
+                require('fs').writeFileSync('bank-data.txt', JSON.stringify(finalData, null, 2));
+                console.log('Successfully saved data to bank-data.txt. Updated at: ' + updateTime);
+
+              } catch (error) {
+                console.error('Failed to fetch or process data:', error.message);
+                process.exit(1);
+              }
+            }
+            fetchData();
+          "
+        
+      # =================================================================
+      # 2. 스트리밍 리스트 업데이트 및 차트/HTML 파일 생성
+      # =================================================================
+      - name: Run Streaming Scripts and Generate money.html
+        id: run_streaming_scripts
+        run: |
+          echo "--- Streaming List Update Start ---"
+
+          # 1. 상수 정의
+          WGET_CHECK_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/check.sh"
+          WGET_CHART_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/generate_chart.sh"
+          WGET_RESULT_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/result.txt"
+          
+          # 2. 필수 패키지 설치: html2text, jq, curl (AI 예측 및 파싱에 필요)
+          sudo apt-get -y update
+          sudo apt-get -y install html2text jq curl
+
+          # 3. result.txt 다운로드 및 초기화
+          echo "3. 기존 result.txt 다운로드 시도..."
+          wget "$WGET_RESULT_URL" -O result.txt || { touch result.txt && echo "result.txt not found, starting fresh."; }
+          INITIAL_SIZE=$(wc -c < result.txt)
+          echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
+          
+          # 4. check.sh 및 generate_chart.sh 다운로드 및 실행 권한 부여
+          echo "4. 스크립트 다운로드 및 권한 부여..."
+          wget "$WGET_CHECK_URL" -O check.sh || { echo "ERROR: check.sh 다운로드 실패" >&2; exit 1; }
+          wget "$WGET_CHART_URL" -O generate_chart.sh || { echo "ERROR: generate_chart.sh 다운로드 실패" >&2; exit 1; }
+          chmod +x check.sh generate_chart.sh
+          
+          # 5. check.sh 실행 및 result.txt 업데이트
+          echo "5. check.sh 실행 및 result.txt에 새로운 데이터 추가"
+          # 이 run 블록은 GEMINI_API_KEY 환경 변수에 접근할 수 있습니다.
+          ./check.sh | tee -a result.txt
+          
+          # 6. generate_chart.sh 실행 (money.html 생성 및 AI 예측 실행)
+          echo "6. generate_chart.sh 실행 및 money.html 생성..."
+          ./generate_chart.sh
+          
+      # =================================================================
+      # 3. Git 커밋 및 푸시 (모든 파일 포함)
+      # =================================================================
+      - name: Commit and push all changes
+        run: |
+          echo "--- Git Commit and Push Start ---"
+          
+          # FSS 및 스트리밍 업데이트로 생성/수정된 모든 파일 추가
+          git add bank-data.txt result.txt money.html
+          
+          git config --global user.email "github-actions-bot@example.com"
+          git config --global user.name "GitHub Actions Bot"
+
+          if git diff --cached --exit-code; then
+            echo "No changes to commit. All files are up to date."
+          else
+            echo "Committing changes..."
+            git commit -m "Automated combined update: FSS, streaming data, and charts"
+            git branch -M main
+            # GitHub Token을 사용하여 푸시
+            git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
+          fi
+
