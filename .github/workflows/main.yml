@@ -39,9 +39,11 @@ jobs:
         
       # =================================================================
       # 1. FSS 데이터를 가져와 bank-data.txt를 생성/업데이트
+      # 🚨 중요: continue-on-error: true 설정으로 실패해도 다음 단계 진행
       # =================================================================
       - name: Fetch FSS Data and Save to bank-data.txt
         id: fetch_fss_data
+        continue-on-error: true # 👈 이 단계가 실패해도 전체 작업은 계속됩니다.
         run: |
           echo "--- FSS Data Fetching Start ---"
           
@@ -67,7 +69,7 @@ jobs:
                 const data = await response.json();
                 
                 // ----------------------------------------------------
-                // 🚨 오류 해결: 응답 구조 유효성 검사 추가
+                // 응답 구조 유효성 검사
                 // ----------------------------------------------------
                 const resultData = data.result;
 
@@ -79,7 +81,8 @@ jobs:
                   
                   console.error(errorMessage);
                   console.error('Raw API Response Data (for debugging):', JSON.stringify(data, null, 2));
-                  process.exit(1); // 오류 코드로 종료하여 작업 실패 처리
+                  // process.exit(1)로 실패하더라도, continue-on-error: true 덕분에 다음 단계는 실행됩니다.
+                  process.exit(1); 
                 }
                 
                 // 데이터 가공 
@@ -112,9 +115,9 @@ jobs:
           "
         
       # =================================================================
-      # 2. 스트리밍 리스트 업데이트 및 차트/HTML 파일 생성
+      # 2. 스트리밍 리스트 업데이트 및 차트/HTML 파일 생성 (항상 실행)
       # =================================================================
-      - name: Run Streaming Scripts and Generate money.html
+      - name: Run Streaming Scripts and Generate money.html (Always Runs)
         id: run_streaming_scripts
         run: |
           echo "--- Streaming List Update Start ---"
@@ -142,7 +145,6 @@ jobs:
           
           # 5. check.sh 실행 및 result.txt 업데이트
           echo "5. check.sh 실행 및 result.txt에 새로운 데이터 추가"
-          # 이 run 블록은 GEMINI_API_KEY 환경 변수에 접근할 수 있습니다.
           ./check.sh | tee -a result.txt
           
           # 6. generate_chart.sh 실행 (money.html 생성 및 AI 예측 실행)
@@ -166,7 +168,7 @@ jobs:
             echo "No changes to commit. All files are up to date."
           else
             echo "Committing changes..."
-            git commit -m "Automated combined update: FSS, streaming data, and charts"
+            git commit -m "Automated combined update: FSS (soft fail), streaming data, and charts"
             git branch -M main
             # GitHub Token을 사용하여 푸시
             git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} main
