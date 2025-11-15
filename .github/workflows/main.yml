@@ -66,8 +66,24 @@ jobs:
                 }
                 const data = await response.json();
                 
+                // ----------------------------------------------------
+                // 🚨 오류 해결: 응답 구조 유효성 검사 추가
+                // ----------------------------------------------------
+                const resultData = data.result;
+
+                if (!resultData || !Array.isArray(resultData.baseList)) {
+                  let errorMessage = 'API response structure is invalid (missing result or baseList).';
+                  if (resultData && resultData.err_msg) {
+                    errorMessage = \`FSS API Error: \${resultData.err_msg} (OPENDART_KEY를 확인하세요)\`;
+                  }
+                  
+                  console.error(errorMessage);
+                  console.error('Raw API Response Data (for debugging):', JSON.stringify(data, null, 2));
+                  process.exit(1); // 오류 코드로 종료하여 작업 실패 처리
+                }
+                
                 // 데이터 가공 
-                const processedProducts = data.result.baseList.map(item => ({
+                const processedProducts = resultData.baseList.map(item => ({
                   bankName: item.kor_co_nm,
                   productName: item.fin_prdt_nm,
                   joinType: item.join_way,
