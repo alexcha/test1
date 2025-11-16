@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Inter 폰트 사용 설정 */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=100..900&display=swap');
         
         :root {
             font-family: 'Inter', Arial, sans-serif;
@@ -28,7 +28,7 @@
             display: block;
             margin-bottom: 0.25rem;
         }
-        input[type="text"] {
+        input[type="text"].w-full {
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
@@ -133,13 +133,19 @@
             border-radius: 4px;
         }
 
-        /* 저장된 기록 목록 스타일 */
+        /* ---------------------------------- */
+        /* 저장된 기록 목록 스타일 (이미지 기반 수정) */
+        /* ---------------------------------- */
         .trade-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
+            align-items: center; /* 아이템 수직 중앙 정렬 유지 */
+            padding: 12px 0; /* 좌우 패딩 제거, 상하 패딩 늘림 */
+            margin: 0 16px; /* 좌우 마진 추가 */
             border-bottom: 1px solid #f0f0f0;
+        }
+        .trade-item:last-child {
+            border-bottom: none;
         }
         .trade-info-area {
             flex-grow: 1; 
@@ -148,39 +154,44 @@
         }
         .trade-actions {
             display: flex;
-            gap: 8px; /* 불러오기/삭제 버튼 사이 간격 */
+            flex-direction: column; /* 버튼을 수직으로 정렬 */
+            gap: 4px; /* 버튼 사이 간격 줄임 */
             flex-shrink: 0;
+            width: 50px; /* 버튼 영역 고정 */
         }
-
-        /* 불러오기 버튼 스타일 */
+        
+        /* 불러오기 버튼 스타일 (이미지 색상에 맞춤) */
         .load-trade-btn {
             background-color: #3498db; /* Blue */
             color: white;
             font-size: 0.8rem;
-            padding: 6px 10px;
+            padding: 4px 0; /* 상하 패딩 줄임, 좌우 패딩 제거 */
             border-radius: 6px;
-            font-weight: 600;
+            font-weight: 500;
             transition: background-color 0.2s;
             border: none;
             cursor: pointer;
+            width: 100%; /* 부모에 꽉 차게 */
         }
         .load-trade-btn:hover {
             background-color: #2980b9;
         }
 
-        /* 삭제 버튼 스타일 (항상 보임) */
+        /* 삭제 버튼 스타일 (이미지 색상에 맞춤) */
         .trade-item-delete-btn {
-            background: none;
+            background-color: #ecf0f1; /* Grayish background */
+            color: #2c3e50; /* Darker text */
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 4px 0;
+            border-radius: 6px;
             border: none;
-            color: #e74c3c; /* 빨간색으로 항상 표시 */
-            font-size: 1.1rem;
             cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
+            width: 100%;
             transition: background-color 0.2s;
         }
         .trade-item-delete-btn:hover {
-            background-color: #ffe0e0;
+            background-color: #bdc3c7;
         }
         /* 로컬 저장소 알림 */
         .local-storage-note {
@@ -190,8 +201,31 @@
             padding: 8px;
             border-radius: 6px;
             font-size: 0.9em;
-            margin-top: 20px; /* 맨 아래로 옮기면서 상단 마진 추가 */
+            margin-top: 20px; 
             font-weight: 500;
+        }
+        /* 히스토리 상단 저장 UI */
+        .history-save-ui {
+            padding: 16px;
+            border-bottom: 1px solid #ddd;
+        }
+        .history-save-ui input {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 1em;
+            text-align: left;
+        }
+        .history-save-ui button {
+            background-color: #6c5ce7; /* Purple save button */
+            color: white;
+            font-weight: bold;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        .history-save-ui button:hover {
+            background-color: #5d50c9;
         }
     </style>
 </head>
@@ -204,7 +238,6 @@
             <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
             <div id="tab-profit-loss" class="tab-content">
-
                 <div class="input-group">
                     <label for="pl_buyPrice">1. 매수 단가 (1주당 가격)</label>
                     <div class="flex items-center space-x-2">
@@ -255,19 +288,28 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-3">⭐ 현재 거래 기록 저장</h3>
-                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                        <input type="text" id="saveTradeName" placeholder="기록할 이름을 입력하세요 (예: 삼성전자 1차)" class="w-full sm:flex-grow p-2 border border-gray-300 rounded-lg">
-                        <button onclick="saveCurrentTrade()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">로컬 저장</button>
-                    </div>
-                    <p id="storageLimitNote" class="text-sm text-red-500 mt-2 text-center" style="display: none;">⚠️ 기록은 최대 6개까지만 저장됩니다. (가장 오래된 기록부터 자동 삭제)</p>
+                     <p id="storageLimitNote" class="text-sm text-red-500 mt-2 text-center" style="display: none;">⚠️ 기록은 최대 6개까지만 저장됩니다. (가장 오래된 기록부터 자동 삭제)</p>
                 </div>
+
             </div>
         </div>
 
-        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">📜 히스토리 (최대 6개)</h2>
-            <div id="savedTradesList" class="border border-gray-200 rounded-lg overflow-hidden min-h-64">
+        <div class="lg:col-span-1 bg-white p-0 rounded-xl shadow-lg overflow-hidden">
+            <div class="flex items-center p-4">
+                <span class="text-2xl font-extrabold text-gray-800 flex items-center">
+                    <span class="mr-2">📝</span> 히스토리
+                </span>
+            </div>
+            
+            <div class="history-save-ui">
+                <div class="flex space-x-2 mb-4">
+                    <input type="text" id="saveTradeName" placeholder="기록할 이름을 입력하세요" class="flex-grow">
+                    <button onclick="saveCurrentTrade()">저장</button>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">저장된 시뮬레이션 목록</h3>
+            </div>
+
+            <div id="savedTradesList" class="min-h-64 pt-2">
                 <div class="p-4 text-center text-gray-500">로컬에 저장된 기록이 없습니다.</div>
             </div>
         </div>
@@ -324,9 +366,12 @@
             trades.splice(0, tradesToRemove);
             
             // 삭제 알림 메시지 표시 (최대 개수 제한 알림)
-            document.getElementById('storageLimitNote').style.display = 'block';
+            // storageLimitNote 요소는 좌측 계산기 영역에 남아있음
+            const limitNote = document.getElementById('storageLimitNote');
+            if (limitNote) limitNote.style.display = 'block';
         } else {
-            document.getElementById('storageLimitNote').style.display = 'none';
+             const limitNote = document.getElementById('storageLimitNote');
+             if (limitNote) limitNote.style.display = 'none';
         }
 
         try {
@@ -348,10 +393,13 @@
         renderSavedTrades(trades);
         
         // 로드 시점에 MAX_TRADES 확인하여 알림 표시
-        if (trades.length >= MAX_TRADES) {
-            document.getElementById('storageLimitNote').style.display = 'block';
-        } else {
-            document.getElementById('storageLimitNote').style.display = 'none';
+        const limitNote = document.getElementById('storageLimitNote');
+        if (limitNote) {
+            if (trades.length >= MAX_TRADES) {
+                limitNote.style.display = 'block';
+            } else {
+                limitNote.style.display = 'none';
+            }
         }
     }
 
@@ -365,14 +413,18 @@
             alertUserMessage("저장 실패: 기록할 이름을 두 글자 이상 입력해주세요.", "red");
             return;
         }
-
+        
+        // 입력 필드의 현재 값 (쉼표 제거)
+        const currentBuyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
+        const currentQuantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
+        const currentSellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
+        
         const tradeData = {
             id: Date.now().toString(), // 고유 ID 생성
             name: tradeName,
-            // 쉼표 제거 후 float으로 변환
-            buyPrice: parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0,
-            quantity: parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0,
-            sellPrice: parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0,
+            buyPrice: currentBuyPrice,
+            quantity: currentQuantity,
+            sellPrice: currentSellPrice,
             feeRate: parseFloat(document.getElementById('pl_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE,
             taxRate: parseFloat(document.getElementById('pl_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE,
             timestamp: Date.now() // 저장 시간
@@ -387,8 +439,7 @@
         const trades = getSavedTrades();
         trades.push(tradeData);
         
-        // saveTradesToLocal에서 6개 초과 시 오래된 기록 자동 삭제 처리
-        saveTradesToLocal(trades);
+        saveTradesToLocal(trades); // 6개 초과 시 자동 삭제 처리 포함
         
         alertUserMessage(`'${tradeName}' 기록이 로컬에 저장되었습니다.`, "green");
         tradeNameInput.value = ''; // 저장 후 입력 필드 초기화
@@ -409,7 +460,6 @@
         }
 
         const currentTrades = getSavedTrades();
-        // 삭제할 ID와 일치하지 않는 기록만 필터링
         const updatedTrades = currentTrades.filter(trade => trade.id !== tradeToDeleteId);
 
         saveTradesToLocal(updatedTrades);
@@ -422,9 +472,6 @@
 
     // --- UI/UX & Data Formatting ---
 
-    /**
-     * 금액을 한국 통화 형식으로 포맷합니다.
-     */
     function formatCurrency(amount, precision = 0) {
         if (typeof amount !== 'number' || isNaN(amount)) {
             amount = 0;
@@ -437,9 +484,6 @@
         });
     }
 
-    /**
-     * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다. (빈 값 처리 포함)
-     */
     window.handleCurrencyInput = function(input) {
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
@@ -472,31 +516,21 @@
         input.setSelectionRange(newCursorStart, newCursorStart);
     }
     
-    /**
-     * 비율 입력(수수료율/거래세율) 값을 그대로 둡니다.
-     */
     window.handleRateInput = function(input) {
         // 비율 입력은 포맷팅 없이 값만 유지
     }
     
-    /**
-     * 개별 입력 필드를 기본값으로 초기화합니다.
-     */
     window.resetIndividualInput = function(inputId, defaultValue) {
         const input = document.getElementById(inputId);
         
-        if (defaultValue === '') { // Currency fields (Buy Price, Quantity, Sell Price)
+        if (defaultValue === '') { 
             input.value = ""; 
-        } else { // Rate fields
+        } else { 
             input.value = defaultValue; 
         }
     };
     
-    /**
-     * 사용자가 저장된 기록을 클릭했을 때 데이터를 로드하고 계산합니다. (불러오기 기능)
-     */
     window.loadTrade = function(trade) {
-        // 입력 필드에 값 로드 및 포맷팅 적용
         document.getElementById('pl_buyPrice').value = formatCurrency(trade.buyPrice, trade.buyPrice % 1 !== 0 ? 2 : 0);
         document.getElementById('pl_quantity').value = formatCurrency(trade.quantity, trade.quantity % 1 !== 0 ? 0 : 0);
         document.getElementById('pl_sellPrice').value = formatCurrency(trade.sellPrice, trade.sellPrice % 1 !== 0 ? 2 : 0);
@@ -508,7 +542,7 @@
     }
 
     /**
-     * 로컬 저장소에서 가져온 기록 목록을 렌더링합니다.
+     * 로컬 저장소에서 가져온 기록 목록을 렌더링합니다. (수정된 디자인 적용)
      */
     function renderSavedTrades(trades) {
         const listDiv = document.getElementById('savedTradesList');
@@ -519,22 +553,24 @@
             return;
         }
 
-        // **최대 6개만 렌더링** (이미 saveTradesToLocal에서 6개로 제한되지만, 혹시 모를 경우 대비)
         const tradesToRender = trades.slice(0, MAX_TRADES);
 
         tradesToRender.forEach(trade => {
             const date = new Date(trade.timestamp).toLocaleDateString('ko-KR');
+            const time = new Date(trade.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
             const tradeElement = document.createElement('div');
             tradeElement.className = 'trade-item group';
             
-            // JSON.stringify로 객체를 문자열화하여 onclick에 전달
-            // 단, 객체 내부에 싱글 쿼트가 없다는 가정 하에 이스케이프 처리
             const tradeDataString = JSON.stringify(trade).replace(/"/g, '\'');
-
+            
+            // 이미지와 유사한 레이아웃으로 변경
             tradeElement.innerHTML = `
                 <div class="trade-info-area">
-                    <p class="font-semibold text-gray-800 truncate">${trade.name}</p>
-                    <p class="text-xs text-gray-500">${date} | 매수가: ${formatCurrency(trade.buyPrice)}원</p>
+                    <p class="font-semibold text-gray-800 text-lg truncate">${trade.name}</p>
+                    <p class="text-xs text-gray-500">${date}</p>
+                    <p class="text-xs text-gray-500">오후 ${time}</p>
+                    <p class="text-sm text-gray-700 mt-1">${formatCurrency(trade.quantity, 0)} 주 / 평단 ${formatCurrency(trade.buyPrice, 0)} 원</p>
                 </div>
                 <div class="trade-actions">
                     <button 
@@ -542,16 +578,14 @@
                         class="load-trade-btn"
                         title="계산기에 데이터 불러오기"
                     >
-                        불러오기
+                        로드
                     </button>
                     <button 
                         onclick="deleteTrade('${trade.id}', '${trade.name}')" 
-                        class="trade-item-delete-btn flex-shrink-0 transition-opacity"
+                        class="trade-item-delete-btn"
                         title="기록 삭제"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
-                        </svg>
+                        삭제
                     </button>
                 </div>
             `;
