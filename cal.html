@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE ahtml>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -15,50 +15,49 @@
         
         .calculator {
             max-width: 500px;
-            margin: 0 auto;
+            margin: 0 auto 20px auto; /* 상단 마진을 0으로 설정하여 상단 공백 제거 */
             background: #ffffff;
-            padding: 24px; /* 패딩 증가 */
+            padding: 16px 12px; 
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         .input-group {
-             margin-bottom: 1.5rem;
+             margin-bottom: 1rem;
         }
         .input-group label {
-            font-weight: 600; /* 굵게 */
-            color: #2c3e50;
+            font-weight: bold;
+            color: #34495e;
             font-size: 0.95em;
             display: block;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.25rem;
         }
         input[type="text"] {
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
-            font-size: 1.1em;
+            font-size: 1em;
             text-align: right;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            padding: 0.6rem 0.85rem;
+            transition: border-color 0.3s;
+            padding: 0.5rem 0.75rem;
         }
         input[type="text"]:focus {
             border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
             outline: none;
         }
         
         /* 개별 초기화 버튼 스타일 */
         .reset-individual-btn {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             line-height: 1;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #95a5a6;
             background: #ecf0f1;
             border: none;
-            border-radius: 9999px; /* 원형 */
-            margin-left: 10px;
+            border-radius: 8px;
+            margin-left: 8px;
             cursor: pointer;
-            transition: background-color 0.2s, color 0.2s, transform 0.2s;
+            transition: background-color 0.2s, color 0.2s;
             flex-shrink: 0;
             display: flex;
             align-items: center;
@@ -67,7 +66,6 @@
         .reset-individual-btn:hover {
             background-color: #bdc3c7;
             color: #2c3e50;
-            transform: rotate(-90deg);
         }
         
         /* 결과 테이블 스타일 (공통) */
@@ -76,18 +74,18 @@
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 15px;
-            font-size: 0.95em; 
+            font-size: 0.9em; 
             table-layout: fixed; 
         }
         .result-table th, .result-table td {
-            padding: 12px 10px; 
+            padding: 10px 8px; 
             border-bottom: 1px solid #ecf0f1;
             text-align: left;
             word-break: break-word; 
         }
         .result-table th {
-            background-color: #fafbfd;
-            color: #34495e;
+            background-color: #f8f9fa;
+            color: #2c3e50;
             font-weight: 600;
             width: 60%;
         }
@@ -99,30 +97,30 @@
         }
         .result-table .value-col {
             text-align: right;
-            font-weight: 700;
+            font-weight: bold;
         }
         
         /* 손익률 계산기 스타일 */
         .pl-deduction-color {
-            color: #6c757d; /* 회색으로 변경 */
-            font-weight: normal;
+            color: #3498db;
+            font-weight: bold;
         }
         .pl-net-proceeds-color {
-            color: #2c3e50;
+            color: #6c5ce7;
             font-weight: 800;
             font-size: 1.05em; 
         }
         .pl-profit-text {
-            color: #e74c3c; /* 한국식 빨강 (수익) */
-            font-weight: 800;
+            color: #e74c3c;
+            font-weight: bold;
         }
         .pl-loss-text {
-            color: #3498db; /* 한국식 파랑 (손실) */
-            font-weight: 800;
+            color: #3498db;
+            font-weight: bold;
         }
         .pl-neutral-text {
             color: #34495e; 
-            font-weight: 800;
+            font-weight: bold;
         }
 
         /* 공통 실시간 업데이트 피드백 */
@@ -131,63 +129,11 @@
             font-weight: 600;
             font-size: 0.85rem;
             text-align: center;
-            margin-bottom: 20px;
-            padding: 8px 15px;
-            background-color: #e8f5e9;
-            border-radius: 8px;
-        }
-
-        /* History List Styling - 정돈된 디자인 */
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 15px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            transition: box-shadow 0.2s, border-color 0.2s;
-        }
-        .history-item:hover {
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            border-color: #3498db;
-        }
-        .history-item-name {
-            font-weight: 500;
-            color: #2c3e50;
-            font-size: 0.95em;
-            flex-grow: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding-right: 15px;
-        }
-        .history-actions button {
-            padding: 6px 12px;
-            font-size: 0.85em;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: opacity 0.2s, background-color 0.2s;
-            margin-left: 8px;
-            font-weight: 600;
-        }
-        .load-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-        }
-        .load-btn:hover {
-            background-color: #2980b9;
-        }
-        .delete-btn {
-            background-color: #f1f1f1;
-            color: #e74c3c;
-            border: 1px solid #ddd;
-        }
-        .delete-btn:hover {
-            background-color: #ffe8e6;
-            border-color: #e74c3c;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            padding: 5px;
+            border: 1px dashed #2ecc71;
+            border-radius: 4px;
         }
         
     </style>
@@ -215,10 +161,13 @@
             </div>
         </div>
 
-        <div id="bep_display" class="mb-5 p-4 bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm" style="display: none;">
-            <p class="text-sm text-gray-700 font-semibold mb-1">손익분기 매도 단가 (BEP)</p>
-            <p id="bep_value" class="text-2xl text-gray-800 font-extrabold text-right"></p>
+        <!-- 손익분기 매도 단가 (BEP) 표시 영역 -->
+        <div id="bep_display" class="mb-4 p-3 bg-red-50 border-2 border-red-500 rounded-lg" style="display: none;">
+            <p class="text-sm text-red-700 font-semibold mb-1">순손익 0원이 되는 매도 단가 (BEP)</p>
+            <p id="bep_value" class="text-2xl text-red-700 font-extrabold text-right"></p>
         </div>
+        <!-- BEP 표시 영역 끝 -->
+
         <div class="input-group">
             <label for="pl_sellPrice">3. 매도 단가 (1주당 가격)</label>
             <div class="flex items-center space-x-2">
@@ -243,198 +192,424 @@
             </div>
         </div>
         
-        <div id="pl_result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg shadow-lg" style="display: none;">
-            <h3 class="text-2xl font-bold text-gray-700 text-center mb-4">💰 최종 계산 결과</h3>
+        <div id="pl_result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
+            <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
             <table id="pl_resultTable" class="result-table"></table>
         </div>
     </div>
-    
-    <div class="mt-10 pt-6 border-t border-gray-200">
-        <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center">
-            <svg class="w-6 h-6 mr-2 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-8V6a1 1 0 012 0v4h2a1 1 0 110 2h-2v2a1 1 0 11-2 0v-2H7a1 1 0 010-2h2z" clip-rule="evenodd"></path></svg>
-            계산 저장 및 히스토리
-        </h2>
-        
-        <div class="p-4 mb-6 bg-yellow-50 border border-yellow-300 rounded-lg shadow-md">
-            <label for="saveNameInput" class="font-bold text-yellow-800 mb-2 block">저장 이름 입력:</label>
-            <div class="flex space-x-2">
-                <input type="text" id="saveNameInput" placeholder="예: 삼성전자 1차 매수" class="w-full text-left p-2 border-yellow-400 focus:border-yellow-600 rounded-lg">
-                <button onclick="saveCalculationLocal()" class="bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition duration-150 flex-shrink-0 whitespace-nowrap">
-                    저장하기
-                </button>
-            </div>
-        </div>
+</div>
 
-        <h3 class="text-xl font-semibold text-gray-700 mb-3">저장된 계산 목록 (Local Storage)</h3>
-        <div id="history-list" class="space-y-2 p-3 bg-white rounded-lg border border-gray-200 shadow-inner">
-            <p id="no-history-message" class="text-gray-500 text-sm text-center py-4">저장된 계산 기록이 없습니다.</p>
-        </div>
-        <p class="text-xs text-red-500 mt-3 p-1">⚠️ 이 기록은 현재 브라우저에만 저장되며, 브라우저를 변경하거나 기록을 삭제하면 사라집니다.</p>
-    </div>
-    </div>
-
-
-<script>
-    // --- Global Configuration ---
+<script type="module">
+    // --- Global State & Configuration ---
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
-    const HISTORY_STORAGE_KEY = 'stockCalculatorHistory'; // Local Storage Key
-
-    // --- Local Storage Helper Functions ---
-
-    function getHistoryData() {
-        const storedData = localStorage.getItem(HISTORY_STORAGE_KEY);
-        try {
-            return storedData ? JSON.parse(storedData) : [];
-        } catch (e) {
-            console.error("Error parsing history data from localStorage:", e);
-            return [];
-        }
-    }
-
-    function setHistoryData(data) {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(data));
-    }
+    let activeTab = 'profit-loss'; // 현재 활성화된 탭
 
 
-    // --- History Data Operations (Local Storage) ---
-
-    window.saveCalculationLocal = function() {
-        const saveNameInput = document.getElementById('saveNameInput');
-        let name = saveNameInput.value.trim();
-        
-        const currentBuyPrice = document.getElementById('pl_buyPrice').value.replace(/,/g, '');
-        const currentQuantity = document.getElementById('pl_quantity').value.replace(/,/g, '');
-
-        if (parseFloat(currentBuyPrice) === 0 || parseFloat(currentQuantity) === 0) {
-            alert('매수 단가와 수량을 입력해야 계산 기록을 저장할 수 있습니다.');
-            return;
-        }
-
-        if (name === '') {
-            const date = new Date().toLocaleTimeString('ko-KR');
-            name = `미지정 저장 (${date})`;
-        }
-        
-        const dataToSave = {
-            id: Date.now().toString(), 
-            name: name,
-            buyPrice: currentBuyPrice,
-            quantity: currentQuantity,
-            sellPrice: document.getElementById('pl_sellPrice').value.replace(/,/g, ''),
-            feeRate: document.getElementById('pl_feeRateInput').value.replace(/,/g, ''),
-            taxRate: document.getElementById('pl_taxRateInput').value.replace(/,/g, ''),
-            timestamp: Date.now()
-        };
-
-        const histories = getHistoryData();
-        histories.unshift(dataToSave); 
-        setHistoryData(histories);
-
-        alert(`'${name}' 기록이 성공적으로 저장되었습니다!`);
-
-        saveNameInput.value = ''; 
-        loadHistoryLocal(); 
-    }
-
-    /**
-     * 시스템 confirm 팝업을 통해 삭제를 확인합니다.
-     */
-    window.deleteCalculationLocal = function(docId, name) {
-        if (confirm(`선택하신 계산 기록 '${name}'을 정말로 삭제하시겠습니까?\n(이 작업은 되돌릴 수 없습니다)`)) {
-            let histories = getHistoryData();
-            
-            histories = histories.filter(item => item.id !== docId);
-            setHistoryData(histories);
-            
-            alert(`'${name}' 기록이 삭제되었습니다.`);
-            loadHistoryLocal(); 
-        }
-    }
-
-    function loadHistoryLocal() {
-        const historyList = document.getElementById('history-list');
-        const noHistoryMessage = document.getElementById('no-history-message');
-        const histories = getHistoryData();
-        
-        historyList.innerHTML = '';
-        
-        if (histories.length === 0) {
-            noHistoryMessage.classList.remove('hidden');
-            historyList.appendChild(noHistoryMessage);
-            return;
-        } 
-        
-        noHistoryMessage.classList.add('hidden');
-
-        histories.forEach(item => {
-            const dateStr = new Date(item.timestamp).toLocaleDateString('ko-KR', { 
-                month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
-            }).replace(/\. /g, '.').replace(/\.$/, ''); 
-
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'history-item';
-            itemDiv.innerHTML = `
-                <span class="history-item-name" title="${item.name}">${item.name} <span class="text-xs font-normal text-gray-400">(${dateStr})</span></span>
-                <div class="history-actions">
-                    <button class="load-btn" onclick='loadCalculationLocal("${item.id}")'>불러오기</button>
-                    <button class="delete-btn" onclick='deleteCalculationLocal("${item.id}", "${item.name}")'>
-                        <svg class="w-4 h-4 inline-block -mt-0.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"></path></svg>
-                    </button>
-                </div>
-            `;
-            historyList.appendChild(itemDiv);
-        });
-    }
-
-    window.loadCalculationLocal = function(docId) {
-        const histories = getHistoryData();
-        const data = histories.find(item => item.id === docId);
-
-        if (!data) {
-            console.error("History data not found for ID:", docId);
-            alert("기록을 찾을 수 없습니다.");
-            return;
-        }
-
-        const loadData = {
-            buyPrice: data.buyPrice || '',
-            quantity: data.quantity || '',
-            sellPrice: data.sellPrice || '',
-            feeRate: data.feeRate || DEFAULT_FEE_RATE,
-            taxRate: data.taxRate || DEFAULT_TAX_RATE,
-        };
-
-        const inputs = [
-            { id: 'pl_buyPrice', value: loadData.buyPrice, cookie: 'stockBuyPrice' },
-            { id: 'pl_quantity', value: loadData.quantity, cookie: 'stockQuantity' },
-            { id: 'pl_sellPrice', value: loadData.sellPrice, cookie: 'stockSellPrice' },
-            { id: 'pl_feeRateInput', value: loadData.feeRate, cookie: 'stockFeeRate' },
-            { id: 'pl_taxRateInput', value: loadData.taxRate, cookie: 'stockTaxRate' }
-        ];
-
-        inputs.forEach(item => {
-            const input = document.getElementById(item.id);
-            if (input.id.includes('Rate')) {
-                input.value = item.value;
-            } else {
-                const rawValue = item.value;
-                input.value = rawValue;
-                window.formatCurrencyInput(input);
-            }
-            setCookie(item.cookie, item.value); 
-        });
-
-        calculateProfitLoss();
-        alert(`'${data.name}' 기록을 불러왔습니다.`);
-    }
-
-
-    // --------------------------------------------------------------------------------
-    // --- (Original) Utility Functions ---
-    // --------------------------------------------------------------------------------
+    // --- Cookie Helper Functions ---
 
     function getCookie(name) {
         const nameEQ = name + "=";
         const ca = document.cookie.split(';');
-        for(let i=0
+        for(let i=0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+
+    function setCookie(name, value) {
+        const date = new Date();
+        date.setTime(date.getTime() + (30*24*60*60*1000)); 
+        const expires = "; expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
+    }
+
+    // --- Format & Input Handlers ---
+
+    /**
+     * 금액을 한국 통화 형식으로 포맷합니다.
+     */
+    function formatCurrency(amount, precision = 0) {
+        if (typeof amount !== 'number' || isNaN(amount)) {
+            amount = 0;
+        }
+        const absoluteAmount = Math.abs(amount);
+        
+        if (precision === 0) {
+            // 손익분기점, 원금, 수량, 손익금액 등 (정수)
+            return Math.floor(absoluteAmount).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
+        }
+
+        // 순수 평균 단가, 수익률, 변동률 등 (소수점 둘째 자리)
+        return absoluteAmount.toLocaleString('ko-KR', { minimumFractionDigits: precision, maximumFractionDigits: precision });
+    }
+
+    /**
+     * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다. (빈 값 처리 포함)
+     */
+    window.formatCurrencyInput = function(input) {
+        const cursorStart = input.selectionStart;
+        const oldValue = input.value;
+        let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
+
+        const parts = rawValue.split('.');
+        rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
+
+        if (rawValue === '' || parseFloat(rawValue) === 0) {
+            input.value = ''; 
+            return; 
+        }
+        
+        const [integerPart, decimalPart] = rawValue.split('.');
+        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
+        
+        input.value = newValue;
+
+        const diff = newValue.length - oldValue.length;
+        let newCursorStart = cursorStart + diff;
+
+        if (newValue.length > oldValue.length) {
+            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
+                    newCursorStart = cursorStart + 1;
+                }
+        }
+        
+        newCursorStart = Math.min(newCursorStart, newValue.length);
+        input.setSelectionRange(newCursorStart, newCursorStart);
+    }
+    
+    /**
+     * 금액 입력(단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
+     */
+    window.handleCurrencyInputAndSave = function(input, cookieName) {
+        const cursorStart = input.selectionStart;
+        const oldValue = input.value;
+        let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
+        
+        const parts = rawValue.split('.');
+        rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
+
+        if (rawValue === '' || parseFloat(rawValue) === 0) {
+            input.value = '';
+            if (cookieName) setCookie(cookieName, '');
+            // 계산 함수는 oninput 속성에서 호출하도록 변경하여 코드 단순화
+            return; 
+        }
+        
+        // 0 입력 시 빈 문자열로 표시 (이미 위에서 처리됨)
+        const [integerPart, decimalPart] = rawValue.split('.');
+        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
+            
+        input.value = newValue;
+
+        const diff = newValue.length - oldValue.length;
+        let newCursorStart = cursorStart + diff;
+
+        if (newValue.length > oldValue.length) {
+            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
+                newCursorStart = cursorStart + 1;
+            }
+        }
+        
+        newCursorStart = Math.min(newCursorStart, newValue.length);
+        input.setSelectionRange(newCursorStart, newCursorStart);
+        
+        if (cookieName) setCookie(cookieName, rawValue);
+        // 계산은 HTML의 oninput에서 호출됨
+    }
+
+    /**
+     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장합니다.
+     */
+    window.handleRateInputAndSave = function(input, cookieName) {
+        const rawValue = input.value.replace(/,/g, ''); 
+        
+        if (!isNaN(parseFloat(rawValue))) {
+            setCookie(cookieName, rawValue);
+        }
+        // 계산은 HTML의 oninput에서 호출됨
+    }
+    
+    /**
+     * 개별 입력 필드를 기본값으로 초기화합니다.
+     */
+    window.resetIndividualInput = function(inputId, cookieName, defaultValue, type) {
+        const input = document.getElementById(inputId);
+        
+        if (type === 'currency') {
+            input.value = ""; 
+            setCookie(cookieName, ''); 
+        } else { // rate
+            input.value = defaultValue; 
+            setCookie(cookieName, defaultValue);
+        }
+        // 계산은 HTML의 onclick에서 호출됨
+    };
+    
+    // --- Cost Calculation Helper (Shared Logic) ---
+    function calculateTotalCosts(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate) {
+        const F = feeRate / 100; 
+        const T = taxRate / 100;   
+        
+        const buyFee = totalBuyCost * F;
+        const grossSellAmount = sellPrice * totalQuantity;
+        const sellFee = grossSellAmount * F;
+        const salesTax = grossSellAmount * T;
+        
+        const totalFee = buyFee + sellFee;
+        const totalTax = salesTax;
+        const totalDeductions = totalFee + totalTax;
+
+        return { buyFee, sellFee, salesTax, totalFee, totalTax, totalDeductions, grossSellAmount };
+    }
+
+    function calculateProfitStatus(totalCost, totalQuantity, marketPrice, feeRate, taxRate, prefix = 'pl') {
+        if (totalCost === 0 || totalQuantity === 0 || marketPrice === 0) {
+            return {
+                netProfitLoss: 0, netProfitRate: 0, 
+                profitLossText: '0 원', profitRateText: '0.00 %', 
+                resultClass: `${prefix}-neutral-text`,
+                costs: {}
+            };
+        }
+        
+        const costs = calculateTotalCosts(totalCost, totalQuantity, marketPrice, feeRate, taxRate);
+        const netProfitLoss = costs.grossSellAmount - totalCost - costs.totalDeductions;
+        const netProfitRate = (totalCost > 0) ? (netProfitLoss / totalCost) * 100 : (netProfitLoss > 0 ? Infinity : 0);
+
+        let resultClass = `${prefix}-neutral-text`;
+        let signPrefix = ''; 
+        
+        if (netProfitLoss > 0) {
+            resultClass = `${prefix}-profit-text`;
+            signPrefix = '+';
+        } else if (netProfitLoss < 0) {
+            resultClass = `${prefix}-loss-text`;
+            signPrefix = ''; // 손실일 때는 마이너스 부호는 formatCurrency에서 처리됩니다.
+        }
+
+        const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
+        const profitRateText = signPrefix + (isFinite(netProfitRate) ? formatCurrency(netProfitRate, 2) : 'N/A') + ' %';
+        
+        return { netProfitLoss, netProfitRate, profitLossText, profitRateText, resultClass, costs };
+    }
+
+
+    // --- CALCULATION 1: Profit/Loss Calculator Logic ---
+
+    window.calculateProfitLoss = function() {
+        // 입력값 가져오기 (PL Calculator IDs)
+        const buyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
+        const quantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
+        const sellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
+        
+        const feeRateInput = document.getElementById('pl_feeRateInput').value.replace(/,/g, '');
+        const taxRateInput = document.getElementById('pl_taxRateInput').value.replace(/,/g, '');
+        
+        const feeRate = parseFloat(feeRateInput) || 0;
+        const taxRate = parseFloat(taxRateInput) || 0;
+        
+        const totalBuyCost = buyPrice * quantity;
+        const totalQuantity = quantity;
+
+        if (totalBuyCost === 0 && totalQuantity === 0 && sellPrice === 0) {
+            document.getElementById('pl_result').style.display = 'none';
+            document.getElementById('bep_display').style.display = 'none'; // BEP 숨기기
+            return;
+        }
+
+        // 1. Break-Even Price Calculation (손익분기 매도 단가)
+        let breakEvenPrice = 0;
+        if (totalQuantity > 0) {
+            const F = feeRate / 100;
+            const T = taxRate / 100;
+            
+            // Total Investment Cost (Buy Price + Buy Fee)
+            // 매수 원금 + 매수 시 발생하는 수수료
+            const totalInvestmentCost = totalBuyCost * (1 + F); 
+
+            // Denominator for total sales calculation (1 - Sell Fee Rate - Tax Rate)
+            // 1 - 매도 수수료율 - 거래세율
+            const denominator = 1 - F - T; 
+            
+            if (denominator > 0) {
+                // Total Sales needed to cover all costs: TotalInvestmentCost / (1 - F - T)
+                const totalBreakEvenSales = totalInvestmentCost / denominator;
+                
+                // Break-Even Price (Price per share)
+                breakEvenPrice = totalBreakEvenSales / totalQuantity; 
+            }
+        }
+
+        // BEP 표시 영역 업데이트
+        const bepDisplay = document.getElementById('bep_display');
+        const bepValue = document.getElementById('bep_value');
+        
+        if (totalBuyCost > 0 && totalQuantity > 0 && breakEvenPrice > 0 && isFinite(breakEvenPrice)) {
+            bepValue.innerHTML = `${formatCurrency(breakEvenPrice, 2)} 원`;
+            bepDisplay.style.display = 'block';
+        } else {
+            bepDisplay.style.display = 'none';
+        }
+        
+        
+        const { netProfitLoss, netProfitRate, profitRateText, resultClass, costs } = 
+            calculateProfitStatus(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate, 'pl');
+        
+        // PL Calculator specific logic
+        const grossSellAmount = costs.grossSellAmount;
+        const totalDeductions = costs.totalDeductions;
+        const totalFee = costs.totalFee;
+        const totalTax = costs.totalTax;
+        
+        // 최종 손익률 텍스트 스타일 결정 (순이익/손실 기준)
+        let rateClass = 'pl-neutral-text';
+        if (netProfitLoss > 0) {
+            rateClass = 'pl-profit-text';
+        } else if (netProfitLoss < 0) {
+            rateClass = 'pl-loss-text';
+        }
+
+        // 매도 후 순회수액 (매도 금액 - 매도 수수료 - 거래세)
+        const netProceedsAfterSellDeductions = grossSellAmount - (costs.sellFee + costs.salesTax); 
+        
+        // 단순 수익률 (세금/수수료 미반영)
+        const simpleProfit = grossSellAmount - totalBuyCost;
+        let simpleProfitRate = 0;
+        if (totalBuyCost > 0) {
+            simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
+        }
+        
+        // 단순 수익률 표시를 위한 값과 부호 결정 (핵심 수정 부분)
+        let simpleProfitRateValue = isFinite(simpleProfitRate) ? formatCurrency(Math.abs(simpleProfitRate), 2) : 'N/A';
+        let simpleProfitPrefix = '';
+        
+        if (simpleProfit > 0) {
+            simpleProfitPrefix = '+';
+        } else if (simpleProfit < 0) {
+            simpleProfitPrefix = '-';
+        }
+        
+        const simpleProfitRateText = simpleProfitRateValue + '%';
+
+        // 결과 테이블 HTML (BEP 항목은 이미 위에서 표시되므로 여기서는 제거)
+        const tableHTML = `
+            <thead>
+                <tr>
+                    <th colspan="2" class="text-center bg-blue-100 rounded-t-lg">거래 요약</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>총 매수 비용 (원금)</th>
+                    <td class="value-col">${formatCurrency(totalBuyCost, 0)} 원</td>
+                </tr>
+                <tr>
+                    <th>총 매도 금액 (세전)</th>
+                    <td class="value-col">${formatCurrency(grossSellAmount, 0)} 원</td>
+                </tr>
+                <tr>
+                    <th><span class="pl-deduction-color">총 공제액</span></th>
+                    <td class="value-col pl-deduction-color">- ${formatCurrency(totalDeductions, 0)} 원</td>
+                </tr>
+                <tr class="deduction-detail">
+                    <th style="padding-left: 20px;">ㄴ 매매 수수료</th>
+                    <td class="value-col">- ${formatCurrency(totalFee, 0)} 원</td>
+                </tr>
+                <tr class="deduction-detail">
+                    <th style="padding-left: 20px;">ㄴ 거래세</th>
+                    <td class="value-col">- ${formatCurrency(totalTax, 0)} 원</td>
+                </tr>
+                
+                <tr class="bg-indigo-50">
+                    <th class="font-bold">매도 후 순회수액 (세후)</th>
+                    <td class="value-col pl-net-proceeds-color">${formatCurrency(netProceedsAfterSellDeductions, 0)} 원</td>
+                </tr>
+
+                <tr class="bg-gray-50">
+                    <th>순이익/손실 (세후)</th>
+                    <td class="value-col">
+                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '-' : '')} ${formatCurrency(netProfitLoss, 0)} 원</span>
+                    </td>
+                </tr>
+                <tr class="font-bold text-lg bg-yellow-100">
+                    <th><span class="text-blue-600">최종 손익률 (세후)</span></th>
+                    <td class="value-col">
+                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '-' : '')}${formatCurrency(netProfitRate, 2)} %</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>참고: 단순 수익률 (세전)</th>
+                    <td class="value-col">
+                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'}">${simpleProfitPrefix}${simpleProfitRateText}</span>
+                    </td>
+                </tr>
+            </tbody>
+        `;
+
+        document.getElementById('pl_resultTable').innerHTML = tableHTML;
+        document.getElementById('pl_result').style.display = 'block';
+        
+        // 결과창의 테두리와 배경색을 순손익에 따라 변경
+        const resultDiv = document.getElementById('pl_result');
+        if (netProfitLoss > 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익은 빨간색 (한국 주식 양봉색)
+        } else if (netProfitLoss < 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실은 파란색 (한국 주식 음봉색)
+        } else {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
+        }
+
+    }
+
+    /**
+     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
+     */
+    function loadFromCookies() {
+        
+        // --- PL Calculator Fields ---
+        const plCurrencyInputs = [
+            { id: 'pl_buyPrice', cookie: 'stockBuyPrice' },
+            { id: 'pl_quantity', cookie: 'stockQuantity' },
+            { id: 'pl_sellPrice', cookie: 'stockSellPrice' }
+        ];
+        
+        plCurrencyInputs.forEach(item => {
+            const input = document.getElementById(item.id);
+            const storedValue = getCookie(item.cookie);
+            
+            if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
+                input.value = storedValue;
+                window.formatCurrencyInput(input); 
+            }
+        });
+
+        // --- Rate Fields (PL) ---
+        const rateInputs = [
+            { id: 'pl_feeRateInput', cookie: 'stockFeeRate', default: DEFAULT_FEE_RATE },
+            { id: 'pl_taxRateInput', cookie: 'stockTaxRate', default: DEFAULT_TAX_RATE }
+        ];
+        
+        rateInputs.forEach(item => {
+            const storedValue = getCookie(item.cookie);
+            const value = (storedValue !== null && storedValue !== "") ? storedValue : item.default;
+            document.getElementById(item.id).value = value;
+        });
+        
+        // 초기 로드 후 계산 실행
+        calculateProfitLoss();
+    }
+
+    // 초기화 및 이벤트 리스너 등록
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFromCookies(); 
+    });
+
+</script>
+</body>
+</html>
+
