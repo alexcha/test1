@@ -249,16 +249,16 @@
                 <div class="input-group">
                     <label for="pl_buyPrice">1. 매수 단가 (1주당 가격)</label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="pl_buyPrice" value="" required oninput="handleCurrencyInput(this); calculateProfitLoss();" inputmode="numeric" class="w-full">
-                        <button type="button" onclick="resetIndividualInput('pl_buyPrice', ''); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+                        <input type="text" id="pl_buyPrice" value="" required oninput="handleCurrencyInput(this);" inputmode="numeric" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_buyPrice', '');" class="reset-individual-btn" title="초기화">↺</button>
                     </div>
                 </div>
 
                 <div class="input-group">
                     <label for="pl_quantity">2. 수량 (총 주식 수)</label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="pl_quantity" value="" required oninput="handleCurrencyInput(this); calculateProfitLoss();" inputmode="numeric" class="w-full">
-                        <button type="button" onclick="resetIndividualInput('pl_quantity', ''); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+                        <input type="text" id="pl_quantity" value="" required oninput="handleCurrencyInput(this);" inputmode="numeric" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_quantity', '');" class="reset-individual-btn" title="초기화">↺</button>
                     </div>
                 </div>
 
@@ -269,24 +269,24 @@
                 <div class="input-group">
                     <label for="pl_sellPrice">3. 매도 단가 (1주당 가격)</label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="pl_sellPrice" value="" required oninput="handleCurrencyInput(this); calculateProfitLoss();" inputmode="numeric" class="w-full">
-                        <button type="button" onclick="resetIndividualInput('pl_sellPrice', ''); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+                        <input type="text" id="pl_sellPrice" value="" required oninput="handleCurrencyInput(this);" inputmode="numeric" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_sellPrice', '');" class="reset-individual-btn" title="초기화">↺</button>
                     </div>
                 </div>
                 
                 <div class="input-group">
                     <label for="pl_feeRateInput">4. 매매 수수료율 (%)</label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="pl_feeRateInput" value="0.015" required oninput="handleRateInput(this); calculateProfitLoss();" inputmode="decimal" class="w-full">
-                        <button type="button" onclick="resetIndividualInput('pl_feeRateInput', '0.015'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+                        <input type="text" id="pl_feeRateInput" value="0.015" required oninput="handleRateInput(this);" inputmode="decimal" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_feeRateInput', '0.015');" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
                     </div>
                 </div>
 
                 <div class="input-group">
                     <label for="pl_taxRateInput">5. 매도 거래세율 (%)</label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="pl_taxRateInput" value="0.15" required oninput="handleRateInput(this); calculateProfitLoss();" inputmode="decimal" class="w-full">
-                        <button type="button" onclick="resetIndividualInput('pl_taxRateInput', '0.15'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+                        <input type="text" id="pl_taxRateInput" value="0.15" required oninput="handleRateInput(this);" inputmode="decimal" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_taxRateInput', '0.15');" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
                     </div>
                 </div>
                 
@@ -492,6 +492,7 @@
 
         if (rawValue === '' || parseFloat(rawValue) === 0) {
             input.value = ''; 
+            calculateProfitLoss(); // 입력값 변경 시 계산
             return; 
         }
         
@@ -518,7 +519,7 @@
     }
     
     window.handleRateInput = function(input) {
-        // 비율 입력은 포맷팅 없이 값만 유지
+        // 비율 입력은 포맷팅 없이 값만 유지하고 계산만 실행
         calculateProfitLoss();
     }
     
@@ -534,9 +535,12 @@
     };
     
     /**
-     * ⭐️ 로드 함수 수정: 저장된 원시 값을 넣고, 포맷팅을 수동 호출 후 계산 ⭐️
+     * ⭐️ 로드 함수 수정: 인코딩된 문자열을 디코딩 및 파싱 후 계산 ⭐️
      */
-    window.loadTrade = function(trade) {
+    window.loadTrade = function(tradeDataStringEncoded) {
+        // ⭐️ 수정: 인코딩된 문자열을 디코딩하고 JSON 객체로 파싱 ⭐️
+        const trade = JSON.parse(decodeURIComponent(tradeDataStringEncoded));
+        
         const buyPriceInput = document.getElementById('pl_buyPrice');
         const quantityInput = document.getElementById('pl_quantity');
         const sellPriceInput = document.getElementById('pl_sellPrice');
@@ -559,16 +563,12 @@
         // 비율은 포맷팅은 필요 없으나, 계산은 실행
         window.handleRateInput(feeRateInput); 
         window.handleRateInput(taxRateInput); 
-
-        // calculateProfitLoss()는 이미 handleCurrencyInput/handleRateInput 내부에서 실행되지만, 
-        // 확실하게 한번 더 호출해 줍니다.
-        calculateProfitLoss(); 
         
         alertUserMessage(`'${trade.name}' 기록을 불러왔습니다.`, "blue");
     }
 
     /**
-     * 로컬 저장소에서 가져온 기록 목록을 렌더링합니다. (수정된 디자인 적용)
+     * ⭐️ 수정된 renderSavedTrades 함수 (데이터 인코딩) ⭐️
      */
     function renderSavedTrades(trades) {
         const listDiv = document.getElementById('savedTradesList');
@@ -584,7 +584,6 @@
         tradesToRender.forEach(trade => {
             const date = new Date(trade.timestamp).toLocaleDateString('ko-KR');
             
-            // 이미지와 유사한 시간 포맷 (오후 XX:XX)
             const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
             const timeString = new Date(trade.timestamp).toLocaleTimeString('ko-KR', timeOptions);
             const formattedTime = timeString.replace('오전', '오전').replace('오후', '오후');
@@ -593,8 +592,8 @@
             const tradeElement = document.createElement('div');
             tradeElement.className = 'trade-item group';
             
-            // trade 객체 전체를 JSON 문자열로 변환하여 onclick 인수로 전달
-            const tradeDataString = JSON.stringify(trade).replace(/"/g, '\'');
+            // ⭐️ 수정: JSON.stringify 후 URI 인코딩하여 안전하게 전달 ⭐️
+            const tradeDataStringEncoded = encodeURIComponent(JSON.stringify(trade));
             
             // 평단가 정보
             const avgPrice = trade.buyPrice > 0 ? formatCurrency(trade.buyPrice, 0) : '0';
@@ -613,7 +612,7 @@
                 </div>
                 <div class="trade-actions">
                     <button 
-                        onclick='loadTrade(${tradeDataString})' 
+                        onclick="loadTrade('${tradeDataStringEncoded}')" 
                         class="load-trade-btn"
                         title="계산기에 데이터 불러오기"
                     >
