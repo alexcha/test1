@@ -820,10 +820,10 @@
                         <ul class="list-disc list-inside space-y-1 text-xs pl-2">
                             <li>**이번 횟차 매수 총액**: <span class="font-bold text-green-600">${formatCurrency(entryCost, 0)} 원</span></li>
                             <li>총 수량: <span class="font-bold">${formatCurrency(cumulativeQuantity, 0)} 주</span></li>
-                            <li>**총 누적 원금**: <span class="font-bold text-red-600">${formatCurrency(cumulativeCost, 0)} 원</span></li>
-                            <li>**누적 평단가**: <span class="text-indigo-700 font-extrabold">${formatCurrency(entryAvgPrice, 2)} 원</span></li>
+                            <li>총 누적 원금: <span class="font-bold text-red-600">${formatCurrency(cumulativeCost, 0)} 원</span></li>
+                            <li>누적 평단가: <span class="text-indigo-700 font-extrabold">${formatCurrency(entryAvgPrice, 2)} 원</span></li>
                             <li>평단 변동률: <span class="${rateClass}">${ratePrefix}${rateDisplay}</span> (물타기 전 평단 대비)</li>
-                            <li>**손익분기점**: <span class="text-green-800 font-extrabold">${isFinite(breakEvenPrice) ? formatCurrency(Math.floor(breakEvenPrice), 0) : '불가능'} 원</span></li>
+                            <li>손익분기점: <span class="text-green-800 font-extrabold">${isFinite(breakEvenPrice) ? formatCurrency(Math.floor(breakEvenPrice), 0) : '불가능'} 원</span></li>
                         </ul>
                     `;
                     resultContainer.classList.remove('hidden');
