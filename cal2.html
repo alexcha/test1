@@ -36,12 +36,13 @@
             display: block;
             margin-bottom: 0.25rem;
         }
+        /* 입력 필드에 통화 포맷(쉼표)을 위한 우측 정렬 유지 */
         input[type="text"] {
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1em;
-            text-align: right;
+            text-align: right; 
             transition: border-color 0.3s;
             padding: 0.5rem 0.75rem;
         }
@@ -203,7 +204,6 @@
 </head>
 <body class="min-h-screen p-4 md:p-8">
 
-<!-- Alert/Confirm Modal Function Overrides -->
 <script>
     // NOTE: alert() 및 confirm() 사용 금지 규정에 따라 커스텀 Modal 함수를 사용합니다.
     window.alert = function(message) {
@@ -336,7 +336,6 @@
             </div>
         </div>
         
-        <!-- 새로운 프리셋 관리 섹션 -->
         <div class="p-4 bg-purple-50 border-l-4 border-purple-400 rounded-lg mb-6">
             <h3 class="text-xl font-semibold text-purple-800 mb-4">5. 프리셋 저장 및 불러오기 (최대 5개)</h3>
             
@@ -350,8 +349,7 @@
             </button>
             
             <div id="presetsListContainer" class="space-y-2 mt-4">
-                <!-- Presets will be dynamically loaded here -->
-            </div>
+                </div>
         </div>
         
         
@@ -416,13 +414,17 @@
 
     /**
      * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다.
+     * 주의: 이 함수는 입력 필드의 value만 포맷하고, LocalStorage 저장은 하지 않습니다.
+     * 주로 'handleCurrencyInputAndSave'에서 내부적으로 사용하거나, 
+     * 초기 로드/프리셋 로드 시 포맷 적용 용도로 사용됩니다.
      */
     window.formatCurrencyInput = function(input) {
-        const cursorStart = input.selectionStart;
+        const cursorStart = input.selectionStart || 0;
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
 
         const parts = rawValue.split('.');
+        // 소수점 2개 이상 방지
         rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
 
         if (rawValue === '' || parseFloat(rawValue) === 0) {
@@ -436,55 +438,46 @@
         
         input.value = newValue;
 
+        // 커서 위치 조정
         const diff = newValue.length - oldValue.length;
         let newCursorStart = cursorStart + diff;
 
-        if (newValue.length > oldValue.length) {
-            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
-                    newCursorStart = cursorStart + 1;
-                }
-        }
+        // 쉼표가 추가되어 커서가 밀리는 경우 보정
+        const addedCommasCount = (newValue.substring(0, newCursorStart).match(/,/g) || []).length;
+        const oldCommasCount = (oldValue.substring(0, cursorStart).match(/,/g) || []).length;
+        
+        newCursorStart += (addedCommasCount - oldCommasCount);
         
         newCursorStart = Math.min(newCursorStart, newValue.length);
+        newCursorStart = Math.max(0, newCursorStart); // 0보다 작아지는 것 방지
+        
         input.setSelectionRange(newCursorStart, newCursorStart);
     }
     
     /**
-     * 금액 입력(단가/수량)을 포맷하고, 해당 값을 LocalStorage에 저장합니다.
+     * 금액 입력(단가/수량)을 포맷하고, LocalStorage에 저장합니다.
+     * 이 함수는 포맷팅과 저장을 동시에 처리하며, 커서 위치를 유지합니다.
      */
     window.handleCurrencyInputAndSave = function(input, storageKey) {
-        const cursorStart = input.selectionStart;
+        // 1. LocalStorage 저장을 위한 rawValue (쉼표 제거된 숫자) 추출
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
         
         const parts = rawValue.split('.');
+        // 소수점 2개 이상 방지
         rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
 
-        if (rawValue === '' || parseFloat(rawValue) === 0) {
-            input.value = '';
-            if (storageKey) setLocalStorage(storageKey, '');
-            return; 
-        }
-        
-        const [integerPart, decimalPart] = rawValue.split('.');
-        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
-            
-        input.value = newValue;
-
-        const diff = newValue.length - oldValue.length;
-        let newCursorStart = cursorStart + diff;
-
-        if (newValue.length > oldValue.length) {
-            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
-                newCursorStart = cursorStart + 1;
-            }
-        }
-        
-        newCursorStart = Math.min(newCursorStart, newValue.length);
-        input.setSelectionRange(newCursorStart, newCursorStart);
-        
+        // 2. LocalStorage 저장 (rawValue)
         if (storageKey) setLocalStorage(storageKey, rawValue);
+        
+        // 3. UI 포맷팅 및 커서 위치 조정
+        // 저장 시에도 항상 포맷팅 함수를 호출하여 쉼표를 찍도록 합니다.
+        window.formatCurrencyInput(input);
+        
+        // 동적 항목인 경우에도 저장 로직을 호출 (saveDcaEntries가 전체를 다시 저장)
+        if (storageKey === null) {
+            saveDcaEntries();
+        }
     }
 
     /**
@@ -526,6 +519,7 @@
             const qtyInput = document.getElementById(`dca_qty-${id}`);
             
             // Save raw (unformatted) values
+            // oninput 이벤트에서 이미 rawValue가 localStorage에 없으므로, 여기서 다시 추출
             const price = priceInput.value.replace(/[^0-9.]/g, ''); 
             const quantity = qtyInput.value.replace(/[^0-9]/g, ''); 
 
@@ -558,6 +552,7 @@
             addPurchaseEntry();
         } else {
             loadedEntries.forEach(data => {
+                // 저장된 raw value를 addPurchaseEntry에 전달
                 addPurchaseEntry(data.price, data.quantity); 
             });
         }
@@ -580,11 +575,11 @@
         entryDiv.innerHTML += `
             <div class="input-col">
                 <label for="dca_price-${id}">단가 (원)</label>
-                <input type="text" id="dca_price-${id}" value="${initialPrice}" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+                <input type="text" id="dca_price-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
             </div>
             <div class="input-col">
                 <label for="dca_qty-${id}">수량 (주)</label>
-                <input type="text" id="dca_qty-${id}" value="${initialQuantity}" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+                <input type="text" id="dca_qty-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
             </div>
             <button type="button" onclick="removePurchaseEntry(${id})" class="delete-btn" title="항목 삭제">×</button>
         `;
@@ -594,9 +589,15 @@
         const priceInput = document.getElementById(`dca_price-${id}`);
         const qtyInput = document.getElementById(`dca_qty-${id}`);
         
-        // 로드된 초기값이 있으면 포맷팅 적용
-        if (initialPrice) window.formatCurrencyInput(priceInput);
-        if (initialQuantity) window.formatCurrencyInput(qtyInput);
+        // 로드된 초기값이 있으면 value 설정 후 포맷팅 적용
+        if (initialPrice) {
+            priceInput.value = initialPrice;
+            window.formatCurrencyInput(priceInput);
+        }
+        if (initialQuantity) {
+            qtyInput.value = initialQuantity;
+            window.formatCurrencyInput(qtyInput);
+        }
 
         calculateAllResults();
     };
@@ -620,6 +621,7 @@
             const priceInput = document.getElementById(`dca_price-${id}`);
             const qtyInput = document.getElementById(`dca_qty-${id}`);
             
+            // 쉼표 제거된 raw value 사용
             const price = parseFloat(priceInput.value.replace(/,/g, '')) || 0;
             const quantity = Math.floor(parseFloat(qtyInput.value.replace(/,/g, '')) || 0);
 
@@ -689,9 +691,9 @@
 
     window.calculateAllResults = function() {
         // 물타기 항목을 LocalStorage에 저장 (실시간 변경 사항 반영)
-        saveDcaEntries();
+        // saveDcaEntries(); // handleCurrencyInputAndSave에서 처리됨
         
-        // 1. 정적 입력값 가져오기
+        // 1. 정적 입력값 가져오기 (쉼표 제거된 raw value 사용)
         const currentPrice = parseFloat(document.getElementById('dca_currentPrice').value.replace(/,/g, '')) || 0;
         const currentQuantity = parseFloat(document.getElementById('dca_currentQuantity').value.replace(/,/g, '')) || 0;
         const currentMarketPrice = parseFloat(document.getElementById('dca_currentMarketPrice').value.replace(/,/g, '')) || 0;
@@ -873,7 +875,7 @@
     function getCurrentState() {
         const currentState = {};
         
-        // 1. Get static inputs (raw unformatted value)
+        // 1. Get static inputs (raw unformatted value, which is stored in localStorage)
         currentState.currentPrice = document.getElementById('dca_currentPrice').value.replace(/,/g, '');
         currentState.currentQuantity = document.getElementById('dca_currentQuantity').value.replace(/,/g, '');
         currentState.marketPrice = document.getElementById('dca_currentMarketPrice').value.replace(/,/g, '');
@@ -887,6 +889,7 @@
             const id = entry.dataset.id;
             const priceInput = document.getElementById(`dca_price-${id}`);
             const qtyInput = document.getElementById(`dca_qty-${id}`);
+            // Save raw (unformatted) values
             entriesData.push({ 
                 price: priceInput.value.replace(/[^0-9.]/g, ''), 
                 quantity: qtyInput.value.replace(/[^0-9]/g, '') 
@@ -916,12 +919,14 @@
             const input = document.getElementById(item.id);
             const value = state[item.key] || '';
             input.value = value;
-            // Apply formatting for currency fields
-            if (item.key.includes('Price') || item.key.includes('Quantity')) {
-                window.formatCurrencyInput(input);
+            // Apply formatting for currency fields, and also save to current state
+            if (item.key.includes('Price') || item.key.includes('Quantity') || item.key === 'marketPrice') {
+                // 저장된 raw value를 입력한 것처럼 처리
+                input.value = value; 
+                window.handleCurrencyInputAndSave(input, LS_KEYS[item.key]);
+            } else { // Rate fields
+                setLocalStorage(LS_KEYS[item.key], value);
             }
-            // Save to current state in localStorage
-            setLocalStorage(LS_KEYS[item.key], value);
         });
 
         // 2. Dynamic entries
@@ -934,12 +939,13 @@
              addPurchaseEntry();
         } else {
             loadedEntries.forEach(data => {
+                // addPurchaseEntry 내에서 value 설정과 포맷팅이 처리됨
                 addPurchaseEntry(data.price, data.quantity); 
             });
         }
         
-        // 3. Save dynamic entries to current state
-        saveDcaEntries(); 
+        // 3. Save dynamic entries to current state (addPurchaseEntry에서 이미 호출됨)
+        // saveDcaEntries(); 
 
         // 4. Calculate results
         calculateAllResults();
@@ -1111,6 +1117,7 @@
 
     /**
      * LocalStorage에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
+     * 저장된 raw value를 불러와 포맷팅을 적용하는 로직으로 수정됨.
      */
     function loadFromLocalStorage() {
         // 1. Load current working state
@@ -1122,11 +1129,11 @@
 
         dcaCurrencyInputs.forEach(item => {
             const input = document.getElementById(item.id);
-            const storedValue = getLocalStorage(item.key);
-            
-            if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
-                input.value = storedValue;
-                window.formatCurrencyInput(input); 
+            const storedValue = getLocalStorage(item.key); // raw value (쉼표X)
+
+            if (storedValue !== null && storedValue !== "") {
+                input.value = storedValue; // raw value를 일단 input에 넣어줍니다.
+                window.formatCurrencyInput(input); // 포맷팅을 적용합니다.
             } 
         });
 
@@ -1160,4 +1167,3 @@
 </script>
 </body>
 </html>
-
