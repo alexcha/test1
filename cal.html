@@ -358,10 +358,12 @@
     }
 
     function saveTradesToLocal(trades) {
+        // 최신순 (내림차순) 정렬: b - a
+        trades.sort((a, b) => b.timestamp - a.timestamp); 
+        
         if (trades.length > MAX_TRADES) {
-            trades.sort((a, b) => a.timestamp - b.timestamp);
-            const tradesToRemove = trades.length - MAX_TRADES;
-            trades.splice(0, tradesToRemove);
+            // 오래된 기록을 제거하기 위해 꼬리(마지막)부터 자름
+            trades.splice(MAX_TRADES); 
             
             const limitNote = document.getElementById('storageLimitNote');
             if (limitNote) limitNote.style.display = 'block';
@@ -406,16 +408,21 @@
             return;
         }
         
-        const currentBuyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
-        const currentQuantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
-        const currentSellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
+        // UI에서 포맷팅이 제거된 원시 값(숫자 문자열)을 가져옵니다.
+        const currentBuyPriceRaw = document.getElementById('pl_buyPrice').value.replace(/,/g, '');
+        const currentQuantityRaw = document.getElementById('pl_quantity').value.replace(/,/g, '');
+        const currentSellPriceRaw = document.getElementById('pl_sellPrice').value.replace(/,/g, '');
+
+        const currentBuyPrice = parseFloat(currentBuyPriceRaw) || 0;
+        const currentQuantity = parseFloat(currentQuantityRaw) || 0;
+        const currentSellPrice = parseFloat(currentSellPriceRaw) || 0;
         
         const tradeData = {
             id: Date.now().toString(), 
             name: tradeName,
-            buyPrice: currentBuyPrice,
-            quantity: currentQuantity,
-            sellPrice: currentSellPrice,
+            buyPrice: currentBuyPrice, // 원시 숫자 값 저장
+            quantity: currentQuantity, // 원시 숫자 값 저장
+            sellPrice: currentSellPrice, // 원시 숫자 값 저장
             feeRate: parseFloat(document.getElementById('pl_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE,
             taxRate: parseFloat(document.getElementById('pl_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE,
             timestamp: Date.now() 
@@ -429,6 +436,7 @@
         const trades = getSavedTrades();
         trades.push(tradeData);
         
+        // saveTradesToLocal에서 정렬 및 렌더링을 처리합니다.
         saveTradesToLocal(trades); 
         
         alertUserMessage(`'${tradeName}' 기록이 로컬에 저장되었습니다.`, "green");
@@ -504,10 +512,14 @@
         
         newCursorStart = Math.min(newCursorStart, newValue.length);
         input.setSelectionRange(newCursorStart, newCursorStart);
+
+        // 입력 필드 수정 시 실시간 계산
+        calculateProfitLoss();
     }
     
     window.handleRateInput = function(input) {
         // 비율 입력은 포맷팅 없이 값만 유지
+        calculateProfitLoss();
     }
     
     window.resetIndividualInput = function(inputId, defaultValue) {
@@ -518,16 +530,40 @@
         } else { 
             input.value = defaultValue; 
         }
+        calculateProfitLoss();
     };
     
+    /**
+     * ⭐️ 로드 함수 수정: 저장된 원시 값을 넣고, 포맷팅을 수동 호출 후 계산 ⭐️
+     */
     window.loadTrade = function(trade) {
-        document.getElementById('pl_buyPrice').value = formatCurrency(trade.buyPrice, trade.buyPrice % 1 !== 0 ? 2 : 0);
-        document.getElementById('pl_quantity').value = formatCurrency(trade.quantity, trade.quantity % 1 !== 0 ? 0 : 0);
-        document.getElementById('pl_sellPrice').value = formatCurrency(trade.sellPrice, trade.sellPrice % 1 !== 0 ? 2 : 0);
-        document.getElementById('pl_feeRateInput').value = trade.feeRate;
-        document.getElementById('pl_taxRateInput').value = trade.taxRate;
+        const buyPriceInput = document.getElementById('pl_buyPrice');
+        const quantityInput = document.getElementById('pl_quantity');
+        const sellPriceInput = document.getElementById('pl_sellPrice');
+        const feeRateInput = document.getElementById('pl_feeRateInput');
+        const taxRateInput = document.getElementById('pl_taxRateInput');
+
+        // 1. 저장된 원시 값(숫자)을 입력 필드에 문자열로 직접 넣음
+        buyPriceInput.value = trade.buyPrice.toString();
+        quantityInput.value = trade.quantity.toString();
+        sellPriceInput.value = trade.sellPrice.toString();
+        feeRateInput.value = trade.feeRate.toString();
+        taxRateInput.value = trade.taxRate.toString();
+
+        // 2. 입력 필드에 UI 포맷팅을 수동 적용
+        // 이 함수 내부에 calculateProfitLoss()가 호출되므로 결과가 자동 업데이트됨
+        window.handleCurrencyInput(buyPriceInput);
+        window.handleCurrencyInput(quantityInput);
+        window.handleCurrencyInput(sellPriceInput);
         
-        calculateProfitLoss();
+        // 비율은 포맷팅은 필요 없으나, 계산은 실행
+        window.handleRateInput(feeRateInput); 
+        window.handleRateInput(taxRateInput); 
+
+        // calculateProfitLoss()는 이미 handleCurrencyInput/handleRateInput 내부에서 실행되지만, 
+        // 확실하게 한번 더 호출해 줍니다.
+        calculateProfitLoss(); 
+        
         alertUserMessage(`'${trade.name}' 기록을 불러왔습니다.`, "blue");
     }
 
@@ -557,6 +593,7 @@
             const tradeElement = document.createElement('div');
             tradeElement.className = 'trade-item group';
             
+            // trade 객체 전체를 JSON 문자열로 변환하여 onclick 인수로 전달
             const tradeDataString = JSON.stringify(trade).replace(/"/g, '\'');
             
             // 평단가 정보
@@ -806,6 +843,7 @@
             resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg'; 
         }
     }
+
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
