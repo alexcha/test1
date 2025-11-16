@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -268,7 +266,7 @@
         </div>
 
         <div class="p-4 bg-green-50 border-l-4 border-green-400 rounded-lg mb-6">
-            <h3 class="text-xl font-semibold text-green-800 mb-4">3. 물타기 매수 정보 입력</h3>
+            <h3 class="text-xl font-semibold text-green-800 mb-4">3. 물타기 매수 정보 입력 (개별 누적 결과 확인 가능)</h3>
             
             <div id="dca_purchaseEntriesContainer"></div>
 
@@ -820,7 +818,7 @@
                     resultContainer.innerHTML = `
                         <div class="text-sm font-semibold text-green-700 mt-0 mb-1">${entryTitle} 후 누적 결과</div>
                         <ul class="list-disc list-inside space-y-1 text-xs pl-2">
-                            <li>이번 횟차 매수 총액: <span class="font-bold text-green-600">${formatCurrency(entryCost, 0)} 원</span></li>
+                            <li>**이번 횟차 매수 총액**: <span class="font-bold text-green-600">${formatCurrency(entryCost, 0)} 원</span></li>
                             <li>총 수량: <span class="font-bold">${formatCurrency(cumulativeQuantity, 0)} 주</span></li>
                             <li>총 누적 원금: <span class="font-bold text-red-600">${formatCurrency(cumulativeCost, 0)} 원</span></li>
                             <li>누적 평단가: <span class="text-indigo-700 font-extrabold">${formatCurrency(entryAvgPrice, 2)} 원</span></li>
@@ -938,4 +936,265 @@
         }
         
         // 10. 비용 상세 계산 (현재 주가 기준)
-        const marketCosts = calculateTotal
+        const marketCosts = calculateTotalCosts(totalCostDCA, totalQuantityDCA, currentMarketPrice, feeRate, taxRate);
+
+
+        // 11. 결과 출력 (테이블 형식)
+        const tableHTML = `
+            <thead>
+                <tr>
+                    <th colspan="2" class="text-center bg-indigo-100 rounded-t-lg">합산 결과 요약</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>총 수량</th>
+                    <td class="value-col">${formatCurrency(totalQuantityDCA, 0)} 주</td>
+                </tr>
+                <tr>
+                    <th>총 합산 매수 원금</th>
+                    <td class="value-col">${formatCurrency(totalCostDCA, 0)} 원</td>
+                </tr>
+                
+                <tr class="bg-yellow-100">
+                    <th class="font-bold">순수 평균 단가 (비용 제외)</th>
+                    <td class="value-col text-indigo-700 font-extrabold">${formatCurrency(newAveragePrice, 2)} 원</td>
+                </tr>
+                <tr>
+                    <th><span class="text-gray-700">평단가 변동률</span></th>
+                    <td class="value-col">
+                        <span class="${rateClass}">${ratePrefix}${isFinite(priceReductionRate) ? formatCurrency(priceReductionRate, 2) : 'N/A'} %</span>
+                    </td>
+                </tr>
+                
+                <tr class="font-bold text-lg bg-green-100 border-t-2 border-green-500">
+                    <th><span class="text-green-800">손익분기점 매도 단가 (수수료·세금 반영)</span></th>
+                    <td class="value-col dca-break-even-price-color">${isFinite(breakEvenPrice) ? formatCurrency(Math.floor(breakEvenPrice), 0) : '불가능'} 원</td>
+                </tr>
+                
+                <tr>
+                    <th colspan="2" class="text-center bg-indigo-200 border-t mt-4 py-2 font-bold text-base">
+                        <span class="text-indigo-800">물타기 후: 주가 ${formatCurrency(currentMarketPrice, 0)}원 기준 손익 분석</span>
+                    </th>
+                </tr>
+                <tr>
+                    <th><span class="text-gray-700">예상 순이익/손실</span></th>
+                    <td class="value-col">
+                        <span class="${postDcaStatus.resultClass}">${postDcaStatus.profitLossText}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th><span class="text-gray-700">예상 순수익률</span></th>
+                    <td class="value-col">
+                        <span class="${postDcaStatus.resultClass}">${postDcaStatus.profitRateText}</span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th colspan="2" class="text-center bg-gray-50 border-t pt-4 font-bold text-sm">
+                        <span class="text-gray-600">총 수수료·세금 합계 (입력값 기준)</span>
+                    </th>
+                </tr>
+                <tr>
+                    <th><span class="cost-color">총 수수료·세금 합계</span></th>
+                    <td class="value-col cost-color">${formatCurrency(marketCosts.totalDeductions, 0)} 원</td>
+                </tr>
+                
+            </tbody>
+        `;
+
+        document.getElementById('dca_resultTable').innerHTML = tableHTML;
+        document.getElementById('dca_result').style.display = 'block';
+
+        // 결과창의 테두리와 배경색을 순손익에 따라 변경
+        const resultDiv = document.getElementById('dca_result');
+        if (postDcaStatus.netProfitLoss > 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익은 빨간색
+        } else if (postDcaStatus.netProfitLoss < 0) {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실은 파란색
+        } else {
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
+        }
+    }
+    
+    // --- History Management Logic ---
+
+    /**
+     * 로컬 스토리지에서 모든 히스토리 항목을 로드합니다.
+     */
+    function loadHistory() {
+        const storedHistory = getLocal(DCA_HISTORY_KEY);
+        if (storedHistory) {
+            try {
+                return JSON.parse(storedHistory);
+            } catch (e) {
+                console.error("Failed to parse history from LocalStorage:", e);
+                return [];
+            }
+        }
+        return [];
+    }
+
+    /**
+     * 히스토리 배열을 로컬 스토리지에 저장하고 UI를 업데이트합니다.
+     * @param {Array} historyArray - 저장할 히스토리 배열
+     */
+    function saveHistoryToLocal(historyArray) {
+        setLocal(DCA_HISTORY_KEY, JSON.stringify(historyArray));
+        renderHistory();
+    }
+    
+    /**
+     * 현재 계산기 상태를 가져와 히스토리에 추가합니다.
+     */
+    window.saveCurrentStateToHistory = function() {
+        const nameInput = document.getElementById('history-name-input');
+        const historyName = nameInput.value.trim();
+
+        if (!historyName) {
+            showHistoryMessage("저장할 이름을 입력해주세요.", "bg-yellow-100 text-yellow-800");
+            return;
+        }
+
+        // 현재 임시 저장된 상태를 불러옵니다. (saveDcaState가 이미 최신 상태를 저장했음)
+        const storedState = getLocal(DCA_STATE_KEY);
+        if (!storedState) {
+            showHistoryMessage("저장할 계산 데이터가 없습니다. 값을 입력해주세요.", "bg-yellow-100 text-yellow-800");
+            return;
+        }
+        
+        const history = loadHistory();
+        
+        const newEntry = {
+            id: Date.now(), // Unique ID
+            name: historyName,
+            date: new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+            state: JSON.parse(storedState) // 현재 상태 객체를 저장
+        };
+
+        history.unshift(newEntry); // 최신 항목을 맨 앞에 추가
+        saveHistoryToLocal(history);
+        nameInput.value = ''; // 입력 필드 초기화
+        showHistoryMessage(`'${historyName}' 시뮬레이션이 성공적으로 저장되었습니다.`, "bg-green-100 text-green-800");
+    }
+    
+    /**
+     * 히스토리 항목을 삭제합니다.
+     * ⭐️ 수정된 부분: 삭제 전 사용자에게 확인을 요청합니다. ⭐️
+     */
+    window.deleteHistory = function(id, name) {
+        if (!confirm(`히스토리 "${name}" 기록을 정말로 삭제하시겠습니까?`)) {
+            return;
+        }
+
+        let history = loadHistory();
+        const initialLength = history.length;
+        history = history.filter(entry => entry.id !== id);
+        
+        if (history.length < initialLength) {
+            saveHistoryToLocal(history);
+            showHistoryMessage("기록이 삭제되었습니다.", "bg-red-100 text-red-800");
+        }
+    }
+    
+    /**
+     * 히스토리 항목을 계산기에 로드합니다.
+     */
+    window.loadHistoryState = function(id) {
+        const history = loadHistory();
+        const entry = history.find(e => e.id === id);
+        
+        if (entry) {
+            loadDcaState(entry.state); // 로드 함수를 재사용
+            showHistoryMessage(`'${entry.name}' 기록을 불러왔습니다.`, "bg-blue-100 text-blue-800");
+        } else {
+            showHistoryMessage("기록을 찾을 수 없습니다.", "bg-red-100 text-red-800");
+        }
+    }
+
+    /**
+     * 히스토리 목록을 UI에 렌더링합니다.
+     */
+    function renderHistory() {
+        const history = loadHistory();
+        const tbody = document.getElementById('history-list-body');
+        const emptyMsg = document.getElementById('history-empty-message');
+        tbody.innerHTML = '';
+
+        if (history.length === 0) {
+            emptyMsg.classList.remove('hidden');
+            return;
+        }
+        emptyMsg.classList.add('hidden');
+
+        history.forEach(entry => {
+            const row = document.createElement('tr');
+            row.className = 'history-entry border-b border-gray-100';
+            
+            // 총 수량 및 평균 단가 계산 (정보 표시용)
+            const state = entry.state;
+            const currentQty = parseFloat(state.dcaCurrentQuantity || 0);
+            const currentCost = parseFloat(state.dcaCurrentPrice || 0) * currentQty;
+            
+            let totalNewCost = 0;
+            let totalNewQuantity = 0;
+
+            if (state.dcaEntries && Array.isArray(state.dcaEntries)) {
+                state.dcaEntries.forEach(item => {
+                    const price = parseFloat(item.price || 0);
+                    const quantity = parseFloat(item.quantity || 0);
+                    totalNewCost += price * quantity;
+                    totalNewQuantity += quantity;
+                });
+            }
+
+            const totalCostDCA = currentCost + totalNewCost;
+            const totalQuantityDCA = currentQty + totalNewQuantity;
+            
+            const averagePrice = totalQuantityDCA > 0 ? (totalCostDCA / totalQuantityDCA) : 0;
+            
+            const summaryText = totalQuantityDCA > 0 
+                ? `${formatCurrency(totalQuantityDCA, 0)} 주 / 평단 ${formatCurrency(averagePrice, 0)} 원`
+                : '데이터 없음';
+
+
+            row.innerHTML = `
+                <td class="py-3 px-1 font-medium text-gray-800 break-words w-1/3">
+                    ${entry.name}
+                    <div class="text-xs text-gray-500 mt-1">${entry.date.split(',')[0]}</div>
+                </td>
+                <td class="py-3 px-1 text-xs text-gray-600 w-1/3">
+                    ${summaryText}
+                </td>
+                <td class="py-3 px-1 text-right space-x-2 w-1/3">
+                    <button onclick="loadHistoryState(${entry.id})" class="history-action-btn bg-blue-500 hover:bg-blue-600 text-white rounded-md transition duration-150">
+                        로드
+                    </button>
+                    <button onclick="deleteHistory(${entry.id}, '${entry.name.replace(/'/g, "\\'")}')" class="history-action-btn bg-gray-300 hover:bg-red-500 hover:text-white text-gray-700 rounded-md transition duration-150">
+                        삭제
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    /**
+     * 초기화 함수: 로컬 스토리지에서 상태를 불러오고 히스토리를 렌더링합니다.
+     */
+    function initializeApp() {
+        // 1. 메인 계산기 상태 로드 (임시 저장 상태)
+        loadDcaState(); 
+        
+        // 2. 히스토리 목록 렌더링
+        renderHistory();
+    }
+
+    // 초기화 및 이벤트 리스너 등록
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeApp();
+    });
+
+</script>
+</body>
+</html>
