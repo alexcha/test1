@@ -320,7 +320,7 @@
             <input type="text" id="history-name-input" placeholder="기록할 이름을 입력하세요 (예: 1차 테슬라 계획)" 
                    class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
             <button type="button" onclick="saveCurrentStateToHistory()" class="flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-md">
-                저장
+                저장/업데이트
             </button>
         </div>
 
@@ -1045,7 +1045,7 @@
     }
     
     /**
-     * 현재 계산기 상태를 가져와 히스토리에 추가합니다.
+     * 현재 계산기 상태를 가져와 히스토리에 추가하거나, 같은 이름이 있으면 덮어씁니다.
      */
     window.saveCurrentStateToHistory = function() {
         const nameInput = document.getElementById('history-name-input');
@@ -1063,19 +1063,48 @@
             return;
         }
         
-        const history = loadHistory();
+        let history = loadHistory();
+        const currentState = JSON.parse(storedState);
+        const now = new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         
-        const newEntry = {
-            id: Date.now(), // Unique ID
-            name: historyName,
-            date: new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
-            state: JSON.parse(storedState) // 현재 상태 객체를 저장
-        };
+        // ⭐️ 기존 이름 찾기 ⭐️
+        const existingEntryIndex = history.findIndex(e => e.name === historyName);
+        let message = '';
+        
+        if (existingEntryIndex > -1) {
+            // ⭐️ 덮어쓰기 (Update) ⭐️
+            const existingId = history[existingEntryIndex].id;
+            
+            // 기존 항목을 제거하고 최신 상태로 맨 앞에 추가
+            history.splice(existingEntryIndex, 1);
+            
+            const updatedEntry = {
+                id: existingId, // ID는 유지
+                name: historyName,
+                date: now,
+                state: currentState
+            };
+            
+            history.unshift(updatedEntry);
+            message = `'${historyName}' 기록이 최신 상태로 덮어쓰기(업데이트)되었습니다.`;
+            
+        } else {
+            // ⭐️ 새 항목 저장 (New Save) ⭐️
+            const newEntry = {
+                id: Date.now(), // Unique ID
+                name: historyName,
+                date: now,
+                state: currentState
+            };
 
-        history.unshift(newEntry); // 최신 항목을 맨 앞에 추가
+            history.unshift(newEntry); // 최신 항목을 맨 앞에 추가
+            message = `'${historyName}' 시뮬레이션이 성공적으로 저장되었습니다.`;
+        }
+
+
         saveHistoryToLocal(history);
         nameInput.value = ''; // 입력 필드 초기화
-        showHistoryMessage(`'${historyName}' 시뮬레이션이 성공적으로 저장되었습니다.`, "bg-green-100 text-green-800");
+        showHistoryMessage(message, "bg-green-100 text-green-800");
     }
     
     /**
