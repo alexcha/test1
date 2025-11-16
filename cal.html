@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Inter 폰트 사용 설정 */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=100..900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         
         :root {
             font-family: 'Inter', Arial, sans-serif;
@@ -134,14 +134,14 @@
         }
 
         /* ---------------------------------- */
-        /* 저장된 기록 목록 스타일 (이미지 기반 수정) */
+        /* 저장된 기록 목록 스타일 (이미지 기반 수정 및 오류 수정) */
         /* ---------------------------------- */
         .trade-item {
             display: flex;
             justify-content: space-between;
-            align-items: center; /* 아이템 수직 중앙 정렬 유지 */
-            padding: 12px 0; /* 좌우 패딩 제거, 상하 패딩 늘림 */
-            margin: 0 16px; /* 좌우 마진 추가 */
+            align-items: center; 
+            padding: 12px 0; 
+            margin: 0 16px; 
             border-bottom: 1px solid #f0f0f0;
         }
         .trade-item:last-child {
@@ -154,33 +154,31 @@
         }
         .trade-actions {
             display: flex;
-            flex-direction: column; /* 버튼을 수직으로 정렬 */
-            gap: 4px; /* 버튼 사이 간격 줄임 */
+            flex-direction: column; 
+            gap: 6px; 
             flex-shrink: 0;
-            width: 50px; /* 버튼 영역 고정 */
+            width: 55px; /* 버튼 영역 확보 */
         }
         
-        /* 불러오기 버튼 스타일 (이미지 색상에 맞춤) */
         .load-trade-btn {
-            background-color: #3498db; /* Blue */
+            background-color: #3498db; 
             color: white;
             font-size: 0.8rem;
-            padding: 4px 0; /* 상하 패딩 줄임, 좌우 패딩 제거 */
+            padding: 4px 0; 
             border-radius: 6px;
             font-weight: 500;
             transition: background-color 0.2s;
             border: none;
             cursor: pointer;
-            width: 100%; /* 부모에 꽉 차게 */
+            width: 100%;
         }
         .load-trade-btn:hover {
             background-color: #2980b9;
         }
 
-        /* 삭제 버튼 스타일 (이미지 색상에 맞춤) */
         .trade-item-delete-btn {
-            background-color: #ecf0f1; /* Grayish background */
-            color: #2c3e50; /* Darker text */
+            background-color: #ecf0f1; 
+            color: #2c3e50; 
             font-size: 0.8rem;
             font-weight: 500;
             padding: 4px 0;
@@ -209,20 +207,28 @@
             padding: 16px;
             border-bottom: 1px solid #ddd;
         }
+        .history-save-ui .input-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 20px; /* 목록 제목과의 간격 */
+        }
         .history-save-ui input {
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 8px 12px;
             font-size: 1em;
             text-align: left;
+            flex-grow: 1;
         }
         .history-save-ui button {
-            background-color: #6c5ce7; /* Purple save button */
+            background-color: #6c5ce7; 
             color: white;
             font-weight: bold;
             padding: 8px 12px;
             border-radius: 8px;
             transition: background-color 0.2s;
+            flex-shrink: 0; /* 버튼이 줄어들지 않게 함 */
         }
         .history-save-ui button:hover {
             background-color: #5d50c9;
@@ -296,18 +302,17 @@
 
         <div class="lg:col-span-1 bg-white p-0 rounded-xl shadow-lg overflow-hidden">
             <div class="flex items-center p-4">
-                <span class="text-2xl font-extrabold text-gray-800 flex items-center">
-                    <span class="mr-2">📝</span> 히스토리
+                <span class="text-xl font-extrabold text-gray-800 flex items-center">
+                    <span class="mr-2 text-2xl">📝</span> 히스토리
                 </span>
             </div>
             
             <div class="history-save-ui">
-                <div class="flex space-x-2 mb-4">
+                <div class="input-container">
                     <input type="text" id="saveTradeName" placeholder="기록할 이름을 입력하세요" class="flex-grow">
                     <button onclick="saveCurrentTrade()">저장</button>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">저장된 시뮬레이션 목록</h3>
-            </div>
+                </div>
 
             <div id="savedTradesList" class="min-h-64 pt-2">
                 <div class="p-4 text-center text-gray-500">로컬에 저장된 기록이 없습니다.</div>
@@ -332,17 +337,14 @@
 
 <script>
     // --- Global State & Configuration ---
-    const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
-    const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
-    const STORAGE_KEY = 'stockTradeRecords'; // 로컬 저장소 키
-    const MAX_TRADES = 6; // **최대 저장 기록 수 (6개로 제한)**
+    const DEFAULT_FEE_RATE = 0.015; 
+    const DEFAULT_TAX_RATE = 0.15;   
+    const STORAGE_KEY = 'stockTradeRecords'; 
+    const MAX_TRADES = 6; 
     let tradeToDeleteId = null;
 
     // --- Local Storage Handlers (Trade Records) ---
 
-    /**
-     * 로컬 저장소에서 저장된 거래 기록을 불러와 배열로 반환합니다.
-     */
     function getSavedTrades() {
         try {
             const data = localStorage.getItem(STORAGE_KEY);
@@ -353,20 +355,12 @@
         }
     }
 
-    /**
-     * 거래 기록 배열을 로컬 저장소에 저장합니다.
-     */
     function saveTradesToLocal(trades) {
-        // **저장 시점에 MAX_TRADES를 초과하는지 확인하고, 초과하면 가장 오래된 것(낮은 timestamp)부터 삭제**
         if (trades.length > MAX_TRADES) {
-            // timestamp를 기준으로 오름차순 정렬 (오래된 순)
             trades.sort((a, b) => a.timestamp - b.timestamp);
-            // 초과된 만큼 삭제
             const tradesToRemove = trades.length - MAX_TRADES;
             trades.splice(0, tradesToRemove);
             
-            // 삭제 알림 메시지 표시 (최대 개수 제한 알림)
-            // storageLimitNote 요소는 좌측 계산기 영역에 남아있음
             const limitNote = document.getElementById('storageLimitNote');
             if (limitNote) limitNote.style.display = 'block';
         } else {
@@ -376,23 +370,18 @@
 
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
-            renderSavedTrades(trades); // 저장 후 목록 자동 업데이트
+            renderSavedTrades(trades); 
         } catch (e) {
             console.error("Error writing to localStorage:", e);
             alertUserMessage("로컬 저장에 실패했습니다.", "red");
         }
     }
 
-    /**
-     * 로컬 저장소에서 모든 기록을 불러와 UI에 렌더링합니다.
-     */
     function loadSavedTrades() {
         const trades = getSavedTrades();
-        // 저장 시 timestamp를 기준으로 내림차순 정렬 (최신순)
         trades.sort((a, b) => b.timestamp - a.timestamp); 
         renderSavedTrades(trades);
         
-        // 로드 시점에 MAX_TRADES 확인하여 알림 표시
         const limitNote = document.getElementById('storageLimitNote');
         if (limitNote) {
             if (trades.length >= MAX_TRADES) {
@@ -414,23 +403,21 @@
             return;
         }
         
-        // 입력 필드의 현재 값 (쉼표 제거)
         const currentBuyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
         const currentQuantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
         const currentSellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
         
         const tradeData = {
-            id: Date.now().toString(), // 고유 ID 생성
+            id: Date.now().toString(), 
             name: tradeName,
             buyPrice: currentBuyPrice,
             quantity: currentQuantity,
             sellPrice: currentSellPrice,
             feeRate: parseFloat(document.getElementById('pl_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE,
             taxRate: parseFloat(document.getElementById('pl_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE,
-            timestamp: Date.now() // 저장 시간
+            timestamp: Date.now() 
         };
         
-        // 필수 값 확인 (매수, 수량, 매도 중 하나라도 있어야 저장)
         if (tradeData.buyPrice === 0 && tradeData.quantity === 0 && tradeData.sellPrice === 0) {
              alertUserMessage("저장 실패: 매수단가, 수량, 매도단가 중 최소한 하나는 입력해주세요.", "red");
             return;
@@ -439,10 +426,10 @@
         const trades = getSavedTrades();
         trades.push(tradeData);
         
-        saveTradesToLocal(trades); // 6개 초과 시 자동 삭제 처리 포함
+        saveTradesToLocal(trades); 
         
         alertUserMessage(`'${tradeName}' 기록이 로컬에 저장되었습니다.`, "green");
-        tradeNameInput.value = ''; // 저장 후 입력 필드 초기화
+        tradeNameInput.value = ''; 
     }
 
     // --- Delete: Delete Trade ---
@@ -557,20 +544,32 @@
 
         tradesToRender.forEach(trade => {
             const date = new Date(trade.timestamp).toLocaleDateString('ko-KR');
-            const time = new Date(trade.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+            
+            // 이미지와 유사한 시간 포맷 (오후 XX:XX)
+            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+            const timeString = new Date(trade.timestamp).toLocaleTimeString('ko-KR', timeOptions);
+            const formattedTime = timeString.replace('오전', '오전').replace('오후', '오후');
+
 
             const tradeElement = document.createElement('div');
             tradeElement.className = 'trade-item group';
             
             const tradeDataString = JSON.stringify(trade).replace(/"/g, '\'');
             
-            // 이미지와 유사한 레이아웃으로 변경
+            // 평단가 정보
+            const avgPrice = trade.buyPrice > 0 ? formatCurrency(trade.buyPrice, 0) : '0';
+            const quantity = formatCurrency(trade.quantity, 0);
+
             tradeElement.innerHTML = `
                 <div class="trade-info-area">
                     <p class="font-semibold text-gray-800 text-lg truncate">${trade.name}</p>
-                    <p class="text-xs text-gray-500">${date}</p>
-                    <p class="text-xs text-gray-500">오후 ${time}</p>
-                    <p class="text-sm text-gray-700 mt-1">${formatCurrency(trade.quantity, 0)} 주 / 평단 ${formatCurrency(trade.buyPrice, 0)} 원</p>
+                    <div class="flex items-end justify-between text-sm mt-1">
+                        <div class="text-gray-500 leading-snug">
+                            <p class="text-xs">${date}</p>
+                            <p class="text-xs">${formattedTime}</p>
+                        </div>
+                        <p class="text-gray-700 text-sm font-medium ml-4 whitespace-nowrap">${quantity} 주 / 평단 ${avgPrice} 원</p>
+                    </div>
                 </div>
                 <div class="trade-actions">
                     <button 
@@ -627,7 +626,7 @@
         }, 3000);
     }
 
-    // --- Core Calculation Logic ---
+    // --- Core Calculation Logic (기존 로직 유지) ---
     
     function calculateTotalCosts(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate) {
         const F = feeRate / 100; 
@@ -671,7 +670,6 @@
 
 
     window.calculateProfitLoss = function() {
-        // 입력값 가져오기
         const buyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
         const quantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
@@ -688,7 +686,6 @@
             return;
         }
 
-        // 1. Break-Even Price Calculation (손익분기 매도 단가)
         let breakEvenPrice = 0;
         if (totalQuantity > 0) {
             const F = feeRate / 100;
@@ -703,7 +700,6 @@
             }
         }
 
-        // BEP 표시 영역 업데이트
         const bepDisplay = document.getElementById('bep_display');
         const bepValue = document.getElementById('bep_value');
         
@@ -725,7 +721,6 @@
         
         const netProceedsAfterSellDeductions = grossSellAmount - (costs.sellFee + costs.salesTax); 
         
-        // 단순 수익 (세전)
         const simpleProfit = grossSellAmount - totalBuyCost;
         let simpleProfitRate = 0;
         if (totalBuyCost > 0) {
@@ -799,21 +794,20 @@
         document.getElementById('pl_resultTable').innerHTML = tableHTML;
         document.getElementById('pl_result').style.display = 'block';
         
-        // 결과창의 테두리와 배경색을 순손익에 따라 변경 (한국 주식 색상 기준)
         const resultDiv = document.getElementById('pl_result');
         if (netProfitLoss > 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익: 빨강
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; 
         } else if (netProfitLoss < 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실: 파랑
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; 
         } else {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg'; // 중립: 회색
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg'; 
         }
     }
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        loadSavedTrades(); // 로컬 저장소에서 기록 로드
-        calculateProfitLoss(); // 초기 로드 후 계산 실행
+        loadSavedTrades(); 
+        calculateProfitLoss(); 
     });
 
 </script>
