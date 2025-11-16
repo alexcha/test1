@@ -13,36 +13,30 @@
             font-family: 'Inter', Arial, sans-serif;
         }
         
-        body {
-            background-color: #f3f4f6;
-        }
-
         .calculator {
             max-width: 500px;
-            margin: 0 auto; 
+            margin: 0 auto 20px auto; /* 상단 마진을 0으로 수정하여 공백 제거 */
             background: #ffffff;
-            padding: 20px; 
+            padding: 16px 12px; 
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
-        
         .input-group {
              margin-bottom: 1rem;
         }
         .input-group label {
-            font-weight: 600;
+            font-weight: bold;
             color: #34495e;
             font-size: 0.95em;
             display: block;
             margin-bottom: 0.25rem;
         }
-        /* 입력 필드에 통화 포맷(쉼표)을 위한 우측 정렬 유지 */
         input[type="text"] {
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1em;
-            text-align: right; 
+            text-align: right;
             transition: border-color 0.3s;
             padding: 0.5rem 0.75rem;
         }
@@ -106,19 +100,19 @@
             font-weight: bold;
         }
         
-        /* 색상 및 폰트 강조 */
+        /* 색상 및 폰트 강조 (물타기 계산기 스타일) */
         .dca-break-even-price-color {
             color: #2ecc71; 
             font-weight: 800;
             font-size: 1.25em;
         }
         .dca-profit-text {
-            color: #e74c3c; /* 빨간색 (수익) */
+            color: #e74c3c; 
             font-weight: 800;
             font-size: 1.15em;
         }
         .dca-loss-text {
-            color: #3498db; /* 파란색 (손실) */
+            color: #3498db; 
             font-weight: 800;
             font-size: 1.15em;
         }
@@ -133,14 +127,14 @@
             color: #27ae60;
             font-weight: 600;
             font-size: 0.85rem;
-            margin-bottom: 15px;
-            padding: 8px;
+            margin-top: 0px; 
+            margin-bottom: 10px;
+            padding: 5px;
             border: 1px dashed #2ecc71;
-            border-radius: 8px;
-            text-align: center;
+            border-radius: 4px;
         }
         
-        /* 동적 추가 매수 항목 스타일 */
+        /* 동적 추가 매수 항목 스타일 (DCA 전용) */
         .purchase-entry {
             display: flex;
             gap: 8px;
@@ -152,12 +146,13 @@
             border: 1px solid #d1fae5; 
         }
         .purchase-entry .input-col {
+             /* 단가/수량 입력 필드 너비 조절 */
             flex-grow: 1;
             width: 50%;
         }
 
         .purchase-entry .input-col input {
-             padding: 0.4rem 0.75rem; 
+             padding: 0.4rem 0.75rem; /* 항목 내부 입력 필드 패딩 조정 */
         }
         
         .delete-btn {
@@ -177,77 +172,15 @@
         .delete-btn:hover {
             background-color: #fca5a5;
         }
-        
-        /* Modal for Alert/Confirm */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.75);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 300px;
-            text-align: center;
-        }
 
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
-
-<script>
-    // NOTE: alert() 및 confirm() 사용 금지 규정에 따라 커스텀 Modal 함수를 사용합니다.
-    window.alert = function(message) {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <p class="text-lg font-semibold mb-4 text-gray-800">${message}</p>
-                <button onclick="this.parentNode.parentNode.remove()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">확인</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    window.confirm = function(message) {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <p class="text-lg font-semibold mb-4 text-gray-800">${message}</p>
-                    <div class="flex justify-center space-x-3">
-                        <button id="confirm-yes" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">예</button>
-                        <button id="confirm-no" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition">아니요</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            document.getElementById('confirm-yes').onclick = () => {
-                modal.remove();
-                resolve(true);
-            };
-            document.getElementById('confirm-no').onclick = () => {
-                modal.remove();
-                resolve(false);
-            };
-        });
-    };
-</script>
-
+<body class="bg-gray-100 p-4 md:p-8">
 
 <div class="calculator w-full">
-    <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산되며, 데이터는 로컬에 자동 저장됩니다.</div>
+    <!-- ⭐️ 주식 물타기 손익 시뮬레이터 제목이 제거되었습니다. ⭐️ -->
+    
+    <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
     <div id="tab-dca-simulator" class="tab-content">
 
@@ -256,8 +189,8 @@
             <div class="input-group">
                 <label for="dca_currentMarketPrice">현재 주가 (1주당 가격, 원)</label>
                 <div class="flex items-center space-x-2">
-                    <input type="text" id="dca_currentMarketPrice" value="" required oninput="handleCurrencyInputAndSave(this, LS_KEYS.marketPrice); calculateAllResults();" inputmode="numeric" class="w-full text-lg font-bold text-indigo-700">
-                    <button type="button" onclick="resetIndividualInput('dca_currentMarketPrice', LS_KEYS.marketPrice, '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
+                    <input type="text" id="dca_currentMarketPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'dcaMarketPrice'); calculateAllResults();" inputmode="numeric" class="w-full text-lg font-bold text-indigo-700">
+                    <button type="button" onclick="resetIndividualInput('dca_currentMarketPrice', 'dcaMarketPrice', '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
                 </div>
             </div>
         </div>
@@ -267,15 +200,15 @@
             <div class="input-group">
                 <label for="dca_currentPrice">현재 평단가 (1주당 가격, 원)</label>
                 <div class="flex items-center space-x-2">
-                    <input type="text" id="dca_currentPrice" value="" required oninput="handleCurrencyInputAndSave(this, LS_KEYS.currentPrice); calculateAllResults();" inputmode="numeric" class="w-full text-lg">
-                    <button type="button" onclick="resetIndividualInput('dca_currentPrice', LS_KEYS.currentPrice, '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
+                    <input type="text" id="dca_currentPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'dcaCurrentPrice'); calculateAllResults();" inputmode="numeric" class="w-full text-lg">
+                    <button type="button" onclick="resetIndividualInput('dca_currentPrice', 'dcaCurrentPrice', '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
                 </div>
             </div>
             <div class="input-group">
                 <label for="dca_currentQuantity">현재 수량 (총 주식 수, 주)</label>
                 <div class="flex items-center space-x-2">
-                    <input type="text" id="dca_currentQuantity" value="" required oninput="handleCurrencyInputAndSave(this, LS_KEYS.currentQuantity); calculateAllResults();" inputmode="numeric" class="w-full text-lg">
-                    <button type="button" onclick="resetIndividualInput('dca_currentQuantity', LS_KEYS.currentQuantity, '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
+                    <input type="text" id="dca_currentQuantity" value="" required oninput="handleCurrencyInputAndSave(this, 'dcaCurrentQuantity'); calculateAllResults();" inputmode="numeric" class="w-full text-lg">
+                    <button type="button" onclick="resetIndividualInput('dca_currentQuantity', 'dcaCurrentQuantity', '0', 'currency'); calculateAllResults();" class="reset-individual-btn" title="초기화">↺</button>
                 </div>
             </div>
             
@@ -284,8 +217,8 @@
                 <span id="dca_currentTotalCostDisplay" class="text-lg font-extrabold text-blue-800">0 원</span>
             </div>
             
-            <div id="dca_preDcaResult" class="pre-dca-result hidden p-2 mt-3 bg-blue-100 rounded-lg">
-                <div class="text-gray-700 font-semibold mb-2 text-sm border-b border-blue-200 pb-1">물타기 전 현재 예상 손익</div>
+            <div id="dca_preDcaResult" class="pre-dca-result hidden">
+                <div class="text-gray-700 font-semibold mb-2">물타기 전 현재 예상 손익</div>
                 <div class="flex justify-between items-center text-base">
                     <span class="text-gray-600">순이익/손실:</span>
                     <span id="dca_preDcaProfitLoss" class="value dca-loss-text">- 0 원</span>
@@ -320,8 +253,8 @@
                     <span class="text-gray-500 font-normal text-sm block"> (예: 0.015% → 0.015 입력)</span>
                 </label>
                 <div class="flex items-center space-x-2">
-                    <input type="text" id="dca_feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, LS_KEYS.feeRate); calculateAllResults();" inputmode="decimal" class="w-full">
-                    <button type="button" onclick="resetIndividualInput('dca_feeRateInput', LS_KEYS.feeRate, '0.015', 'rate'); calculateAllResults();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+                    <input type="text" id="dca_feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'dcaFeeRate'); calculateAllResults();" inputmode="decimal" class="w-full">
+                    <button type="button" onclick="resetIndividualInput('dca_feeRateInput', 'dcaFeeRate', '0.015', 'rate'); calculateAllResults();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
                 </div>
             </div>
 
@@ -330,28 +263,11 @@
                     <span class="text-gray-500 font-normal text-sm block"> (예: 0.15% → 0.15 입력)</span>
                 </label>
                 <div class="flex items-center space-x-2">
-                    <input type="text" id="dca_taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, LS_KEYS.taxRate); calculateAllResults();" inputmode="decimal" class="w-full">
-                    <button type="button" onclick="resetIndividualInput('dca_taxRateInput', LS_KEYS.taxRate, '0.15', 'rate'); calculateAllResults();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+                    <input type="text" id="dca_taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'dcaTaxRate'); calculateAllResults();" inputmode="decimal" class="w-full">
+                    <button type="button" onclick="resetIndividualInput('dca_taxRateInput', 'dcaTaxRate', '0.15', 'rate'); calculateAllResults();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
                 </div>
             </div>
         </div>
-        
-        <div class="p-4 bg-purple-50 border-l-4 border-purple-400 rounded-lg mb-6">
-            <h3 class="text-xl font-semibold text-purple-800 mb-4">5. 프리셋 저장 및 불러오기 (최대 5개)</h3>
-            
-            <div class="input-group">
-                <label for="presetNameInput">저장할 이름</label>
-                <input type="text" id="presetNameInput" placeholder="예: 삼성전자 물타기 계획" class="w-full text-lg py-2 px-3 border-purple-300" oninput="checkSaveButtonStatus()">
-            </div>
-            
-            <button type="button" onclick="savePreset()" id="savePresetBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-md mb-4 disabled:opacity-50" disabled>
-                현재 설정 저장 (총 0/5개 저장됨)
-            </button>
-            
-            <div id="presetsListContainer" class="space-y-2 mt-4">
-                </div>
-        </div>
-        
         
         <div id="dca_result" class="result mt-6 p-4 border-2 border-indigo-500 bg-indigo-50 rounded-lg" style="display: none;">
             <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">✅ 물타기 후 최종 분석 결과</h3>
@@ -366,34 +282,29 @@
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
     let purchaseEntryIdCounter = 0; 
+    let activeTab = 'dca-simulator'; // 현재 활성화된 탭
 
-    // --- Local Storage Keys ---
-    const PRESETS_LIST_KEY = 'DCA_PRESETS_LIST'; // Master list of saved presets
-    const MAX_PRESETS = 5;
 
-    const LS_KEYS = {
-        currentPrice: 'DCA_CURRENT_PRICE',
-        currentQuantity: 'DCA_CURRENT_QTY',
-        marketPrice: 'DCA_MARKET_PRICE',
-        feeRate: 'DCA_FEE_RATE',
-        taxRate: 'DCA_TAX_RATE',
-        entries: 'DCA_ENTRIES' // Dynamic purchase entries array
-    };
+    // --- Cookie Helper Functions ---
 
-    // --- Local Storage Helper Functions (Replacing Cookies) ---
-
-    function getLocalStorage(key) {
-        return localStorage.getItem(key);
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for(let i=0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
     }
 
-    function setLocalStorage(key, value) {
-        localStorage.setItem(key, value);
+    function setCookie(name, value) {
+        const date = new Date();
+        date.setTime(date.getTime() + (30*24*60*60*1000)); 
+        const expires = "; expires=" + date.toUTCString();
+        document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
     }
 
-    function removeLocalStorage(key) {
-        localStorage.removeItem(key);
-    }
-    
     // --- Format & Input Handlers ---
 
     /**
@@ -406,25 +317,23 @@
         const absoluteAmount = Math.abs(amount);
         
         if (precision === 0) {
+            // 손익분기점, 원금, 수량, 손익금액 등 (정수)
             return Math.floor(absoluteAmount).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
         }
 
+        // 순수 평균 단가, 수익률, 변동률 등 (소수점 둘째 자리)
         return absoluteAmount.toLocaleString('ko-KR', { minimumFractionDigits: precision, maximumFractionDigits: precision });
     }
 
     /**
-     * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다.
-     * 주의: 이 함수는 입력 필드의 value만 포맷하고, LocalStorage 저장은 하지 않습니다.
-     * 주로 'handleCurrencyInputAndSave'에서 내부적으로 사용하거나, 
-     * 초기 로드/프리셋 로드 시 포맷 적용 용도로 사용됩니다.
+     * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다. (빈 값 처리 포함)
      */
     window.formatCurrencyInput = function(input) {
-        const cursorStart = input.selectionStart || 0;
+        const cursorStart = input.selectionStart;
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
 
         const parts = rawValue.split('.');
-        // 소수점 2개 이상 방지
         rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
 
         if (rawValue === '' || parseFloat(rawValue) === 0) {
@@ -438,72 +347,86 @@
         
         input.value = newValue;
 
-        // 커서 위치 조정
         const diff = newValue.length - oldValue.length;
         let newCursorStart = cursorStart + diff;
 
-        // 쉼표가 추가되어 커서가 밀리는 경우 보정
-        const addedCommasCount = (newValue.substring(0, newCursorStart).match(/,/g) || []).length;
-        const oldCommasCount = (oldValue.substring(0, cursorStart).match(/,/g) || []).length;
-        
-        newCursorStart += (addedCommasCount - oldCommasCount);
+        if (newValue.length > oldValue.length) {
+            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
+                    newCursorStart = cursorStart + 1;
+                }
+        }
         
         newCursorStart = Math.min(newCursorStart, newValue.length);
-        newCursorStart = Math.max(0, newCursorStart); // 0보다 작아지는 것 방지
-        
         input.setSelectionRange(newCursorStart, newCursorStart);
     }
     
     /**
-     * 금액 입력(단가/수량)을 포맷하고, LocalStorage에 저장합니다.
-     * 이 함수는 포맷팅과 저장을 동시에 처리하며, 커서 위치를 유지합니다.
+     * 금액 입력(단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
      */
-    window.handleCurrencyInputAndSave = function(input, storageKey) {
-        // 1. LocalStorage 저장을 위한 rawValue (쉼표 제거된 숫자) 추출
+    window.handleCurrencyInputAndSave = function(input, cookieName) {
+        const cursorStart = input.selectionStart;
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
         
         const parts = rawValue.split('.');
-        // 소수점 2개 이상 방지
         rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
 
-        // 2. LocalStorage 저장 (rawValue)
-        if (storageKey) setLocalStorage(storageKey, rawValue);
-        
-        // 3. UI 포맷팅 및 커서 위치 조정
-        // 저장 시에도 항상 포맷팅 함수를 호출하여 쉼표를 찍도록 합니다.
-        window.formatCurrencyInput(input);
-        
-        // 동적 항목인 경우에도 저장 로직을 호출 (saveDcaEntries가 전체를 다시 저장)
-        if (storageKey === null) {
-            saveDcaEntries();
+        if (rawValue === '' || parseFloat(rawValue) === 0) {
+            input.value = '';
+            if (cookieName) setCookie(cookieName, '');
+            // 계산 함수는 oninput 속성에서 호출하도록 변경하여 코드 단순화
+            return; 
         }
+        
+        // 0 입력 시 빈 문자열로 표시 (이미 위에서 처리됨)
+        const [integerPart, decimalPart] = rawValue.split('.');
+        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
+            
+        input.value = newValue;
+
+        const diff = newValue.length - oldValue.length;
+        let newCursorStart = cursorStart + diff;
+
+        if (newValue.length > oldValue.length) {
+            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
+                newCursorStart = cursorStart + 1;
+            }
+        }
+        
+        newCursorStart = Math.min(newCursorStart, newValue.length);
+        input.setSelectionRange(newCursorStart, newCursorStart);
+        
+        if (cookieName) setCookie(cookieName, rawValue);
+        // 계산은 HTML의 oninput에서 호출됨
     }
 
     /**
-     * 비율 입력(수수료율/거래세율) 값을 LocalStorage에 저장합니다.
+     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장합니다.
      */
-    window.handleRateInputAndSave = function(input, storageKey) {
+    window.handleRateInputAndSave = function(input, cookieName) {
         const rawValue = input.value.replace(/,/g, ''); 
         
         if (!isNaN(parseFloat(rawValue))) {
-            setLocalStorage(storageKey, rawValue);
+            setCookie(cookieName, rawValue);
         }
+        // 계산은 HTML의 oninput에서 호출됨
     }
     
     /**
      * 개별 입력 필드를 기본값으로 초기화합니다.
      */
-    window.resetIndividualInput = function(inputId, storageKey, defaultValue, type) {
+    window.resetIndividualInput = function(inputId, cookieName, defaultValue, type) {
         const input = document.getElementById(inputId);
         
         if (type === 'currency') {
             input.value = ""; 
-            removeLocalStorage(storageKey); 
+            setCookie(cookieName, ''); 
         } else { // rate
             input.value = defaultValue; 
-            setLocalStorage(storageKey, defaultValue);
+            setCookie(cookieName, defaultValue);
         }
+        // 계산은 HTML의 onclick에서 호출됨
     };
 
 
@@ -519,7 +442,6 @@
             const qtyInput = document.getElementById(`dca_qty-${id}`);
             
             // Save raw (unformatted) values
-            // oninput 이벤트에서 이미 rawValue가 localStorage에 없으므로, 여기서 다시 추출
             const price = priceInput.value.replace(/[^0-9.]/g, ''); 
             const quantity = qtyInput.value.replace(/[^0-9]/g, ''); 
 
@@ -529,7 +451,8 @@
             }
         });
 
-        setLocalStorage(LS_KEYS.entries, JSON.stringify(entriesData));
+        // 항목이 하나도 없을 경우 (예: 모두 지워짐) 빈 배열로 저장
+        setCookie('dcaEntries', JSON.stringify(entriesData));
     }
 
     function loadDcaEntries() {
@@ -537,7 +460,7 @@
         container.innerHTML = ''; // 기존 항목 초기화
         purchaseEntryIdCounter = 0; // ID 카운터 초기화
 
-        const storedData = getLocalStorage(LS_KEYS.entries);
+        const storedData = getCookie('dcaEntries');
         let loadedEntries = [];
         
         if (storedData) {
@@ -549,10 +472,12 @@
         }
 
         if (loadedEntries.length === 0) {
+            // 저장된 데이터가 없으면 빈 항목 하나 추가
             addPurchaseEntry();
         } else {
+            // 저장된 데이터 로드
             loadedEntries.forEach(data => {
-                // 저장된 raw value를 addPurchaseEntry에 전달
+                // 저장된 원시 값을 넘겨 addPurchaseEntry를 호출
                 addPurchaseEntry(data.price, data.quantity); 
             });
         }
@@ -572,14 +497,15 @@
         entryDiv.className = 'purchase-entry';
         entryDiv.dataset.id = id;
         
+        // 초기값은 포맷되지 않은 상태로 설정
         entryDiv.innerHTML += `
             <div class="input-col">
                 <label for="dca_price-${id}">단가 (원)</label>
-                <input type="text" id="dca_price-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+                <input type="text" id="dca_price-${id}" value="${initialPrice}" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
             </div>
             <div class="input-col">
                 <label for="dca_qty-${id}">수량 (주)</label>
-                <input type="text" id="dca_qty-${id}" value="" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
+                <input type="text" id="dca_qty-${id}" value="${initialQuantity}" required oninput="handleCurrencyInputAndSave(this, null); calculateAllResults();" inputmode="numeric" class="w-full text-sm">
             </div>
             <button type="button" onclick="removePurchaseEntry(${id})" class="delete-btn" title="항목 삭제">×</button>
         `;
@@ -589,15 +515,9 @@
         const priceInput = document.getElementById(`dca_price-${id}`);
         const qtyInput = document.getElementById(`dca_qty-${id}`);
         
-        // 로드된 초기값이 있으면 value 설정 후 포맷팅 적용
-        if (initialPrice) {
-            priceInput.value = initialPrice;
-            window.formatCurrencyInput(priceInput);
-        }
-        if (initialQuantity) {
-            qtyInput.value = initialQuantity;
-            window.formatCurrencyInput(qtyInput);
-        }
+        // 로드된 초기값이 있으면 포맷팅 적용
+        if (initialPrice) window.formatCurrencyInput(priceInput);
+        if (initialQuantity) window.formatCurrencyInput(qtyInput);
 
         calculateAllResults();
     };
@@ -621,7 +541,6 @@
             const priceInput = document.getElementById(`dca_price-${id}`);
             const qtyInput = document.getElementById(`dca_qty-${id}`);
             
-            // 쉼표 제거된 raw value 사용
             const price = parseFloat(priceInput.value.replace(/,/g, '')) || 0;
             const quantity = Math.floor(parseFloat(qtyInput.value.replace(/,/g, '')) || 0);
 
@@ -677,11 +596,11 @@
             signPrefix = '+';
         } else if (netProfitLoss < 0) {
             resultClass = `${prefix}-loss-text`;
-            signPrefix = ''; // 손실은 한국 주식 UI에서 보통 마이너스 기호를 생략하거나 괄호 처리함. 여기선 '-'는 포맷 함수에서 처리되므로 비워둠.
+            signPrefix = '-';
         }
 
-        const profitLossText = (netProfitLoss < 0 ? '-' : signPrefix) + formatCurrency(netProfitLoss, 0) + ' 원'; 
-        const profitRateText = (netProfitRate < 0 ? '-' : signPrefix) + (isFinite(netProfitRate) ? formatCurrency(netProfitRate, 2) : 'N/A') + ' %';
+        const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
+        const profitRateText = signPrefix + (isFinite(netProfitRate) ? formatCurrency(netProfitRate, 2) : 'N/A') + ' %';
         
         return { netProfitLoss, netProfitRate, profitLossText, profitRateText, resultClass, costs };
     }
@@ -690,10 +609,7 @@
     // --- CALCULATION 2: DCA Simulator Logic ---
 
     window.calculateAllResults = function() {
-        // 물타기 항목을 LocalStorage에 저장 (실시간 변경 사항 반영)
-        // saveDcaEntries(); // handleCurrencyInputAndSave에서 처리됨
-        
-        // 1. 정적 입력값 가져오기 (쉼표 제거된 raw value 사용)
+        // 1. 정적 입력값 가져오기
         const currentPrice = parseFloat(document.getElementById('dca_currentPrice').value.replace(/,/g, '')) || 0;
         const currentQuantity = parseFloat(document.getElementById('dca_currentQuantity').value.replace(/,/g, '')) || 0;
         const currentMarketPrice = parseFloat(document.getElementById('dca_currentMarketPrice').value.replace(/,/g, '')) || 0;
@@ -740,6 +656,9 @@
         // 5. 결과 숨김 처리
         if (totalQuantityDCA === 0 || totalCostDCA === 0) {
             document.getElementById('dca_result').style.display = 'none';
+            
+            // 물타기 항목 저장 (결과 숨김 처리 시에도 저장)
+            saveDcaEntries();
             return;
         }
         
@@ -774,10 +693,10 @@
         let rateClass = 'text-gray-700';
         let ratePrefix = '';
         if (priceReductionRate > 0) {
-            rateClass = 'text-red-600 font-bold'; // 감소 (평단가가 낮아짐 = 빨간색)
+            rateClass = 'text-red-600 font-bold'; // 감소 (빨간색)
             ratePrefix = '↓ ';
         } else if (priceReductionRate < 0) {
-            rateClass = 'text-blue-600 font-bold'; // 증가 (평단가가 높아짐 = 파란색)
+            rateClass = 'text-blue-600 font-bold'; // 증가 (파란색)
             ratePrefix = '↑ ';
             priceReductionRate = Math.abs(priceReductionRate);
         }
@@ -863,305 +782,53 @@
             resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
         }
 
-        // 프리셋 버튼 상태 업데이트
-        checkSaveButtonStatus();
+        // 12. Save dynamic entries (as calculation runs on every input)
+        saveDcaEntries();
     }
     
-    // --- Preset Management Logic ---
-
     /**
-     * 현재 입력된 모든 값을 하나의 객체로 모읍니다.
+     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
      */
-    function getCurrentState() {
-        const currentState = {};
-        
-        // 1. Get static inputs (raw unformatted value, which is stored in localStorage)
-        currentState.currentPrice = document.getElementById('dca_currentPrice').value.replace(/,/g, '');
-        currentState.currentQuantity = document.getElementById('dca_currentQuantity').value.replace(/,/g, '');
-        currentState.marketPrice = document.getElementById('dca_currentMarketPrice').value.replace(/,/g, '');
-        currentState.feeRate = document.getElementById('dca_feeRateInput').value.replace(/,/g, '');
-        currentState.taxRate = document.getElementById('dca_taxRateInput').value.replace(/,/g, '');
-        
-        // 2. Get dynamic entries
-        const entriesData = [];
-        const entries = document.querySelectorAll('#dca_purchaseEntriesContainer .purchase-entry');
-        entries.forEach(entry => {
-            const id = entry.dataset.id;
-            const priceInput = document.getElementById(`dca_price-${id}`);
-            const qtyInput = document.getElementById(`dca_qty-${id}`);
-            // Save raw (unformatted) values
-            entriesData.push({ 
-                price: priceInput.value.replace(/[^0-9.]/g, ''), 
-                quantity: qtyInput.value.replace(/[^0-9]/g, '') 
-            });
-        });
-        currentState.entries = entriesData;
-        
-        return currentState;
-    }
-
-    /**
-     * 모든 값을 입력 필드에 적용하고 현재 상태로 저장합니다.
-     */
-    function applyState(state) {
-        if (!state) return;
-        
-        // 1. Static inputs
-        const staticInputs = [
-            { id: 'dca_currentPrice', key: 'currentPrice' },
-            { id: 'dca_currentQuantity', key: 'currentQuantity' },
-            { id: 'dca_currentMarketPrice', key: 'marketPrice' },
-            { id: 'dca_feeRateInput', key: 'feeRate' },
-            { id: 'dca_taxRateInput', key: 'taxRate' }
-        ];
-        
-        staticInputs.forEach(item => {
-            const input = document.getElementById(item.id);
-            const value = state[item.key] || '';
-            input.value = value;
-            // Apply formatting for currency fields, and also save to current state
-            if (item.key.includes('Price') || item.key.includes('Quantity') || item.key === 'marketPrice') {
-                // 저장된 raw value를 입력한 것처럼 처리
-                input.value = value; 
-                window.handleCurrencyInputAndSave(input, LS_KEYS[item.key]);
-            } else { // Rate fields
-                setLocalStorage(LS_KEYS[item.key], value);
-            }
-        });
-
-        // 2. Dynamic entries
-        const container = document.getElementById('dca_purchaseEntriesContainer');
-        container.innerHTML = '';
-        purchaseEntryIdCounter = 0;
-        
-        const loadedEntries = state.entries || [];
-        if (loadedEntries.length === 0) {
-             addPurchaseEntry();
-        } else {
-            loadedEntries.forEach(data => {
-                // addPurchaseEntry 내에서 value 설정과 포맷팅이 처리됨
-                addPurchaseEntry(data.price, data.quantity); 
-            });
-        }
-        
-        // 3. Save dynamic entries to current state (addPurchaseEntry에서 이미 호출됨)
-        // saveDcaEntries(); 
-
-        // 4. Calculate results
-        calculateAllResults();
-    }
-
-
-    /**
-     * 프리셋 목록을 LocalStorage에서 불러옵니다.
-     */
-    function getPresetsList() {
-        try {
-            const listJson = getLocalStorage(PRESETS_LIST_KEY);
-            return listJson ? JSON.parse(listJson) : [];
-        } catch (e) {
-            console.error("Failed to load presets list:", e);
-            return [];
-        }
-    }
-
-    /**
-     * 프리셋 목록을 LocalStorage에 저장합니다.
-     */
-    function setPresetsList(list) {
-        setLocalStorage(PRESETS_LIST_KEY, JSON.stringify(list));
-    }
-
-    /**
-     * 현재 상태를 저장합니다.
-     */
-    window.savePreset = async function() {
-        const presetNameInput = document.getElementById('presetNameInput');
-        const name = presetNameInput.value.trim();
-        if (!name) {
-            alert("프리셋 이름을 입력해 주세요.");
-            return;
-        }
-        
-        let list = getPresetsList();
-        const currentState = getCurrentState();
-        const uniqueKey = `DCA_PRESET_${Date.now()}`;
-        
-        // 1. 최대 개수 (5개) 초과 시 가장 오래된 것(가장 처음의 것) 삭제
-        if (list.length >= MAX_PRESETS) {
-            const oldest = list.shift(); // 첫 번째 항목 제거
-            removeLocalStorage(oldest.key); // LocalStorage에서도 삭제
-            console.log(`Max presets reached. Deleting oldest preset: ${oldest.name}`);
-        }
-        
-        // 2. 새 프리셋 데이터 저장
-        setLocalStorage(uniqueKey, JSON.stringify(currentState));
-        
-        // 3. 목록에 추가
-        list.push({ name: name, key: uniqueKey });
-        setPresetsList(list);
-        
-        // 4. UI 업데이트
-        renderPresetsList();
-        presetNameInput.value = '';
-        await alert(`프리셋 "${name}"이 성공적으로 저장되었습니다. (총 ${list.length}/${MAX_PRESETS}개)`);
-    }
-
-    /**
-     * 저장된 프리셋을 불러옵니다.
-     */
-    window.loadPreset = async function(key) {
-        const result = await confirm("현재 작업 중인 내용이 저장되지 않고 덮어쓰여집니다. 계속하시겠습니까?");
-        if (!result) return;
-        
-        const presetDataJson = getLocalStorage(key);
-        if (!presetDataJson) {
-            alert("선택하신 프리셋을 찾을 수 없습니다.");
-            return;
-        }
-        
-        try {
-            const presetData = JSON.parse(presetDataJson);
-            applyState(presetData);
-            await alert("프리셋이 성공적으로 불러와졌습니다.");
-        } catch (e) {
-            console.error("Error loading preset:", e);
-            await alert("프리셋 데이터를 불러오는 중 오류가 발생했습니다.");
-        }
-    }
-
-    /**
-     * 프리셋을 삭제합니다.
-     */
-    window.deletePreset = async function(key) {
-        const result = await confirm("정말로 이 프리셋을 삭제하시겠습니까?");
-        if (!result) return;
-
-        let list = getPresetsList();
-        
-        // 1. 목록에서 제거
-        const initialLength = list.length;
-        list = list.filter(item => item.key !== key);
-        
-        if (list.length < initialLength) {
-            // 2. LocalStorage에서 데이터 제거
-            removeLocalStorage(key);
-            setPresetsList(list);
-            
-            // 3. UI 업데이트
-            renderPresetsList();
-            await alert("프리셋이 삭제되었습니다.");
-        } else {
-            await alert("삭제할 프리셋을 찾을 수 없습니다.");
-        }
-    }
-
-    /**
-     * 저장된 프리셋 목록을 화면에 렌더링합니다.
-     */
-    function renderPresetsList() {
-        const container = document.getElementById('presetsListContainer');
-        const list = getPresetsList();
-        
-        container.innerHTML = '';
-        
-        if (list.length === 0) {
-            container.innerHTML = '<p class="text-sm text-gray-500 text-center p-2 bg-gray-50 rounded-lg">저장된 프리셋이 없습니다.</p>';
-        } else {
-            list.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 bg-white rounded-lg border border-gray-200 shadow-sm';
-                itemDiv.innerHTML = `
-                    <span class="text-gray-700 font-medium truncate mb-2 sm:mb-0">${item.name}</span>
-                    <div class="flex space-x-2 flex-shrink-0">
-                        <button 
-                            onclick="loadPreset('${item.key}')" 
-                            class="flex-1 px-3 py-1 text-sm bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition"
-                            title="불러오기"
-                        >
-                            불러오기
-                        </button>
-                        <button 
-                            onclick="deletePreset('${item.key}')" 
-                            class="flex-1 px-3 py-1 text-sm bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition"
-                            title="삭제"
-                        >
-                            삭제 (×)
-                        </button>
-                    </div>
-                `;
-                container.appendChild(itemDiv);
-            });
-        }
-
-        checkSaveButtonStatus();
-    }
-
-    /**
-     * 저장 버튼 활성화/비활성화 및 최대 개수 표시
-     */
-    window.checkSaveButtonStatus = function() {
-        const list = getPresetsList();
-        const saveBtn = document.getElementById('savePresetBtn');
-        const presetNameInput = document.getElementById('presetNameInput');
-        
-        if (list.length >= MAX_PRESETS) {
-            saveBtn.innerText = `현재 설정 저장 (최대 ${MAX_PRESETS}개 도달, 저장 시 가장 오래된 것 삭제)`;
-        } else {
-             saveBtn.innerText = `현재 설정 저장 (총 ${list.length}/${MAX_PRESETS}개 저장됨)`;
-        }
-
-        // 이름이 입력되면 버튼 활성화
-        saveBtn.disabled = presetNameInput.value.trim() === '';
-    }
-
-    /**
-     * LocalStorage에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
-     * 저장된 raw value를 불러와 포맷팅을 적용하는 로직으로 수정됨.
-     */
-    function loadFromLocalStorage() {
-        // 1. Load current working state
+    function loadFromCookies() {
+        // --- DCA Calculator Fields ---
         const dcaCurrencyInputs = [
-            { id: 'dca_currentPrice', key: LS_KEYS.currentPrice },
-            { id: 'dca_currentQuantity', key: LS_KEYS.currentQuantity },
-            { id: 'dca_currentMarketPrice', key: LS_KEYS.marketPrice }
+            { id: 'dca_currentPrice', cookie: 'dcaCurrentPrice' },
+            { id: 'dca_currentQuantity', cookie: 'dcaCurrentQuantity' },
+            { id: 'dca_currentMarketPrice', cookie: 'dcaMarketPrice' }
         ];
 
         dcaCurrencyInputs.forEach(item => {
             const input = document.getElementById(item.id);
-            const storedValue = getLocalStorage(item.key); // raw value (쉼표X)
-
-            if (storedValue !== null && storedValue !== "") {
-                input.value = storedValue; // raw value를 일단 input에 넣어줍니다.
-                window.formatCurrencyInput(input); // 포맷팅을 적용합니다.
+            const storedValue = getCookie(item.cookie);
+            
+            if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
+                input.value = storedValue;
+                window.formatCurrencyInput(input); 
             } 
         });
 
-        // 2. Load Rate Fields
+        // --- Rate Fields (DCA) ---
         const rateInputs = [
-            { id: 'dca_feeRateInput', key: LS_KEYS.feeRate, default: DEFAULT_FEE_RATE },
-            { id: 'dca_taxRateInput', key: LS_KEYS.taxRate, default: DEFAULT_TAX_RATE }
+            { id: 'dca_feeRateInput', cookie: 'dcaFeeRate', default: DEFAULT_FEE_RATE },
+            { id: 'dca_taxRateInput', cookie: 'dcaTaxRate', default: DEFAULT_TAX_RATE }
         ];
         
         rateInputs.forEach(item => {
-            const storedValue = getLocalStorage(item.key);
+            const storedValue = getCookie(item.cookie);
             const value = (storedValue !== null && storedValue !== "") ? storedValue : item.default;
             document.getElementById(item.id).value = value;
         });
         
-        // 3. Load dynamic DCA entries
+        // 2. Load dynamic DCA entries (if stored)
         loadDcaEntries(); 
         
-        // 4. Render preset list
-        renderPresetsList();
-
         // 초기 로드 후 계산 실행
         calculateAllResults();
     }
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        loadFromLocalStorage(); 
+        loadFromCookies(); 
     });
 
 </script>
