@@ -190,7 +190,7 @@
             padding: 8px;
             border-radius: 6px;
             font-size: 0.9em;
-            margin-bottom: 15px;
+            margin-top: 20px; /* 맨 아래로 옮기면서 상단 마진 추가 */
             font-weight: 500;
         }
     </style>
@@ -198,11 +198,8 @@
 <body class="bg-gray-100 p-4 md:p-8">
 
 <div class="calculator w-full">
-    <div class="local-storage-note text-center">⚠️ 이 기록은 사용하시는 브라우저의 로컬 저장소에 저장됩니다. 브라우저를 변경하거나 기록을 삭제하면 사라집니다.
-    </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <!-- 좌측: 계산기 입력 및 결과 영역 -->
         <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
             <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
 
@@ -224,13 +221,10 @@
                     </div>
                 </div>
 
-                <!-- 손익분기 매도 단가 (BEP) 표시 영역 -->
                 <div id="bep_display" class="mb-4 p-3 bg-red-50 border-2 border-red-500 rounded-lg" style="display: none;">
                     <p class="text-sm text-red-700 font-semibold mb-1">순손익 0원이 되는 매도 단가 (BEP)</p>
                     <p id="bep_value" class="text-2xl text-red-700 font-extrabold text-right"></p>
                 </div>
-                <!-- BEP 표시 영역 끝 -->
-
                 <div class="input-group">
                     <label for="pl_sellPrice">3. 매도 단가 (1주당 가격)</label>
                     <div class="flex items-center space-x-2">
@@ -260,28 +254,29 @@
                     <table id="pl_resultTable" class="result-table"></table>
                 </div>
 
-                <!-- 저장 기능 UI (반응형 개선) -->
                 <div class="mt-6 pt-4 border-t border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-700 mb-3">⭐ 현재 거래 기록 저장</h3>
                     <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                         <input type="text" id="saveTradeName" placeholder="기록할 이름을 입력하세요 (예: 삼성전자 1차)" class="w-full sm:flex-grow p-2 border border-gray-300 rounded-lg">
                         <button onclick="saveCurrentTrade()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">로컬 저장</button>
                     </div>
+                    <p id="storageLimitNote" class="text-sm text-red-500 mt-2 text-center" style="display: none;">⚠️ 기록은 최대 6개까지만 저장됩니다. (가장 오래된 기록부터 자동 삭제)</p>
                 </div>
             </div>
         </div>
 
-        <!-- 우측: 저장된 기록 목록 -->
         <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">📜 히스토리</h2>
+            <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">📜 히스토리 (최대 6개)</h2>
             <div id="savedTradesList" class="border border-gray-200 rounded-lg overflow-hidden min-h-64">
                 <div class="p-4 text-center text-gray-500">로컬에 저장된 기록이 없습니다.</div>
             </div>
         </div>
     </div>
+    
+    <div class="local-storage-note text-center">⚠️ 이 기록은 사용하시는 브라우저의 로컬 저장소에 저장됩니다. 브라우저를 변경하거나 기록을 삭제하면 사라집니다.
+    </div>
 </div>
 
-<!-- 사용자 정의 삭제 확인 모달 -->
 <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
     <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-transform duration-300 scale-95">
         <h3 class="text-xl font-bold text-red-600 mb-4">삭제 확인</h3>
@@ -298,6 +293,7 @@
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
     const STORAGE_KEY = 'stockTradeRecords'; // 로컬 저장소 키
+    const MAX_TRADES = 6; // **최대 저장 기록 수 (6개로 제한)**
     let tradeToDeleteId = null;
 
     // --- Local Storage Handlers (Trade Records) ---
@@ -319,6 +315,20 @@
      * 거래 기록 배열을 로컬 저장소에 저장합니다.
      */
     function saveTradesToLocal(trades) {
+        // **저장 시점에 MAX_TRADES를 초과하는지 확인하고, 초과하면 가장 오래된 것(낮은 timestamp)부터 삭제**
+        if (trades.length > MAX_TRADES) {
+            // timestamp를 기준으로 오름차순 정렬 (오래된 순)
+            trades.sort((a, b) => a.timestamp - b.timestamp);
+            // 초과된 만큼 삭제
+            const tradesToRemove = trades.length - MAX_TRADES;
+            trades.splice(0, tradesToRemove);
+            
+            // 삭제 알림 메시지 표시 (최대 개수 제한 알림)
+            document.getElementById('storageLimitNote').style.display = 'block';
+        } else {
+            document.getElementById('storageLimitNote').style.display = 'none';
+        }
+
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
             renderSavedTrades(trades); // 저장 후 목록 자동 업데이트
@@ -336,6 +346,13 @@
         // 저장 시 timestamp를 기준으로 내림차순 정렬 (최신순)
         trades.sort((a, b) => b.timestamp - a.timestamp); 
         renderSavedTrades(trades);
+        
+        // 로드 시점에 MAX_TRADES 확인하여 알림 표시
+        if (trades.length >= MAX_TRADES) {
+            document.getElementById('storageLimitNote').style.display = 'block';
+        } else {
+            document.getElementById('storageLimitNote').style.display = 'none';
+        }
     }
 
     // --- Create: Save Current Trade ---
@@ -360,9 +377,17 @@
             taxRate: parseFloat(document.getElementById('pl_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE,
             timestamp: Date.now() // 저장 시간
         };
+        
+        // 필수 값 확인 (매수, 수량, 매도 중 하나라도 있어야 저장)
+        if (tradeData.buyPrice === 0 && tradeData.quantity === 0 && tradeData.sellPrice === 0) {
+             alertUserMessage("저장 실패: 매수단가, 수량, 매도단가 중 최소한 하나는 입력해주세요.", "red");
+            return;
+        }
 
         const trades = getSavedTrades();
         trades.push(tradeData);
+        
+        // saveTradesToLocal에서 6개 초과 시 오래된 기록 자동 삭제 처리
         saveTradesToLocal(trades);
         
         alertUserMessage(`'${tradeName}' 기록이 로컬에 저장되었습니다.`, "green");
@@ -494,23 +519,24 @@
             return;
         }
 
-        trades.forEach(trade => {
+        // **최대 6개만 렌더링** (이미 saveTradesToLocal에서 6개로 제한되지만, 혹시 모를 경우 대비)
+        const tradesToRender = trades.slice(0, MAX_TRADES);
+
+        tradesToRender.forEach(trade => {
             const date = new Date(trade.timestamp).toLocaleDateString('ko-KR');
             const tradeElement = document.createElement('div');
             tradeElement.className = 'trade-item group';
             
             // JSON.stringify로 객체를 문자열화하여 onclick에 전달
+            // 단, 객체 내부에 싱글 쿼트가 없다는 가정 하에 이스케이프 처리
             const tradeDataString = JSON.stringify(trade).replace(/"/g, '\'');
 
             tradeElement.innerHTML = `
-                <!-- 정보 영역 -->
                 <div class="trade-info-area">
                     <p class="font-semibold text-gray-800 truncate">${trade.name}</p>
                     <p class="text-xs text-gray-500">${date} | 매수가: ${formatCurrency(trade.buyPrice)}원</p>
                 </div>
-                <!-- 액션 버튼 그룹 -->
                 <div class="trade-actions">
-                    <!-- 불러오기 버튼 -->
                     <button 
                         onclick='loadTrade(${tradeDataString})' 
                         class="load-trade-btn"
@@ -518,7 +544,6 @@
                     >
                         불러오기
                     </button>
-                    <!-- 삭제 버튼 (항상 보이도록) -->
                     <button 
                         onclick="deleteTrade('${trade.id}', '${trade.name}')" 
                         class="trade-item-delete-btn flex-shrink-0 transition-opacity"
@@ -760,4 +785,3 @@
 </script>
 </body>
 </html>
-
