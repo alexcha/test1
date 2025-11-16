@@ -185,7 +185,19 @@
             font-size: 0.8rem;
             font-weight: 600;
         }
-
+        
+        /* ⭐️ 입력 필드 너비 조정 (수정된 부분) ⭐️ */
+        .history-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .history-input-group input {
+            flex-grow: 1;
+            /* 작은 화면에서 너무 길어지지 않도록 최대 너비 설정 */
+            max-width: calc(100% - 70px); 
+        }
+        
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
@@ -283,7 +295,6 @@
             </div>
         </div>
         
-        <!-- 계산 결과 표시 섹션 -->
         <div id="dca_result" class="result mt-6 p-4 border-2 border-indigo-500 bg-indigo-50 rounded-lg" style="display: none;">
             <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">✅ 물타기 후 최종 분석 결과</h3>
             
@@ -292,27 +303,23 @@
     </div>
 </div>
 
-<!-- ⭐️ 히스토리 섹션 ⭐️ -->
 <div class="calculator w-full mt-6">
     <div class="p-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">📝 계산 기록 저장 및 관리 (Local Storage)</h3>
+        <h3 class="text-xl font-bold text-gray-800 mb-4">📝 히스토리</h3>
         
-        <!-- 저장 입력 필드 -->
-        <div class="flex space-x-2 mb-6">
+        <div class="history-input-group mb-6">
             <input type="text" id="history-name-input" placeholder="기록할 이름을 입력하세요 (예: 1차 테슬라 계획)" 
-                   class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                   class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
             <button type="button" onclick="saveCurrentStateToHistory()" class="flex-shrink-0 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-md">
-                현재 상태 저장
+                저장
             </button>
         </div>
 
-        <!-- 히스토리 목록 테이블 -->
         <h4 class="text-lg font-semibold text-gray-700 mb-2 border-b pb-1">저장된 시뮬레이션 목록</h4>
         <div id="history-list-container">
             <table class="w-full text-sm text-left text-gray-600">
                 <tbody id="history-list-body">
-                    <!-- History entries will be rendered here -->
-                </tbody>
+                    </tbody>
             </table>
             <p id="history-empty-message" class="text-center py-4 text-gray-500 italic hidden">저장된 기록이 없습니다.</p>
         </div>
@@ -1072,4 +1079,3 @@
 </script>
 </body>
 </html>
-
