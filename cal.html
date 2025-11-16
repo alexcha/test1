@@ -202,7 +202,7 @@
             margin-top: 20px; 
             font-weight: 500;
         }
-        /* 히스토리 상단 저장 UI */
+        /* 히스토리 상단 저장 UI (수정됨) */
         .history-save-ui {
             padding: 16px;
             border-bottom: 1px solid #ddd;
@@ -211,7 +211,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            margin-bottom: 20px; /* 목록 제목과의 간격 */
+            margin-bottom: 0; 
         }
         .history-save-ui input {
             border: 1px solid #ddd;
@@ -220,6 +220,7 @@
             font-size: 1em;
             text-align: left;
             flex-grow: 1;
+            min-width: 100px;
         }
         .history-save-ui button {
             background-color: #6c5ce7; 
@@ -228,7 +229,8 @@
             padding: 8px 12px;
             border-radius: 8px;
             transition: background-color 0.2s;
-            flex-shrink: 0; /* 버튼이 줄어들지 않게 함 */
+            flex-shrink: 0; /* 버튼 고정 */
+            width: 60px; /* 버튼 너비 명확히 지정 */
         }
         .history-save-ui button:hover {
             background-color: #5d50c9;
