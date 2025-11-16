@@ -1,4 +1,4 @@
-<!DOCTYPE ahtml>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -15,7 +15,7 @@
         
         .calculator {
             max-width: 500px;
-            margin: 0 auto 20px auto; /* 상단 마진을 0으로 설정하여 상단 공백 제거 */
+            margin: 0 auto;
             background: #ffffff;
             padding: 16px 12px; 
             border-radius: 12px;
@@ -111,11 +111,11 @@
             font-size: 1.05em; 
         }
         .pl-profit-text {
-            color: #e74c3c;
+            color: #e74c3c; /* 한국식 빨강 (수익) */
             font-weight: bold;
         }
         .pl-loss-text {
-            color: #3498db;
+            color: #3498db; /* 한국식 파랑 (손실) */
             font-weight: bold;
         }
         .pl-neutral-text {
@@ -135,7 +135,77 @@
             border: 1px dashed #2ecc71;
             border-radius: 4px;
         }
+
+        /* History List Styling */
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            background-color: #f8f8f8;
+            border: 1px solid #eee;
+        }
+        .history-item-name {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.9em;
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 10px;
+        }
+        .history-actions button {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 5px;
+        }
+        .load-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        .load-btn:hover {
+            background-color: #2980b9;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
         
+        /* Modal Backdrop */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            width: 300px;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
@@ -197,16 +267,335 @@
             <table id="pl_resultTable" class="result-table"></table>
         </div>
     </div>
+    
+    <!-- 히스토리 저장 및 목록 영역 -->
+    <div class="mt-8 pt-4 border-t border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">⭐ 계산 저장 및 히스토리</h2>
+        
+        <!-- 계산 저장하기 -->
+        <div class="p-4 mb-6 bg-yellow-50 border border-yellow-300 rounded-lg">
+            <label for="saveNameInput" class="font-bold text-yellow-800 mb-2 block">저장 이름 입력:</label>
+            <div class="flex space-x-2">
+                <input type="text" id="saveNameInput" placeholder="예: 삼성전자 1차 매수" class="w-full text-left p-2 border-yellow-400">
+                <button onclick="saveCalculation()" class="bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition duration-150 flex-shrink-0">
+                    저장하기
+                </button>
+            </div>
+        </div>
+
+        <!-- 히스토리 목록 -->
+        <h3 class="text-xl font-semibold text-gray-700 mb-3 flex justify-between items-center">
+            저장된 계산 목록 <span id="loading-history" class="text-sm text-blue-500 hidden">...불러오는 중</span>
+        </h3>
+        <div id="history-list" class="space-y-2 min-h-[50px] p-2 bg-gray-50 rounded-lg border">
+            <p id="no-history-message" class="text-gray-500 text-sm text-center">저장된 계산 기록이 없습니다.</p>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">사용자 ID: <span id="user-id-display"></span></p>
+    </div>
+    <!-- 히스토리 영역 끝 -->
 </div>
 
+<!-- 삭제 확인 모달 -->
+<div id="delete-modal-backdrop" class="modal-backdrop hidden" onclick="hideDeleteModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h4 class="text-lg font-bold mb-3 text-gray-800">삭제 확인</h4>
+        <p id="delete-modal-message" class="mb-4 text-gray-600">이 계산 기록을 정말로 삭제하시겠습니까?</p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="hideDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                취소
+            </button>
+            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition" 
+                    onclick="confirmDelete()">
+                삭제
+            </button>
+        </div>
+    </div>
+</div>
+<!-- 모달 끝 -->
+
+
 <script type="module">
-    // --- Global State & Configuration ---
+    // --- Firebase & Global Configuration ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, addDoc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, Timestamp, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    setLogLevel('error'); // FireStore Debugging
+
+    // Global Variables provided by environment
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    // Firebase instances
+    let app;
+    let db;
+    let auth;
+    let currentUserId = null;
+    let isAuthReady = false;
+
+    // History deletion state
+    let docToDeleteId = null;
+
+    // Constants
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
-    let activeTab = 'profit-loss'; // 현재 활성화된 탭
+    const COLLECTION_NAME = 'stock_history';
+
+    // --- Firebase Initialization and Auth ---
+
+    async function initializeFirebase() {
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            // 1. Initial Authentication Check
+            await new Promise((resolve) => {
+                const unsubscribe = onAuthStateChanged(auth, async (user) => {
+                    if (!user) {
+                        if (initialAuthToken) {
+                            // Use custom token if provided
+                            try {
+                                const userCredential = await signInWithCustomToken(auth, initialAuthToken);
+                                currentUserId = userCredential.user.uid;
+                                console.log("Custom token sign-in successful.");
+                            } catch (e) {
+                                console.error("Custom token sign-in failed, falling back to anonymous.", e);
+                                await signInAnonymously(auth);
+                                currentUserId = auth.currentUser.uid;
+                            }
+                        } else {
+                            // Fallback to anonymous sign-in
+                            await signInAnonymously(auth);
+                            currentUserId = auth.currentUser.uid;
+                        }
+                    } else {
+                        currentUserId = user.uid;
+                    }
+
+                    isAuthReady = true;
+                    document.getElementById('user-id-display').textContent = currentUserId;
+                    unsubscribe(); // Stop listening after initial auth is resolved
+                    resolve();
+                });
+            });
+
+            // 2. Load History after Auth is Ready
+            loadHistory(); 
+
+        } catch (error) {
+            console.error("Firebase initialization or authentication failed:", error);
+            // Show error message to user if necessary
+        }
+    }
+
+    /**
+     * Firestore 컬렉션 경로를 반환합니다. (개인 데이터)
+     */
+    function getHistoryCollectionRef() {
+        if (!db || !currentUserId) return null;
+        // Path: /artifacts/{appId}/users/{userId}/stock_history
+        const userPath = `/artifacts/${appId}/users/${currentUserId}`;
+        return collection(db, userPath, COLLECTION_NAME);
+    }
+
+    // --- History Modal Logic ---
+
+    window.showDeleteModal = function(docId, name) {
+        docToDeleteId = docId;
+        document.getElementById('delete-modal-message').textContent = `'${name}' 기록을 정말로 삭제하시겠습니까?`;
+        document.getElementById('delete-modal-backdrop').classList.remove('hidden');
+    }
+
+    window.hideDeleteModal = function() {
+        docToDeleteId = null;
+        document.getElementById('delete-modal-backdrop').classList.add('hidden');
+    }
+
+    window.confirmDelete = async function() {
+        if (docToDeleteId) {
+            await deleteCalculation(docToDeleteId);
+            hideDeleteModal();
+        }
+    }
+
+    // --- History Data Operations ---
+
+    /**
+     * 현재 계산 상태를 Firestore에 저장합니다.
+     */
+    window.saveCalculation = async function() {
+        const historyRef = getHistoryCollectionRef();
+        if (!historyRef) return console.error("Firestore not ready.");
+
+        const saveNameInput = document.getElementById('saveNameInput');
+        let name = saveNameInput.value.trim();
+
+        if (name === '') {
+            name = prompt("저장할 이름을 입력해 주세요 (예: 삼성전자 1차)");
+            if (!name || name.trim() === '') {
+                // Cannot use window.alert, use console error
+                console.error("저장 이름이 입력되지 않았습니다. 저장 취소.");
+                return;
+            }
+        }
+        
+        // 입력 값 (문자열 그대로 저장하여 정밀도 유지)
+        const dataToSave = {
+            name: name,
+            buyPrice: document.getElementById('pl_buyPrice').value.replace(/,/g, ''),
+            quantity: document.getElementById('pl_quantity').value.replace(/,/g, ''),
+            sellPrice: document.getElementById('pl_sellPrice').value.replace(/,/g, ''),
+            feeRate: document.getElementById('pl_feeRateInput').value.replace(/,/g, ''),
+            taxRate: document.getElementById('pl_taxRateInput').value.replace(/,/g, ''),
+            timestamp: Timestamp.now()
+        };
+
+        try {
+            await addDoc(historyRef, dataToSave);
+            saveNameInput.value = ''; // 저장 성공 시 입력창 초기화
+            console.log("Calculation saved successfully with name:", name);
+        } catch (e) {
+            console.error("Error adding document: ", e);
+        }
+    }
+
+    /**
+     * Firestore에서 계산 기록을 삭제합니다.
+     */
+    async function deleteCalculation(docId) {
+        const historyRef = getHistoryCollectionRef();
+        if (!historyRef) return console.error("Firestore not ready.");
+        
+        try {
+            const docRef = doc(historyRef, docId);
+            await deleteDoc(docRef);
+            console.log("Calculation deleted successfully:", docId);
+        } catch (e) {
+            console.error("Error deleting document: ", e);
+        }
+    }
 
 
-    // --- Cookie Helper Functions ---
+    /**
+     * Firestore의 계산 기록을 실시간으로 불러와 화면에 표시합니다.
+     */
+    function loadHistory() {
+        const historyRef = getHistoryCollectionRef();
+        if (!historyRef) return;
+
+        const loadingIndicator = document.getElementById('loading-history');
+        const historyList = document.getElementById('history-list');
+        const noHistoryMessage = document.getElementById('no-history-message');
+
+        loadingIndicator.classList.remove('hidden');
+
+        // Firestore onSnapshot (실시간 리스너)
+        onSnapshot(query(historyRef), (snapshot) => {
+            historyList.innerHTML = '';
+            const histories = [];
+            
+            snapshot.forEach((doc) => {
+                histories.push({ id: doc.id, ...doc.data() });
+            });
+
+            histories.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+
+            loadingIndicator.classList.add('hidden');
+
+            if (histories.length === 0) {
+                noHistoryMessage.classList.remove('hidden');
+                historyList.appendChild(noHistoryMessage);
+                return;
+            } else {
+                noHistoryMessage.classList.add('hidden');
+            }
+
+            histories.forEach(item => {
+                const dateStr = item.timestamp.toDate().toLocaleDateString('ko-KR', { 
+                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
+                });
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'history-item';
+                itemDiv.innerHTML = `
+                    <span class="history-item-name" title="${item.name}">${item.name} <span class="text-xs text-gray-400">(${dateStr})</span></span>
+                    <div class="history-actions">
+                        <button class="load-btn" onclick='loadCalculation("${item.id}", "${item.name}")'>불러오기</button>
+                        <button class="delete-btn" onclick='showDeleteModal("${item.id}", "${item.name}")'>삭제</button>
+                    </div>
+                `;
+                historyList.appendChild(itemDiv);
+            });
+        }, (error) => {
+            console.error("Error listening to history:", error);
+            loadingIndicator.classList.add('hidden');
+            historyList.innerHTML = '<p class="text-red-500 text-sm text-center">기록을 불러오는 데 실패했습니다.</p>';
+        });
+    }
+
+    /**
+     * 선택된 계산 기록을 입력 필드에 적용하고 계산을 실행합니다.
+     */
+    window.loadCalculation = async function(docId, name) {
+        const historyRef = getHistoryCollectionRef();
+        if (!historyRef) return;
+        
+        try {
+            const docSnapshot = await getDocs(query(historyRef));
+            const data = docSnapshot.docs.find(d => d.id === docId)?.data();
+
+            if (!data) {
+                console.error("Document not found.");
+                return;
+            }
+
+            // 1. 데이터 파싱
+            const loadData = {
+                buyPrice: data.buyPrice || '',
+                quantity: data.quantity || '',
+                sellPrice: data.sellPrice || '',
+                feeRate: data.feeRate || DEFAULT_FEE_RATE,
+                taxRate: data.taxRate || DEFAULT_TAX_RATE,
+            };
+
+            // 2. 입력 필드 업데이트
+            const inputs = [
+                { id: 'pl_buyPrice', value: loadData.buyPrice, cookie: 'stockBuyPrice' },
+                { id: 'pl_quantity', value: loadData.quantity, cookie: 'stockQuantity' },
+                { id: 'pl_sellPrice', value: loadData.sellPrice, cookie: 'stockSellPrice' },
+                { id: 'pl_feeRateInput', value: loadData.feeRate, cookie: 'stockFeeRate' },
+                { id: 'pl_taxRateInput', value: loadData.taxRate, cookie: 'stockTaxRate' }
+            ];
+
+            inputs.forEach(item => {
+                const input = document.getElementById(item.id);
+                if (input.id.includes('Rate')) {
+                    // 비율 필드는 값만 설정
+                    input.value = item.value;
+                } else {
+                    // 금액 필드는 포맷팅 및 쿠키 저장
+                    const rawValue = item.value;
+                    input.value = rawValue;
+                    window.formatCurrencyInput(input);
+                }
+                setCookie(item.cookie, item.value); 
+            });
+
+            // 3. 계산 실행 및 피드백
+            calculateProfitLoss();
+            console.log(`Calculation '${name}' loaded successfully.`);
+
+        } catch (e) {
+            console.error("Error loading document: ", e);
+        }
+    }
+
+
+    // --------------------------------------------------------------------------------
+    // --- (Original) Utility Functions ---
+    // --------------------------------------------------------------------------------
 
     function getCookie(name) {
         const nameEQ = name + "=";
@@ -225,8 +614,6 @@
         const expires = "; expires=" + date.toUTCString();
         document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
     }
-
-    // --- Format & Input Handlers ---
 
     /**
      * 금액을 한국 통화 형식으로 포맷합니다.
@@ -295,11 +682,9 @@
         if (rawValue === '' || parseFloat(rawValue) === 0) {
             input.value = '';
             if (cookieName) setCookie(cookieName, '');
-            // 계산 함수는 oninput 속성에서 호출하도록 변경하여 코드 단순화
             return; 
         }
         
-        // 0 입력 시 빈 문자열로 표시 (이미 위에서 처리됨)
         const [integerPart, decimalPart] = rawValue.split('.');
         const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
@@ -319,7 +704,6 @@
         input.setSelectionRange(newCursorStart, newCursorStart);
         
         if (cookieName) setCookie(cookieName, rawValue);
-        // 계산은 HTML의 oninput에서 호출됨
     }
 
     /**
@@ -331,7 +715,6 @@
         if (!isNaN(parseFloat(rawValue))) {
             setCookie(cookieName, rawValue);
         }
-        // 계산은 HTML의 oninput에서 호출됨
     }
     
     /**
@@ -347,7 +730,6 @@
             input.value = defaultValue; 
             setCookie(cookieName, defaultValue);
         }
-        // 계산은 HTML의 onclick에서 호출됨
     };
     
     // --- Cost Calculation Helper (Shared Logic) ---
@@ -389,7 +771,7 @@
             signPrefix = '+';
         } else if (netProfitLoss < 0) {
             resultClass = `${prefix}-loss-text`;
-            signPrefix = ''; // 손실일 때는 마이너스 부호는 formatCurrency에서 처리됩니다.
+            signPrefix = '';
         }
 
         const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
@@ -428,19 +810,11 @@
             const F = feeRate / 100;
             const T = taxRate / 100;
             
-            // Total Investment Cost (Buy Price + Buy Fee)
-            // 매수 원금 + 매수 시 발생하는 수수료
             const totalInvestmentCost = totalBuyCost * (1 + F); 
-
-            // Denominator for total sales calculation (1 - Sell Fee Rate - Tax Rate)
-            // 1 - 매도 수수료율 - 거래세율
             const denominator = 1 - F - T; 
             
             if (denominator > 0) {
-                // Total Sales needed to cover all costs: TotalInvestmentCost / (1 - F - T)
                 const totalBreakEvenSales = totalInvestmentCost / denominator;
-                
-                // Break-Even Price (Price per share)
                 breakEvenPrice = totalBreakEvenSales / totalQuantity; 
             }
         }
@@ -466,7 +840,6 @@
         const totalFee = costs.totalFee;
         const totalTax = costs.totalTax;
         
-        // 최종 손익률 텍스트 스타일 결정 (순이익/손실 기준)
         let rateClass = 'pl-neutral-text';
         if (netProfitLoss > 0) {
             rateClass = 'pl-profit-text';
@@ -484,7 +857,6 @@
             simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
         }
         
-        // 단순 수익률 표시를 위한 값과 부호 결정 (핵심 수정 부분)
         let simpleProfitRateValue = isFinite(simpleProfitRate) ? formatCurrency(Math.abs(simpleProfitRate), 2) : 'N/A';
         let simpleProfitPrefix = '';
         
@@ -496,7 +868,7 @@
         
         const simpleProfitRateText = simpleProfitRateValue + '%';
 
-        // 결과 테이블 HTML (BEP 항목은 이미 위에서 표시되므로 여기서는 제거)
+        // 결과 테이블 HTML
         const tableHTML = `
             <thead>
                 <tr>
@@ -554,12 +926,12 @@
         document.getElementById('pl_resultTable').innerHTML = tableHTML;
         document.getElementById('pl_result').style.display = 'block';
         
-        // 결과창의 테두리와 배경색을 순손익에 따라 변경
+        // 결과창의 테두리와 배경색을 순손익에 따라 변경 (한국 주식 색상: 수익=빨강, 손실=파랑)
         const resultDiv = document.getElementById('pl_result');
         if (netProfitLoss > 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익은 빨간색 (한국 주식 양봉색)
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; 
         } else if (netProfitLoss < 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실은 파란색 (한국 주식 음봉색)
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; 
         } else {
             resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
         }
@@ -606,11 +978,13 @@
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
+        // 1. 쿠키에서 기존 값 로드
         loadFromCookies(); 
+        // 2. Firebase 초기화 및 인증 시작 (인증 완료 후 히스토리 로드)
+        initializeFirebase();
     });
 
 </script>
 </body>
 </html>
-
 
