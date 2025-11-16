@@ -215,9 +215,7 @@
 
 <div class="calculator w-full">
     
-    <h2 class="text-2xl font-extrabold text-center text-gray-800 mb-4">주식 물타기 손익 시뮬레이터</h2>
-
-    <div class="realtime-note">💡 모든 입력 값은 실시간으로 자동 계산되며, 브라우저에 **임시 저장**됩니다.</div>
+    <div class="realtime-note">💡 모든 입력 값은 실시간으로 자동 계산되며, 브라우저에 임시 저장 됩니다.</div>
 
     <div id="tab-dca-simulator" class="tab-content">
 
@@ -1079,8 +1077,13 @@
     
     /**
      * 히스토리 항목을 삭제합니다.
+     * ⭐️ 수정된 부분: 삭제 전 사용자에게 확인을 요청합니다. ⭐️
      */
-    window.deleteHistory = function(id) {
+    window.deleteHistory = function(id, name) {
+        if (!confirm(`히스토리 "${name}" 기록을 정말로 삭제하시겠습니까?`)) {
+            return;
+        }
+
         let history = loadHistory();
         const initialLength = history.length;
         history = history.filter(entry => entry.id !== id);
@@ -1164,7 +1167,7 @@
                     <button onclick="loadHistoryState(${entry.id})" class="history-action-btn bg-blue-500 hover:bg-blue-600 text-white rounded-md transition duration-150">
                         로드
                     </button>
-                    <button onclick="deleteHistory(${entry.id})" class="history-action-btn bg-gray-300 hover:bg-red-500 hover:text-white text-gray-700 rounded-md transition duration-150">
+                    <button onclick="deleteHistory(${entry.id}, '${entry.name.replace(/'/g, "\\'")}')" class="history-action-btn bg-gray-300 hover:bg-red-500 hover:text-white text-gray-700 rounded-md transition duration-150">
                         삭제
                     </button>
                 </td>
