@@ -1,9 +1,9 @@
-<!DOCTYPE ahtml>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 거래 손익률 계산기</title>
+    <title>주식 거래 손익률 계산기 및 기록 저장 (로컬)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Inter 폰트 사용 설정 */
@@ -14,12 +14,9 @@
         }
         
         .calculator {
-            max-width: 500px;
-            margin: 0 auto 20px auto; /* 상단 마진을 0으로 설정하여 상단 공백 제거 */
-            background: #ffffff;
+            max-width: 900px;
+            margin: 0 auto 20px auto; 
             padding: 16px 12px; 
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         .input-group {
              margin-bottom: 1rem;
@@ -111,11 +108,11 @@
             font-size: 1.05em; 
         }
         .pl-profit-text {
-            color: #e74c3c;
+            color: #e74c3c; /* 한국 주식 양봉색 (빨강) */
             font-weight: bold;
         }
         .pl-loss-text {
-            color: #3498db;
+            color: #3498db; /* 한국 주식 음봉색 (파랑) */
             font-weight: bold;
         }
         .pl-neutral-text {
@@ -135,98 +132,271 @@
             border: 1px dashed #2ecc71;
             border-radius: 4px;
         }
-        
+
+        /* 저장된 기록 목록 스타일 */
+        .trade-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .trade-info-area {
+            flex-grow: 1; 
+            min-width: 0; 
+            padding-right: 1rem;
+        }
+        .trade-actions {
+            display: flex;
+            gap: 8px; /* 불러오기/삭제 버튼 사이 간격 */
+            flex-shrink: 0;
+        }
+
+        /* 불러오기 버튼 스타일 */
+        .load-trade-btn {
+            background-color: #3498db; /* Blue */
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .load-trade-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* 삭제 버튼 스타일 (항상 보임) */
+        .trade-item-delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c; /* 빨간색으로 항상 표시 */
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .trade-item-delete-btn:hover {
+            background-color: #ffe0e0;
+        }
+        /* 로컬 저장소 알림 */
+        .local-storage-note {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
 
 <div class="calculator w-full">
-    <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
-
-    <div id="tab-profit-loss" class="tab-content">
-
-        <div class="input-group">
-            <label for="pl_buyPrice">1. 매수 단가 (1주당 가격)</label>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="pl_buyPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockBuyPrice'); calculateProfitLoss();" inputmode="numeric" class="w-full">
-                <button type="button" onclick="resetIndividualInput('pl_buyPrice', 'stockBuyPrice', '0', 'currency'); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
-            </div>
-        </div>
-
-        <div class="input-group">
-            <label for="pl_quantity">2. 수량 (총 주식 수)</label>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="pl_quantity" value="" required oninput="handleCurrencyInputAndSave(this, 'stockQuantity'); calculateProfitLoss();" inputmode="numeric" class="w-full">
-                <button type="button" onclick="resetIndividualInput('pl_quantity', 'stockQuantity', '0', 'currency'); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
-            </div>
-        </div>
-
-        <!-- 손익분기 매도 단가 (BEP) 표시 영역 -->
-        <div id="bep_display" class="mb-4 p-3 bg-red-50 border-2 border-red-500 rounded-lg" style="display: none;">
-            <p class="text-sm text-red-700 font-semibold mb-1">순손익 0원이 되는 매도 단가 (BEP)</p>
-            <p id="bep_value" class="text-2xl text-red-700 font-extrabold text-right"></p>
-        </div>
-        <!-- BEP 표시 영역 끝 -->
-
-        <div class="input-group">
-            <label for="pl_sellPrice">3. 매도 단가 (1주당 가격)</label>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="pl_sellPrice" value="" required oninput="handleCurrencyInputAndSave(this, 'stockSellPrice'); calculateProfitLoss();" inputmode="numeric" class="w-full">
-                <button type="button" onclick="resetIndividualInput('pl_sellPrice', 'stockSellPrice', '0', 'currency'); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
-            </div>
-        </div>
+    <div class="local-storage-note text-center">⚠️ 이 기록은 사용하시는 브라우저의 로컬 저장소에 저장됩니다. 브라우저를 변경하거나 기록을 삭제하면 사라집니다.
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <div class="input-group">
-            <label for="pl_feeRateInput">4. 매매 수수료율 (%)</label>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="pl_feeRateInput" value="0.015" required oninput="handleRateInputAndSave(this, 'stockFeeRate'); calculateProfitLoss();" inputmode="decimal" class="w-full">
-                <button type="button" onclick="resetIndividualInput('pl_feeRateInput', 'stockFeeRate', '0.015', 'rate'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+        <!-- 좌측: 계산기 입력 및 결과 영역 -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">💰 주식 거래 손익 계산기</h2>
+            <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산됩니다.</div>
+
+            <div id="tab-profit-loss" class="tab-content">
+
+                <div class="input-group">
+                    <label for="pl_buyPrice">1. 매수 단가 (1주당 가격)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="pl_buyPrice" value="" required oninput="handleCurrencyInput(this); calculateProfitLoss();" inputmode="numeric" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_buyPrice', ''); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="pl_quantity">2. 수량 (총 주식 수)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="pl_quantity" value="" required oninput="handleCurrencyInput(this); calculateProfitLoss();" inputmode="numeric" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_quantity', ''); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+                    </div>
+                </div>
+
+                <!-- 손익분기 매도 단가 (BEP) 표시 영역 -->
+                <div id="bep_display" class="mb-4 p-3 bg-red-50 border-2 border-red-500 rounded-lg" style="display: none;">
+                    <p class="text-sm text-red-700 font-semibold mb-1">순손익 0원이 되는 매도 단가 (BEP)</p>
+                    <p id="bep_value" class="text-2xl text-red-700 font-extrabold text-right"></p>
+                </div>
+                <!-- BEP 표시 영역 끝 -->
+
+                <div class="input-group">
+                    <label for="pl_sellPrice">3. 매도 단가 (1주당 가격)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="pl_sellPrice" value="" required oninput="handleCurrencyInput(this); calculateProfitLoss();" inputmode="numeric" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_sellPrice', ''); calculateProfitLoss();" class="reset-individual-btn" title="초기화">↺</button>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="pl_feeRateInput">4. 매매 수수료율 (%)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="pl_feeRateInput" value="0.015" required oninput="handleRateInput(this); calculateProfitLoss();" inputmode="decimal" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_feeRateInput', '0.015'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.015%)으로 초기화">↺</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="pl_taxRateInput">5. 매도 거래세율 (%)</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="pl_taxRateInput" value="0.15" required oninput="handleRateInput(this); calculateProfitLoss();" inputmode="decimal" class="w-full">
+                        <button type="button" onclick="resetIndividualInput('pl_taxRateInput', '0.15'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+                    </div>
+                </div>
+                
+                <div id="pl_result" class="result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg" style="display: none;">
+                    <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
+                    <table id="pl_resultTable" class="result-table"></table>
+                </div>
+
+                <!-- 저장 기능 UI (반응형 개선) -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">⭐ 현재 거래 기록 저장</h3>
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                        <input type="text" id="saveTradeName" placeholder="기록할 이름을 입력하세요 (예: 삼성전자 1차)" class="w-full sm:flex-grow p-2 border border-gray-300 rounded-lg">
+                        <button onclick="saveCurrentTrade()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">로컬 저장</button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="input-group">
-            <label for="pl_taxRateInput">5. 매도 거래세율 (%)</label>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="pl_taxRateInput" value="0.15" required oninput="handleRateInputAndSave(this, 'stockTaxRate'); calculateProfitLoss();" inputmode="decimal" class="w-full">
-                <button type="button" onclick="resetIndividualInput('pl_taxRateInput', 'stockTaxRate', '0.15', 'rate'); calculateProfitLoss();" class="reset-individual-btn" title="기본값 (0.15%)으로 초기화">↺</button>
+        <!-- 우측: 저장된 기록 목록 -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-extrabold text-gray-800 mb-4 text-center">📜 히스토리</h2>
+            <div id="savedTradesList" class="border border-gray-200 rounded-lg overflow-hidden min-h-64">
+                <div class="p-4 text-center text-gray-500">로컬에 저장된 기록이 없습니다.</div>
             </div>
-        </div>
-        
-        <div id="pl_result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
-            <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
-            <table id="pl_resultTable" class="result-table"></table>
         </div>
     </div>
 </div>
 
-<script type="module">
+<!-- 사용자 정의 삭제 확인 모달 -->
+<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+    <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-transform duration-300 scale-95">
+        <h3 class="text-xl font-bold text-red-600 mb-4">삭제 확인</h3>
+        <p class="text-gray-700 mb-6">정말로 '<span id="tradeNameToDelete" class="font-bold"></span>' 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="hideConfirmationModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-200">취소</button>
+            <button onclick="confirmDeletion()" id="confirmDeleteButton" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">삭제</button>
+        </div>
+    </div>
+</div>
+
+<script>
     // --- Global State & Configuration ---
     const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
     const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
-    let activeTab = 'profit-loss'; // 현재 활성화된 탭
+    const STORAGE_KEY = 'stockTradeRecords'; // 로컬 저장소 키
+    let tradeToDeleteId = null;
 
+    // --- Local Storage Handlers (Trade Records) ---
 
-    // --- Cookie Helper Functions ---
-
-    function getCookie(name) {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for(let i=0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0)==' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    /**
+     * 로컬 저장소에서 저장된 거래 기록을 불러와 배열로 반환합니다.
+     */
+    function getSavedTrades() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.error("Error reading from localStorage:", e);
+            return [];
         }
-        return null;
     }
 
-    function setCookie(name, value) {
-        const date = new Date();
-        date.setTime(date.getTime() + (30*24*60*60*1000)); 
-        const expires = "; expires=" + date.toUTCString();
-        document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
+    /**
+     * 거래 기록 배열을 로컬 저장소에 저장합니다.
+     */
+    function saveTradesToLocal(trades) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+            renderSavedTrades(trades); // 저장 후 목록 자동 업데이트
+        } catch (e) {
+            console.error("Error writing to localStorage:", e);
+            alertUserMessage("로컬 저장에 실패했습니다.", "red");
+        }
     }
 
-    // --- Format & Input Handlers ---
+    /**
+     * 로컬 저장소에서 모든 기록을 불러와 UI에 렌더링합니다.
+     */
+    function loadSavedTrades() {
+        const trades = getSavedTrades();
+        // 저장 시 timestamp를 기준으로 내림차순 정렬 (최신순)
+        trades.sort((a, b) => b.timestamp - a.timestamp); 
+        renderSavedTrades(trades);
+    }
+
+    // --- Create: Save Current Trade ---
+
+    window.saveCurrentTrade = function() {
+        const tradeNameInput = document.getElementById('saveTradeName');
+        const tradeName = tradeNameInput.value.trim();
+
+        if (tradeName.length < 2) {
+            alertUserMessage("저장 실패: 기록할 이름을 두 글자 이상 입력해주세요.", "red");
+            return;
+        }
+
+        const tradeData = {
+            id: Date.now().toString(), // 고유 ID 생성
+            name: tradeName,
+            // 쉼표 제거 후 float으로 변환
+            buyPrice: parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0,
+            quantity: parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0,
+            sellPrice: parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0,
+            feeRate: parseFloat(document.getElementById('pl_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE,
+            taxRate: parseFloat(document.getElementById('pl_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE,
+            timestamp: Date.now() // 저장 시간
+        };
+
+        const trades = getSavedTrades();
+        trades.push(tradeData);
+        saveTradesToLocal(trades);
+        
+        alertUserMessage(`'${tradeName}' 기록이 로컬에 저장되었습니다.`, "green");
+        tradeNameInput.value = ''; // 저장 후 입력 필드 초기화
+    }
+
+    // --- Delete: Delete Trade ---
+    
+    window.deleteTrade = function(tradeId, tradeName) {
+        tradeToDeleteId = tradeId;
+        document.getElementById('tradeNameToDelete').textContent = tradeName;
+        showConfirmationModal();
+    }
+
+    window.confirmDeletion = function() {
+        if (!tradeToDeleteId) {
+            hideConfirmationModal();
+            return;
+        }
+
+        const currentTrades = getSavedTrades();
+        // 삭제할 ID와 일치하지 않는 기록만 필터링
+        const updatedTrades = currentTrades.filter(trade => trade.id !== tradeToDeleteId);
+
+        saveTradesToLocal(updatedTrades);
+        alertUserMessage("기록이 성공적으로 삭제되었습니다.", "green");
+        
+        tradeToDeleteId = null;
+        hideConfirmationModal();
+    }
+
+
+    // --- UI/UX & Data Formatting ---
 
     /**
      * 금액을 한국 통화 형식으로 포맷합니다.
@@ -237,19 +407,16 @@
         }
         const absoluteAmount = Math.abs(amount);
         
-        if (precision === 0) {
-            // 손익분기점, 원금, 수량, 손익금액 등 (정수)
-            return Math.floor(absoluteAmount).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
-        }
-
-        // 순수 평균 단가, 수익률, 변동률 등 (소수점 둘째 자리)
-        return absoluteAmount.toLocaleString('ko-KR', { minimumFractionDigits: precision, maximumFractionDigits: precision });
+        return absoluteAmount.toLocaleString('ko-KR', { 
+            minimumFractionDigits: precision, 
+            maximumFractionDigits: precision 
+        });
     }
 
     /**
      * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다. (빈 값 처리 포함)
      */
-    window.formatCurrencyInput = function(input) {
+    window.handleCurrencyInput = function(input) {
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
         let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
@@ -282,75 +449,128 @@
     }
     
     /**
-     * 금액 입력(단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
+     * 비율 입력(수수료율/거래세율) 값을 그대로 둡니다.
      */
-    window.handleCurrencyInputAndSave = function(input, cookieName) {
-        const cursorStart = input.selectionStart;
-        const oldValue = input.value;
-        let rawValue = oldValue.replace(/[^0-9.]/g, ''); 
-        
-        const parts = rawValue.split('.');
-        rawValue = parts.shift() + (parts.length > 0 ? '.' + parts.join('') : '');
-
-        if (rawValue === '' || parseFloat(rawValue) === 0) {
-            input.value = '';
-            if (cookieName) setCookie(cookieName, '');
-            // 계산 함수는 oninput 속성에서 호출하도록 변경하여 코드 단순화
-            return; 
-        }
-        
-        // 0 입력 시 빈 문자열로 표시 (이미 위에서 처리됨)
-        const [integerPart, decimalPart] = rawValue.split('.');
-        const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        const newValue = decimalPart !== undefined ? `${formattedIntegerPart}.${decimalPart}` : formattedIntegerPart;
-            
-        input.value = newValue;
-
-        const diff = newValue.length - oldValue.length;
-        let newCursorStart = cursorStart + diff;
-
-        if (newValue.length > oldValue.length) {
-            if (newValue.charAt(cursorStart) === ',' && cursorStart === newCursorStart - 1) {
-                newCursorStart = cursorStart + 1;
-            }
-        }
-        
-        newCursorStart = Math.min(newCursorStart, newValue.length);
-        input.setSelectionRange(newCursorStart, newCursorStart);
-        
-        if (cookieName) setCookie(cookieName, rawValue);
-        // 계산은 HTML의 oninput에서 호출됨
-    }
-
-    /**
-     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장합니다.
-     */
-    window.handleRateInputAndSave = function(input, cookieName) {
-        const rawValue = input.value.replace(/,/g, ''); 
-        
-        if (!isNaN(parseFloat(rawValue))) {
-            setCookie(cookieName, rawValue);
-        }
-        // 계산은 HTML의 oninput에서 호출됨
+    window.handleRateInput = function(input) {
+        // 비율 입력은 포맷팅 없이 값만 유지
     }
     
     /**
      * 개별 입력 필드를 기본값으로 초기화합니다.
      */
-    window.resetIndividualInput = function(inputId, cookieName, defaultValue, type) {
+    window.resetIndividualInput = function(inputId, defaultValue) {
         const input = document.getElementById(inputId);
         
-        if (type === 'currency') {
+        if (defaultValue === '') { // Currency fields (Buy Price, Quantity, Sell Price)
             input.value = ""; 
-            setCookie(cookieName, ''); 
-        } else { // rate
+        } else { // Rate fields
             input.value = defaultValue; 
-            setCookie(cookieName, defaultValue);
         }
-        // 계산은 HTML의 onclick에서 호출됨
     };
     
-    // --- Cost Calculation Helper (Shared Logic) ---
+    /**
+     * 사용자가 저장된 기록을 클릭했을 때 데이터를 로드하고 계산합니다. (불러오기 기능)
+     */
+    window.loadTrade = function(trade) {
+        // 입력 필드에 값 로드 및 포맷팅 적용
+        document.getElementById('pl_buyPrice').value = formatCurrency(trade.buyPrice, trade.buyPrice % 1 !== 0 ? 2 : 0);
+        document.getElementById('pl_quantity').value = formatCurrency(trade.quantity, trade.quantity % 1 !== 0 ? 0 : 0);
+        document.getElementById('pl_sellPrice').value = formatCurrency(trade.sellPrice, trade.sellPrice % 1 !== 0 ? 2 : 0);
+        document.getElementById('pl_feeRateInput').value = trade.feeRate;
+        document.getElementById('pl_taxRateInput').value = trade.taxRate;
+        
+        calculateProfitLoss();
+        alertUserMessage(`'${trade.name}' 기록을 불러왔습니다.`, "blue");
+    }
+
+    /**
+     * 로컬 저장소에서 가져온 기록 목록을 렌더링합니다.
+     */
+    function renderSavedTrades(trades) {
+        const listDiv = document.getElementById('savedTradesList');
+        listDiv.innerHTML = ''; 
+
+        if (trades.length === 0) {
+            listDiv.innerHTML = '<div class="p-4 text-center text-gray-500">로컬에 저장된 기록이 없습니다.</div>';
+            return;
+        }
+
+        trades.forEach(trade => {
+            const date = new Date(trade.timestamp).toLocaleDateString('ko-KR');
+            const tradeElement = document.createElement('div');
+            tradeElement.className = 'trade-item group';
+            
+            // JSON.stringify로 객체를 문자열화하여 onclick에 전달
+            const tradeDataString = JSON.stringify(trade).replace(/"/g, '\'');
+
+            tradeElement.innerHTML = `
+                <!-- 정보 영역 -->
+                <div class="trade-info-area">
+                    <p class="font-semibold text-gray-800 truncate">${trade.name}</p>
+                    <p class="text-xs text-gray-500">${date} | 매수가: ${formatCurrency(trade.buyPrice)}원</p>
+                </div>
+                <!-- 액션 버튼 그룹 -->
+                <div class="trade-actions">
+                    <!-- 불러오기 버튼 -->
+                    <button 
+                        onclick='loadTrade(${tradeDataString})' 
+                        class="load-trade-btn"
+                        title="계산기에 데이터 불러오기"
+                    >
+                        불러오기
+                    </button>
+                    <!-- 삭제 버튼 (항상 보이도록) -->
+                    <button 
+                        onclick="deleteTrade('${trade.id}', '${trade.name}')" 
+                        class="trade-item-delete-btn flex-shrink-0 transition-opacity"
+                        title="기록 삭제"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+            listDiv.appendChild(tradeElement);
+        });
+    }
+
+    // --- Modal Implementation (Custom Confirmation) ---
+
+    function showConfirmationModal() {
+        const modal = document.getElementById('confirmationModal');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.querySelector('.transform').classList.remove('scale-95');
+        modal.querySelector('.transform').classList.add('scale-100');
+    }
+
+    function hideConfirmationModal() {
+        const modal = document.getElementById('confirmationModal');
+        modal.querySelector('.transform').classList.remove('scale-100');
+        modal.querySelector('.transform').classList.add('scale-95');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+    
+    // --- Temporary User Message Alert (for feedback) ---
+    function alertUserMessage(message, type = "gray") {
+        const colorMap = {
+            green: "bg-green-500",
+            red: "bg-red-500",
+            blue: "bg-blue-500",
+            gray: "bg-gray-500"
+        };
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg text-white font-semibold ${colorMap[type]} transition-opacity duration-300 z-50`;
+        alertDiv.textContent = message;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => {
+            alertDiv.classList.add('opacity-0');
+            alertDiv.addEventListener('transitionend', () => alertDiv.remove());
+        }, 3000);
+    }
+
+    // --- Core Calculation Logic ---
+    
     function calculateTotalCosts(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate) {
         const F = feeRate / 100; 
         const T = taxRate / 100;   
@@ -371,9 +591,8 @@
         if (totalCost === 0 || totalQuantity === 0 || marketPrice === 0) {
             return {
                 netProfitLoss: 0, netProfitRate: 0, 
-                profitLossText: '0 원', profitRateText: '0.00 %', 
                 resultClass: `${prefix}-neutral-text`,
-                costs: {}
+                costs: calculateTotalCosts(totalCost, totalQuantity, marketPrice, feeRate, taxRate)
             };
         }
         
@@ -382,43 +601,32 @@
         const netProfitRate = (totalCost > 0) ? (netProfitLoss / totalCost) * 100 : (netProfitLoss > 0 ? Infinity : 0);
 
         let resultClass = `${prefix}-neutral-text`;
-        let signPrefix = ''; 
         
         if (netProfitLoss > 0) {
             resultClass = `${prefix}-profit-text`;
-            signPrefix = '+';
         } else if (netProfitLoss < 0) {
             resultClass = `${prefix}-loss-text`;
-            signPrefix = ''; // 손실일 때는 마이너스 부호는 formatCurrency에서 처리됩니다.
         }
 
-        const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
-        const profitRateText = signPrefix + (isFinite(netProfitRate) ? formatCurrency(netProfitRate, 2) : 'N/A') + ' %';
-        
-        return { netProfitLoss, netProfitRate, profitLossText, profitRateText, resultClass, costs };
+        return { netProfitLoss, netProfitRate, resultClass, costs };
     }
 
 
-    // --- CALCULATION 1: Profit/Loss Calculator Logic ---
-
     window.calculateProfitLoss = function() {
-        // 입력값 가져오기 (PL Calculator IDs)
+        // 입력값 가져오기
         const buyPrice = parseFloat(document.getElementById('pl_buyPrice').value.replace(/,/g, '')) || 0;
         const quantity = parseFloat(document.getElementById('pl_quantity').value.replace(/,/g, '')) || 0;
         const sellPrice = parseFloat(document.getElementById('pl_sellPrice').value.replace(/,/g, '')) || 0;
         
-        const feeRateInput = document.getElementById('pl_feeRateInput').value.replace(/,/g, '');
-        const taxRateInput = document.getElementById('pl_taxRateInput').value.replace(/,/g, '');
-        
-        const feeRate = parseFloat(feeRateInput) || 0;
-        const taxRate = parseFloat(taxRateInput) || 0;
+        const feeRate = parseFloat(document.getElementById('pl_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE;
+        const taxRate = parseFloat(document.getElementById('pl_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE;
         
         const totalBuyCost = buyPrice * quantity;
         const totalQuantity = quantity;
 
         if (totalBuyCost === 0 && totalQuantity === 0 && sellPrice === 0) {
             document.getElementById('pl_result').style.display = 'none';
-            document.getElementById('bep_display').style.display = 'none'; // BEP 숨기기
+            document.getElementById('bep_display').style.display = 'none'; 
             return;
         }
 
@@ -428,19 +636,11 @@
             const F = feeRate / 100;
             const T = taxRate / 100;
             
-            // Total Investment Cost (Buy Price + Buy Fee)
-            // 매수 원금 + 매수 시 발생하는 수수료
             const totalInvestmentCost = totalBuyCost * (1 + F); 
-
-            // Denominator for total sales calculation (1 - Sell Fee Rate - Tax Rate)
-            // 1 - 매도 수수료율 - 거래세율
             const denominator = 1 - F - T; 
             
             if (denominator > 0) {
-                // Total Sales needed to cover all costs: TotalInvestmentCost / (1 - F - T)
                 const totalBreakEvenSales = totalInvestmentCost / denominator;
-                
-                // Break-Even Price (Price per share)
                 breakEvenPrice = totalBreakEvenSales / totalQuantity; 
             }
         }
@@ -457,46 +657,33 @@
         }
         
         
-        const { netProfitLoss, netProfitRate, profitRateText, resultClass, costs } = 
+        const { netProfitLoss, netProfitRate, resultClass, costs } = 
             calculateProfitStatus(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate, 'pl');
         
-        // PL Calculator specific logic
         const grossSellAmount = costs.grossSellAmount;
         const totalDeductions = costs.totalDeductions;
         const totalFee = costs.totalFee;
         const totalTax = costs.totalTax;
         
-        // 최종 손익률 텍스트 스타일 결정 (순이익/손실 기준)
-        let rateClass = 'pl-neutral-text';
-        if (netProfitLoss > 0) {
-            rateClass = 'pl-profit-text';
-        } else if (netProfitLoss < 0) {
-            rateClass = 'pl-loss-text';
-        }
-
-        // 매도 후 순회수액 (매도 금액 - 매도 수수료 - 거래세)
         const netProceedsAfterSellDeductions = grossSellAmount - (costs.sellFee + costs.salesTax); 
         
-        // 단순 수익률 (세금/수수료 미반영)
+        // 단순 수익 (세전)
         const simpleProfit = grossSellAmount - totalBuyCost;
         let simpleProfitRate = 0;
         if (totalBuyCost > 0) {
             simpleProfitRate = (simpleProfit / totalBuyCost) * 100;
         }
         
-        // 단순 수익률 표시를 위한 값과 부호 결정 (핵심 수정 부분)
-        let simpleProfitRateValue = isFinite(simpleProfitRate) ? formatCurrency(Math.abs(simpleProfitRate), 2) : 'N/A';
         let simpleProfitPrefix = '';
-        
         if (simpleProfit > 0) {
             simpleProfitPrefix = '+';
         } else if (simpleProfit < 0) {
             simpleProfitPrefix = '-';
         }
         
-        const simpleProfitRateText = simpleProfitRateValue + '%';
+        const simpleProfitRateText = isFinite(simpleProfitRate) ? formatCurrency(Math.abs(simpleProfitRate), 2) + '%' : 'N/A';
 
-        // 결과 테이블 HTML (BEP 항목은 이미 위에서 표시되므로 여기서는 제거)
+        // 결과 테이블 HTML
         const tableHTML = `
             <thead>
                 <tr>
@@ -554,59 +741,21 @@
         document.getElementById('pl_resultTable').innerHTML = tableHTML;
         document.getElementById('pl_result').style.display = 'block';
         
-        // 결과창의 테두리와 배경색을 순손익에 따라 변경
+        // 결과창의 테두리와 배경색을 순손익에 따라 변경 (한국 주식 색상 기준)
         const resultDiv = document.getElementById('pl_result');
         if (netProfitLoss > 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익은 빨간색 (한국 주식 양봉색)
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; // 수익: 빨강
         } else if (netProfitLoss < 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실은 파란색 (한국 주식 음봉색)
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; // 손실: 파랑
         } else {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg'; // 중립: 회색
         }
-
-    }
-
-    /**
-     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
-     */
-    function loadFromCookies() {
-        
-        // --- PL Calculator Fields ---
-        const plCurrencyInputs = [
-            { id: 'pl_buyPrice', cookie: 'stockBuyPrice' },
-            { id: 'pl_quantity', cookie: 'stockQuantity' },
-            { id: 'pl_sellPrice', cookie: 'stockSellPrice' }
-        ];
-        
-        plCurrencyInputs.forEach(item => {
-            const input = document.getElementById(item.id);
-            const storedValue = getCookie(item.cookie);
-            
-            if (storedValue !== null && storedValue !== "" && parseFloat(storedValue) !== 0) {
-                input.value = storedValue;
-                window.formatCurrencyInput(input); 
-            }
-        });
-
-        // --- Rate Fields (PL) ---
-        const rateInputs = [
-            { id: 'pl_feeRateInput', cookie: 'stockFeeRate', default: DEFAULT_FEE_RATE },
-            { id: 'pl_taxRateInput', cookie: 'stockTaxRate', default: DEFAULT_TAX_RATE }
-        ];
-        
-        rateInputs.forEach(item => {
-            const storedValue = getCookie(item.cookie);
-            const value = (storedValue !== null && storedValue !== "") ? storedValue : item.default;
-            document.getElementById(item.id).value = value;
-        });
-        
-        // 초기 로드 후 계산 실행
-        calculateProfitLoss();
     }
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        loadFromCookies(); 
+        loadSavedTrades(); // 로컬 저장소에서 기록 로드
+        calculateProfitLoss(); // 초기 로드 후 계산 실행
     });
 
 </script>
