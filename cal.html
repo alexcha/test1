@@ -322,7 +322,7 @@
         </div>
     </div>
     
-    <div class="local-storage-note text-center">⚠️ 이 기록은 사용하시는 브라우저의 로컬 저장소에 저장됩니다. 브라우저를 변경하거나 기록을 삭제하면 사라집니다.
+    <div class="local-storage-note text-center">⚠️ 이 기록은 사용하시는 브라우저의 로컬 저장소에 저장되며, 계산기의 현재 입력값도 자동으로 저장됩니다.
     </div>
 </div>
 
@@ -342,6 +342,7 @@
     const DEFAULT_FEE_RATE = 0.015; 
     const DEFAULT_TAX_RATE = 0.15;   
     const STORAGE_KEY = 'stockTradeRecords'; 
+    const INPUTS_KEY = 'currentCalculatorInputs'; // ⭐️ 추가: 현재 입력 값 저장을 위한 키 ⭐️
     const MAX_TRADES = 6; 
     let tradeToDeleteId = null;
 
@@ -394,6 +395,50 @@
             } else {
                 limitNote.style.display = 'none';
             }
+        }
+    }
+    
+    // --- ⭐️ 새로 추가된 현재 입력 값 저장/복원 함수 ⭐️ ---
+
+    function saveCurrentInputs() {
+        const currentInputs = {
+            buyPrice: document.getElementById('pl_buyPrice').value,
+            quantity: document.getElementById('pl_quantity').value,
+            sellPrice: document.getElementById('pl_sellPrice').value,
+            feeRate: document.getElementById('pl_feeRateInput').value,
+            taxRate: document.getElementById('pl_taxRateInput').value,
+        };
+        try {
+            localStorage.setItem(INPUTS_KEY, JSON.stringify(currentInputs));
+        } catch (e) {
+            console.error("Error saving current inputs to localStorage:", e);
+        }
+    }
+
+    function loadCurrentInputs() {
+        try {
+            const data = localStorage.getItem(INPUTS_KEY);
+            if (!data) return;
+
+            const savedInputs = JSON.parse(data);
+            
+            // 입력 필드에 값 복원
+            document.getElementById('pl_buyPrice').value = savedInputs.buyPrice || '';
+            document.getElementById('pl_quantity').value = savedInputs.quantity || '';
+            document.getElementById('pl_sellPrice').value = savedInputs.sellPrice || '';
+            document.getElementById('pl_feeRateInput').value = savedInputs.feeRate || DEFAULT_FEE_RATE.toString();
+            document.getElementById('pl_taxRateInput').value = savedInputs.taxRate || DEFAULT_TAX_RATE.toString();
+            
+            // UI 포맷팅 및 계산 즉시 실행 (calculateProfitLoss()가 자동으로 호출됨)
+            if (document.getElementById('pl_buyPrice').value) window.handleCurrencyInput(document.getElementById('pl_buyPrice'));
+            if (document.getElementById('pl_quantity').value) window.handleCurrencyInput(document.getElementById('pl_quantity'));
+            if (document.getElementById('pl_sellPrice').value) window.handleCurrencyInput(document.getElementById('pl_sellPrice'));
+            
+            window.handleRateInput(document.getElementById('pl_feeRateInput'));
+            window.handleRateInput(document.getElementById('pl_taxRateInput'));
+
+        } catch (e) {
+            console.error("Error loading current inputs from localStorage:", e);
         }
     }
 
@@ -493,6 +538,7 @@
         if (rawValue === '' || parseFloat(rawValue) === 0) {
             input.value = ''; 
             calculateProfitLoss(); // 입력값 변경 시 계산
+            saveCurrentInputs(); // ⭐️ 추가: 입력 값 저장 ⭐️
             return; 
         }
         
@@ -514,13 +560,15 @@
         newCursorStart = Math.min(newCursorStart, newValue.length);
         input.setSelectionRange(newCursorStart, newCursorStart);
 
-        // 입력 필드 수정 시 실시간 계산
+        // 입력 필드 수정 시 실시간 계산 및 저장
         calculateProfitLoss();
+        saveCurrentInputs(); // ⭐️ 추가: 입력 값 저장 ⭐️
     }
     
     window.handleRateInput = function(input) {
         // 비율 입력은 포맷팅 없이 값만 유지하고 계산만 실행
         calculateProfitLoss();
+        saveCurrentInputs(); // ⭐️ 추가: 입력 값 저장 ⭐️
     }
     
     window.resetIndividualInput = function(inputId, defaultValue) {
@@ -532,13 +580,13 @@
             input.value = defaultValue; 
         }
         calculateProfitLoss();
+        saveCurrentInputs(); // ⭐️ 추가: 입력 값 저장 ⭐️
     };
     
     /**
-     * ⭐️ 로드 함수 수정: 인코딩된 문자열을 디코딩 및 파싱 후 계산 ⭐️
+     * ⭐️ 로드 함수: 인코딩된 문자열을 디코딩 및 파싱 후 계산 ⭐️
      */
     window.loadTrade = function(tradeDataStringEncoded) {
-        // ⭐️ 수정: 인코딩된 문자열을 디코딩하고 JSON 객체로 파싱 ⭐️
         const trade = JSON.parse(decodeURIComponent(tradeDataStringEncoded));
         
         const buyPriceInput = document.getElementById('pl_buyPrice');
@@ -564,11 +612,14 @@
         window.handleRateInput(feeRateInput); 
         window.handleRateInput(taxRateInput); 
         
+        // 로드된 값으로 현재 입력값을 저장
+        saveCurrentInputs(); // ⭐️ 추가: 로드된 값 저장 ⭐️
+        
         alertUserMessage(`'${trade.name}' 기록을 불러왔습니다.`, "blue");
     }
 
     /**
-     * ⭐️ 수정된 renderSavedTrades 함수 (데이터 인코딩) ⭐️
+     * ⭐️ renderSavedTrades 함수 (데이터 인코딩) ⭐️
      */
     function renderSavedTrades(trades) {
         const listDiv = document.getElementById('savedTradesList');
@@ -592,7 +643,7 @@
             const tradeElement = document.createElement('div');
             tradeElement.className = 'trade-item group';
             
-            // ⭐️ 수정: JSON.stringify 후 URI 인코딩하여 안전하게 전달 ⭐️
+            // JSON.stringify 후 URI 인코딩하여 안전하게 전달
             const tradeDataStringEncoded = encodeURIComponent(JSON.stringify(trade));
             
             // 평단가 정보
@@ -722,6 +773,7 @@
         if (totalBuyCost === 0 && totalQuantity === 0 && sellPrice === 0) {
             document.getElementById('pl_result').style.display = 'none';
             document.getElementById('bep_display').style.display = 'none'; 
+            saveCurrentInputs(); // ⭐️ 추가: 입력 값 저장 ⭐️
             return;
         }
 
@@ -841,13 +893,16 @@
         } else {
             resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg'; 
         }
+        
+        saveCurrentInputs(); // ⭐️ 추가: 입력 값 저장 ⭐️
     }
 
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
+        loadCurrentInputs(); // ⭐️ 추가: 기존 입력값 복원 ⭐️
         loadSavedTrades(); 
-        calculateProfitLoss(); 
+        // calculateProfitLoss()는 loadCurrentInputs() 내의 handle...Input() 호출을 통해 자동으로 실행됨
     });
 
 </script>
