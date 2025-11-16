@@ -206,7 +206,7 @@
     
     <h2 class="text-2xl font-extrabold text-center text-gray-800 mb-4">주식 물타기 손익 시뮬레이터</h2>
 
-    <div class="realtime-note">💡 모든 입력 필드 수정 시 실시간 자동 계산 및 **임시 저장**됩니다.</div>
+    <div class="realtime-note">💡 모든 입력 값은 실시간으로 자동 계산되며, 브라우저에 **임시 저장**됩니다.</div>
 
     <div id="tab-dca-simulator" class="tab-content">
 
@@ -331,6 +331,7 @@
 
 <script type="module">
     // --- Global State & Configuration ---
+    // 기본값 설정
     const DEFAULT_FEE_RATE = 0.015;
     const DEFAULT_TAX_RATE = 0.15;
     let purchaseEntryIdCounter = 0; 
@@ -559,6 +560,9 @@
                     return;
                 }
             }
+            // 저장된 상태가 없으면 기본값(수수료/세금)을 설정
+            if (!state.dcaFeeRate) state.dcaFeeRate = DEFAULT_FEE_RATE;
+            if (!state.dcaTaxRate) state.dcaTaxRate = DEFAULT_TAX_RATE;
         }
         
         // 1. 정적 입력 필드 복원
@@ -734,8 +738,9 @@
         const currentQuantity = parseFloat(document.getElementById('dca_currentQuantity').value.replace(/,/g, '')) || 0;
         const currentMarketPrice = parseFloat(document.getElementById('dca_currentMarketPrice').value.replace(/,/g, '')) || 0;
         
-        const feeRate = parseFloat(document.getElementById('dca_feeRateInput').value.replace(/,/g, '')) || 0;
-        const taxRate = parseFloat(document.getElementById('dca_taxRateInput').value.replace(/,/g, '')) || 0;
+        // 값이 없으면 기본값 사용 (초기 로드 시)
+        const feeRate = parseFloat(document.getElementById('dca_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE;
+        const taxRate = parseFloat(document.getElementById('dca_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE;
 
         // 2. 동적 매수 값 집계 및 임시 저장
         const dcaValues = aggregateDCAValues();
