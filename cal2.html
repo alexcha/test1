@@ -745,7 +745,8 @@
         const feeRate = parseFloat(document.getElementById('dca_feeRateInput').value.replace(/,/g, '')) || DEFAULT_FEE_RATE;
         const taxRate = parseFloat(document.getElementById('dca_taxRateInput').value.replace(/,/g, '')) || DEFAULT_TAX_RATE;
 
-        let cumulativeCost = currentPrice * currentQuantity;
+        const initialCost = currentPrice * currentQuantity; // 물타기 전 초기 원금
+        let cumulativeCost = initialCost;
         let cumulativeQuantity = currentQuantity;
         
         let totalNewCost = 0;
@@ -817,7 +818,7 @@
                         <div class="text-sm font-semibold text-green-700 mt-0 mb-1">${entryTitle} 후 누적 결과</div>
                         <ul class="list-disc list-inside space-y-1 text-xs pl-2">
                             <li>총 수량: <span class="font-bold">${formatCurrency(cumulativeQuantity, 0)} 주</span></li>
-                            <li>총 원금: <span class="font-bold">${formatCurrency(cumulativeCost, 0)} 원</span></li>
+                            <li>**총 원금**: <span class="font-bold text-red-600">${formatCurrency(cumulativeCost, 0)} 원</span></li>
                             <li>**누적 평단가**: <span class="text-indigo-700 font-extrabold">${formatCurrency(entryAvgPrice, 2)} 원</span></li>
                             <li>평단 감소율: <span class="${rateClass}">${ratePrefix}${rateDisplay}</span> (물타기 전 평단 대비)</li>
                             <li>**손익분기점**: <span class="text-green-800 font-extrabold">${isFinite(breakEvenPrice) ? formatCurrency(Math.floor(breakEvenPrice), 0) : '불가능'} 원</span></li>
