@@ -270,14 +270,14 @@
     
     <!-- 히스토리 저장 및 목록 영역 -->
     <div class="mt-8 pt-4 border-t border-gray-200">
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">⭐ 계산 저장 및 히스토리</h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">⭐ 계산 저장 및 히스토리 (Local Storage)</h2>
         
         <!-- 계산 저장하기 -->
         <div class="p-4 mb-6 bg-yellow-50 border border-yellow-300 rounded-lg">
             <label for="saveNameInput" class="font-bold text-yellow-800 mb-2 block">저장 이름 입력:</label>
             <div class="flex space-x-2">
                 <input type="text" id="saveNameInput" placeholder="예: 삼성전자 1차 매수" class="w-full text-left p-2 border-yellow-400">
-                <button onclick="saveCalculation()" class="bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition duration-150 flex-shrink-0">
+                <button onclick="saveCalculationLocal()" class="bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition duration-150 flex-shrink-0">
                     저장하기
                 </button>
             </div>
@@ -285,12 +285,12 @@
 
         <!-- 히스토리 목록 -->
         <h3 class="text-xl font-semibold text-gray-700 mb-3 flex justify-between items-center">
-            저장된 계산 목록 <span id="loading-history" class="text-sm text-blue-500 hidden">...불러오는 중</span>
+            저장된 계산 목록 
         </h3>
         <div id="history-list" class="space-y-2 min-h-[50px] p-2 bg-gray-50 rounded-lg border">
             <p id="no-history-message" class="text-gray-500 text-sm text-center">저장된 계산 기록이 없습니다.</p>
         </div>
-        <p class="text-sm text-gray-500 mt-2">사용자 ID: <span id="user-id-display"></span></p>
+        <p class="text-sm text-red-500 mt-2">💡 이 기록은 현재 브라우저에만 저장되며, 브라우저를 변경하거나 기록을 삭제하면 사라집니다.</p>
     </div>
     <!-- 히스토리 영역 끝 -->
 </div>
@@ -314,97 +314,42 @@
 <!-- 모달 끝 -->
 
 
-<script type="module">
-    // --- Firebase & Global Configuration ---
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, addDoc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, Timestamp, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    setLogLevel('error'); // FireStore Debugging
-
-    // Global Variables provided by environment
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // Firebase instances
-    let app;
-    let db;
-    let auth;
-    let currentUserId = null;
-    let isAuthReady = false;
+<script>
+    // --- Global Configuration ---
+    const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
+    const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
+    const HISTORY_STORAGE_KEY = 'stockCalculatorHistory'; // Local Storage Key
 
     // History deletion state
     let docToDeleteId = null;
 
-    // Constants
-    const DEFAULT_FEE_RATE = 0.015; // 기본 수수료율 %
-    const DEFAULT_TAX_RATE = 0.15;   // 기본 거래세율 %
-    const COLLECTION_NAME = 'stock_history';
+    // --- Local Storage Helper Functions ---
 
-    // --- Firebase Initialization and Auth ---
-
-    async function initializeFirebase() {
+    /**
+     * Local Storage에서 히스토리 데이터를 불러옵니다.
+     */
+    function getHistoryData() {
+        const storedData = localStorage.getItem(HISTORY_STORAGE_KEY);
         try {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            
-            // 1. Initial Authentication Check
-            await new Promise((resolve) => {
-                const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                    if (!user) {
-                        if (initialAuthToken) {
-                            // Use custom token if provided
-                            try {
-                                const userCredential = await signInWithCustomToken(auth, initialAuthToken);
-                                currentUserId = userCredential.user.uid;
-                                console.log("Custom token sign-in successful.");
-                            } catch (e) {
-                                console.error("Custom token sign-in failed, falling back to anonymous.", e);
-                                await signInAnonymously(auth);
-                                currentUserId = auth.currentUser.uid;
-                            }
-                        } else {
-                            // Fallback to anonymous sign-in
-                            await signInAnonymously(auth);
-                            currentUserId = auth.currentUser.uid;
-                        }
-                    } else {
-                        currentUserId = user.uid;
-                    }
-
-                    isAuthReady = true;
-                    document.getElementById('user-id-display').textContent = currentUserId;
-                    unsubscribe(); // Stop listening after initial auth is resolved
-                    resolve();
-                });
-            });
-
-            // 2. Load History after Auth is Ready
-            loadHistory(); 
-
-        } catch (error) {
-            console.error("Firebase initialization or authentication failed:", error);
-            // Show error message to user if necessary
+            return storedData ? JSON.parse(storedData) : [];
+        } catch (e) {
+            console.error("Error parsing history data from localStorage:", e);
+            return [];
         }
     }
 
     /**
-     * Firestore 컬렉션 경로를 반환합니다. (개인 데이터)
+     * 히스토리 데이터를 Local Storage에 저장합니다.
      */
-    function getHistoryCollectionRef() {
-        if (!db || !currentUserId) return null;
-        // Path: /artifacts/{appId}/users/{userId}/stock_history
-        const userPath = `/artifacts/${appId}/users/${currentUserId}`;
-        return collection(db, userPath, COLLECTION_NAME);
+    function setHistoryData(data) {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(data));
     }
 
     // --- History Modal Logic ---
 
     window.showDeleteModal = function(docId, name) {
         docToDeleteId = docId;
-        document.getElementById('delete-modal-message').textContent = `'${name}' 기록을 정말로 삭제하시겠습니까?`;
+        document.getElementById('delete-modal-message').textContent = `'${name}' 기록을 정말로 삭제하시겠습니까? (이 작업은 되돌릴 수 없습니다)`;
         document.getElementById('delete-modal-backdrop').classList.remove('hidden');
     }
 
@@ -413,183 +358,146 @@
         document.getElementById('delete-modal-backdrop').classList.add('hidden');
     }
 
-    window.confirmDelete = async function() {
-        if (docToDeleteId) {
-            await deleteCalculation(docToDeleteId);
+    window.confirmDelete = function() {
+        if (docToDeleteId !== null) {
+            deleteCalculationLocal(docToDeleteId);
             hideDeleteModal();
         }
     }
 
-    // --- History Data Operations ---
+    // --- History Data Operations (Local Storage) ---
 
     /**
-     * 현재 계산 상태를 Firestore에 저장합니다.
+     * 현재 계산 상태를 Local Storage에 저장합니다.
      */
-    window.saveCalculation = async function() {
-        const historyRef = getHistoryCollectionRef();
-        if (!historyRef) return console.error("Firestore not ready.");
-
+    window.saveCalculationLocal = function() {
         const saveNameInput = document.getElementById('saveNameInput');
         let name = saveNameInput.value.trim();
 
         if (name === '') {
-            name = prompt("저장할 이름을 입력해 주세요 (예: 삼성전자 1차)");
-            if (!name || name.trim() === '') {
-                // Cannot use window.alert, use console error
-                console.error("저장 이름이 입력되지 않았습니다. 저장 취소.");
-                return;
-            }
+            // Can't use prompt/alert in this environment, so skip or use a custom message box if needed.
+            // For simplicity, we'll use a placeholder name if input is empty
+            const date = new Date().toLocaleTimeString('ko-KR');
+            name = `미지정 저장 (${date})`;
         }
         
         // 입력 값 (문자열 그대로 저장하여 정밀도 유지)
         const dataToSave = {
+            id: Date.now().toString(), // Use current timestamp as unique ID
             name: name,
             buyPrice: document.getElementById('pl_buyPrice').value.replace(/,/g, ''),
             quantity: document.getElementById('pl_quantity').value.replace(/,/g, ''),
             sellPrice: document.getElementById('pl_sellPrice').value.replace(/,/g, ''),
             feeRate: document.getElementById('pl_feeRateInput').value.replace(/,/g, ''),
             taxRate: document.getElementById('pl_taxRateInput').value.replace(/,/g, ''),
-            timestamp: Timestamp.now()
+            timestamp: Date.now()
         };
 
-        try {
-            await addDoc(historyRef, dataToSave);
-            saveNameInput.value = ''; // 저장 성공 시 입력창 초기화
-            console.log("Calculation saved successfully with name:", name);
-        } catch (e) {
-            console.error("Error adding document: ", e);
-        }
+        const histories = getHistoryData();
+        histories.unshift(dataToSave); // 최신 항목을 맨 앞에 추가
+        setHistoryData(histories);
+
+        saveNameInput.value = ''; // 저장 성공 시 입력창 초기화
+        loadHistoryLocal(); // 히스토리 목록 업데이트
     }
 
     /**
-     * Firestore에서 계산 기록을 삭제합니다.
+     * Local Storage에서 계산 기록을 삭제합니다.
      */
-    async function deleteCalculation(docId) {
-        const historyRef = getHistoryCollectionRef();
-        if (!historyRef) return console.error("Firestore not ready.");
+    function deleteCalculationLocal(docId) {
+        let histories = getHistoryData();
         
-        try {
-            const docRef = doc(historyRef, docId);
-            await deleteDoc(docRef);
-            console.log("Calculation deleted successfully:", docId);
-        } catch (e) {
-            console.error("Error deleting document: ", e);
-        }
+        // ID가 일치하지 않는 항목만 남깁니다.
+        histories = histories.filter(item => item.id !== docId);
+        setHistoryData(histories);
+        
+        loadHistoryLocal(); // 히스토리 목록 업데이트
     }
 
-
     /**
-     * Firestore의 계산 기록을 실시간으로 불러와 화면에 표시합니다.
+     * Local Storage의 계산 기록을 불러와 화면에 표시합니다.
      */
-    function loadHistory() {
-        const historyRef = getHistoryCollectionRef();
-        if (!historyRef) return;
-
-        const loadingIndicator = document.getElementById('loading-history');
+    function loadHistoryLocal() {
         const historyList = document.getElementById('history-list');
         const noHistoryMessage = document.getElementById('no-history-message');
+        const histories = getHistoryData();
+        
+        historyList.innerHTML = '';
+        
+        if (histories.length === 0) {
+            noHistoryMessage.classList.remove('hidden');
+            historyList.appendChild(noHistoryMessage);
+            return;
+        } else {
+            noHistoryMessage.classList.add('hidden');
+        }
 
-        loadingIndicator.classList.remove('hidden');
+        // histories는 이미 saveCalculationLocal에서 최신순으로 정렬됨
 
-        // Firestore onSnapshot (실시간 리스너)
-        onSnapshot(query(historyRef), (snapshot) => {
-            historyList.innerHTML = '';
-            const histories = [];
+        histories.forEach(item => {
+            const dateStr = new Date(item.timestamp).toLocaleDateString('ko-KR', { 
+                month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
+            });
             
-            snapshot.forEach((doc) => {
-                histories.push({ id: doc.id, ...doc.data() });
-            });
-
-            histories.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
-
-            loadingIndicator.classList.add('hidden');
-
-            if (histories.length === 0) {
-                noHistoryMessage.classList.remove('hidden');
-                historyList.appendChild(noHistoryMessage);
-                return;
-            } else {
-                noHistoryMessage.classList.add('hidden');
-            }
-
-            histories.forEach(item => {
-                const dateStr = item.timestamp.toDate().toLocaleDateString('ko-KR', { 
-                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
-                });
-                
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'history-item';
-                itemDiv.innerHTML = `
-                    <span class="history-item-name" title="${item.name}">${item.name} <span class="text-xs text-gray-400">(${dateStr})</span></span>
-                    <div class="history-actions">
-                        <button class="load-btn" onclick='loadCalculation("${item.id}", "${item.name}")'>불러오기</button>
-                        <button class="delete-btn" onclick='showDeleteModal("${item.id}", "${item.name}")'>삭제</button>
-                    </div>
-                `;
-                historyList.appendChild(itemDiv);
-            });
-        }, (error) => {
-            console.error("Error listening to history:", error);
-            loadingIndicator.classList.add('hidden');
-            historyList.innerHTML = '<p class="text-red-500 text-sm text-center">기록을 불러오는 데 실패했습니다.</p>';
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'history-item';
+            itemDiv.innerHTML = `
+                <span class="history-item-name" title="${item.name}">${item.name} <span class="text-xs text-gray-400">(${dateStr})</span></span>
+                <div class="history-actions">
+                    <button class="load-btn" onclick='loadCalculationLocal("${item.id}")'>불러오기</button>
+                    <button class="delete-btn" onclick='showDeleteModal("${item.id}", "${item.name}")'>삭제</button>
+                </div>
+            `;
+            historyList.appendChild(itemDiv);
         });
     }
 
     /**
      * 선택된 계산 기록을 입력 필드에 적용하고 계산을 실행합니다.
      */
-    window.loadCalculation = async function(docId, name) {
-        const historyRef = getHistoryCollectionRef();
-        if (!historyRef) return;
-        
-        try {
-            const docSnapshot = await getDocs(query(historyRef));
-            const data = docSnapshot.docs.find(d => d.id === docId)?.data();
+    window.loadCalculationLocal = function(docId) {
+        const histories = getHistoryData();
+        const data = histories.find(item => item.id === docId);
 
-            if (!data) {
-                console.error("Document not found.");
-                return;
-            }
-
-            // 1. 데이터 파싱
-            const loadData = {
-                buyPrice: data.buyPrice || '',
-                quantity: data.quantity || '',
-                sellPrice: data.sellPrice || '',
-                feeRate: data.feeRate || DEFAULT_FEE_RATE,
-                taxRate: data.taxRate || DEFAULT_TAX_RATE,
-            };
-
-            // 2. 입력 필드 업데이트
-            const inputs = [
-                { id: 'pl_buyPrice', value: loadData.buyPrice, cookie: 'stockBuyPrice' },
-                { id: 'pl_quantity', value: loadData.quantity, cookie: 'stockQuantity' },
-                { id: 'pl_sellPrice', value: loadData.sellPrice, cookie: 'stockSellPrice' },
-                { id: 'pl_feeRateInput', value: loadData.feeRate, cookie: 'stockFeeRate' },
-                { id: 'pl_taxRateInput', value: loadData.taxRate, cookie: 'stockTaxRate' }
-            ];
-
-            inputs.forEach(item => {
-                const input = document.getElementById(item.id);
-                if (input.id.includes('Rate')) {
-                    // 비율 필드는 값만 설정
-                    input.value = item.value;
-                } else {
-                    // 금액 필드는 포맷팅 및 쿠키 저장
-                    const rawValue = item.value;
-                    input.value = rawValue;
-                    window.formatCurrencyInput(input);
-                }
-                setCookie(item.cookie, item.value); 
-            });
-
-            // 3. 계산 실행 및 피드백
-            calculateProfitLoss();
-            console.log(`Calculation '${name}' loaded successfully.`);
-
-        } catch (e) {
-            console.error("Error loading document: ", e);
+        if (!data) {
+            console.error("History data not found for ID:", docId);
+            return;
         }
+
+        // 1. 데이터 파싱
+        const loadData = {
+            buyPrice: data.buyPrice || '',
+            quantity: data.quantity || '',
+            sellPrice: data.sellPrice || '',
+            feeRate: data.feeRate || DEFAULT_FEE_RATE,
+            taxRate: data.taxRate || DEFAULT_TAX_RATE,
+        };
+
+        // 2. 입력 필드 업데이트
+        const inputs = [
+            { id: 'pl_buyPrice', value: loadData.buyPrice, cookie: 'stockBuyPrice' },
+            { id: 'pl_quantity', value: loadData.quantity, cookie: 'stockQuantity' },
+            { id: 'pl_sellPrice', value: loadData.sellPrice, cookie: 'stockSellPrice' },
+            { id: 'pl_feeRateInput', value: loadData.feeRate, cookie: 'stockFeeRate' },
+            { id: 'pl_taxRateInput', value: loadData.taxRate, cookie: 'stockTaxRate' }
+        ];
+
+        inputs.forEach(item => {
+            const input = document.getElementById(item.id);
+            if (input.id.includes('Rate')) {
+                // 비율 필드는 값만 설정
+                input.value = item.value;
+            } else {
+                // 금액 필드는 포맷팅 및 쿠키 저장
+                const rawValue = item.value;
+                input.value = rawValue;
+                window.formatCurrencyInput(input);
+            }
+            setCookie(item.cookie, item.value); // 입력값 쿠키에도 반영
+        });
+
+        // 3. 계산 실행 및 피드백
+        calculateProfitLoss();
     }
 
 
@@ -978,10 +886,10 @@
 
     // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        // 1. 쿠키에서 기존 값 로드
+        // 1. 쿠키에서 기존 값 로드 (입력 필드)
         loadFromCookies(); 
-        // 2. Firebase 초기화 및 인증 시작 (인증 완료 후 히스토리 로드)
-        initializeFirebase();
+        // 2. Local Storage에서 히스토리 로드
+        loadHistoryLocal();
     });
 
 </script>
