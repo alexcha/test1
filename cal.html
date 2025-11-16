@@ -17,47 +17,48 @@
             max-width: 500px;
             margin: 0 auto;
             background: #ffffff;
-            padding: 16px 12px; 
+            padding: 24px; /* 패딩 증가 */
             border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
         .input-group {
-             margin-bottom: 1rem;
+             margin-bottom: 1.5rem;
         }
         .input-group label {
-            font-weight: bold;
-            color: #34495e;
+            font-weight: 600; /* 굵게 */
+            color: #2c3e50;
             font-size: 0.95em;
             display: block;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.4rem;
         }
         input[type="text"] {
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
-            font-size: 1em;
+            font-size: 1.1em;
             text-align: right;
-            transition: border-color 0.3s;
-            padding: 0.5rem 0.75rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            padding: 0.6rem 0.85rem;
         }
         input[type="text"]:focus {
             border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
             outline: none;
         }
         
         /* 개별 초기화 버튼 스타일 */
         .reset-individual-btn {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             line-height: 1;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: #95a5a6;
             background: #ecf0f1;
             border: none;
-            border-radius: 8px;
-            margin-left: 8px;
+            border-radius: 9999px; /* 원형 */
+            margin-left: 10px;
             cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
+            transition: background-color 0.2s, color 0.2s, transform 0.2s;
             flex-shrink: 0;
             display: flex;
             align-items: center;
@@ -66,6 +67,7 @@
         .reset-individual-btn:hover {
             background-color: #bdc3c7;
             color: #2c3e50;
+            transform: rotate(-90deg);
         }
         
         /* 결과 테이블 스타일 (공통) */
@@ -74,18 +76,18 @@
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 15px;
-            font-size: 0.9em; 
+            font-size: 0.95em; 
             table-layout: fixed; 
         }
         .result-table th, .result-table td {
-            padding: 10px 8px; 
+            padding: 12px 10px; 
             border-bottom: 1px solid #ecf0f1;
             text-align: left;
             word-break: break-word; 
         }
         .result-table th {
-            background-color: #f8f9fa;
-            color: #2c3e50;
+            background-color: #fafbfd;
+            color: #34495e;
             font-weight: 600;
             width: 60%;
         }
@@ -97,30 +99,30 @@
         }
         .result-table .value-col {
             text-align: right;
-            font-weight: bold;
+            font-weight: 700;
         }
         
         /* 손익률 계산기 스타일 */
         .pl-deduction-color {
-            color: #3498db;
-            font-weight: bold;
+            color: #6c757d; /* 회색으로 변경 */
+            font-weight: normal;
         }
         .pl-net-proceeds-color {
-            color: #6c5ce7;
+            color: #2c3e50;
             font-weight: 800;
             font-size: 1.05em; 
         }
         .pl-profit-text {
             color: #e74c3c; /* 한국식 빨강 (수익) */
-            font-weight: bold;
+            font-weight: 800;
         }
         .pl-loss-text {
             color: #3498db; /* 한국식 파랑 (손실) */
-            font-weight: bold;
+            font-weight: 800;
         }
         .pl-neutral-text {
             color: #34495e; 
-            font-weight: bold;
+            font-weight: 800;
         }
 
         /* 공통 실시간 업데이트 피드백 */
@@ -129,82 +131,97 @@
             font-weight: 600;
             font-size: 0.85rem;
             text-align: center;
-            margin-top: -10px;
-            margin-bottom: 10px;
-            padding: 5px;
-            border: 1px dashed #2ecc71;
-            border-radius: 4px;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
         }
 
-        /* History List Styling */
+        /* History List Styling - 정돈된 디자인 */
         .history-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-radius: 6px;
-            background-color: #f8f8f8;
-            border: 1px solid #eee;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .history-item:hover {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            border-color: #3498db;
         }
         .history-item-name {
             font-weight: 500;
             color: #2c3e50;
-            font-size: 0.9em;
+            font-size: 0.95em;
             flex-grow: 1;
-            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding-right: 10px;
+            white-space: nowrap;
+            padding-right: 15px;
         }
         .history-actions button {
-            padding: 4px 8px;
-            font-size: 0.8em;
-            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.2s;
-            margin-left: 5px;
+            transition: opacity 0.2s, background-color 0.2s;
+            margin-left: 8px;
+            font-weight: 600;
         }
         .load-btn {
             background-color: #3498db;
             color: white;
+            border: none;
         }
         .load-btn:hover {
             background-color: #2980b9;
         }
         .delete-btn {
-            background-color: #e74c3c;
-            color: white;
+            background-color: #f1f1f1;
+            color: #e74c3c;
+            border: 1px solid #ddd;
         }
         .delete-btn:hover {
-            background-color: #c0392b;
+            background-color: #ffe8e6;
+            border-color: #e74c3c;
         }
         
-        /* Modal Backdrop */
+        /* Custom Modal Styling */
         .modal-backdrop {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.6); /* 더 어두운 배경 */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-backdrop.active {
+            opacity: 1;
+            visibility: visible;
         }
         .modal-content {
             background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             max-width: 90%;
-            width: 300px;
-            animation: fadeIn 0.3s;
+            width: 350px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-out;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+        .modal-backdrop.active .modal-content {
+            transform: translateY(0);
         }
     </style>
 </head>
@@ -232,9 +249,9 @@
         </div>
 
         <!-- 손익분기 매도 단가 (BEP) 표시 영역 -->
-        <div id="bep_display" class="mb-4 p-3 bg-red-50 border-2 border-red-500 rounded-lg" style="display: none;">
-            <p class="text-sm text-red-700 font-semibold mb-1">순손익 0원이 되는 매도 단가 (BEP)</p>
-            <p id="bep_value" class="text-2xl text-red-700 font-extrabold text-right"></p>
+        <div id="bep_display" class="mb-5 p-4 bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm" style="display: none;">
+            <p class="text-sm text-gray-700 font-semibold mb-1">손익분기 매도 단가 (BEP)</p>
+            <p id="bep_value" class="text-2xl text-gray-800 font-extrabold text-right"></p>
         </div>
         <!-- BEP 표시 영역 끝 -->
 
@@ -262,51 +279,55 @@
             </div>
         </div>
         
-        <div id="pl_result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg" style="display: none;">
-            <h3 class="text-xl font-semibold text-gray-700 text-center mb-3">📊 계산 결과</h3>
+        <div id="pl_result" class="result mt-6 p-4 border-2 border-green-500 bg-green-50 rounded-lg shadow-lg" style="display: none;">
+            <h3 class="text-2xl font-bold text-gray-700 text-center mb-4">💰 최종 계산 결과</h3>
             <table id="pl_resultTable" class="result-table"></table>
         </div>
     </div>
     
     <!-- 히스토리 저장 및 목록 영역 -->
-    <div class="mt-8 pt-4 border-t border-gray-200">
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">⭐ 계산 저장 및 히스토리 (Local Storage)</h2>
+    <div class="mt-10 pt-6 border-t border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-8V6a1 1 0 012 0v4h2a1 1 0 110 2h-2v2a1 1 0 11-2 0v-2H7a1 1 0 010-2h2z" clip-rule="evenodd"></path></svg>
+            계산 저장 및 히스토리
+        </h2>
         
         <!-- 계산 저장하기 -->
-        <div class="p-4 mb-6 bg-yellow-50 border border-yellow-300 rounded-lg">
+        <div class="p-4 mb-6 bg-yellow-50 border border-yellow-300 rounded-lg shadow-md">
             <label for="saveNameInput" class="font-bold text-yellow-800 mb-2 block">저장 이름 입력:</label>
             <div class="flex space-x-2">
-                <input type="text" id="saveNameInput" placeholder="예: 삼성전자 1차 매수" class="w-full text-left p-2 border-yellow-400">
-                <button onclick="saveCalculationLocal()" class="bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition duration-150 flex-shrink-0">
+                <input type="text" id="saveNameInput" placeholder="예: 삼성전자 1차 매수" class="w-full text-left p-2 border-yellow-400 focus:border-yellow-600 rounded-lg">
+                <button onclick="saveCalculationLocal()" class="bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-700 transition duration-150 flex-shrink-0 whitespace-nowrap">
                     저장하기
                 </button>
             </div>
         </div>
 
         <!-- 히스토리 목록 -->
-        <h3 class="text-xl font-semibold text-gray-700 mb-3 flex justify-between items-center">
-            저장된 계산 목록 
-        </h3>
-        <div id="history-list" class="space-y-2 min-h-[50px] p-2 bg-gray-50 rounded-lg border">
-            <p id="no-history-message" class="text-gray-500 text-sm text-center">저장된 계산 기록이 없습니다.</p>
+        <h3 class="text-xl font-semibold text-gray-700 mb-3">저장된 계산 목록 (Local Storage)</h3>
+        <div id="history-list" class="space-y-2 p-3 bg-white rounded-lg border border-gray-200 shadow-inner">
+            <p id="no-history-message" class="text-gray-500 text-sm text-center py-4">저장된 계산 기록이 없습니다.</p>
         </div>
-        <p class="text-sm text-red-500 mt-2">💡 이 기록은 현재 브라우저에만 저장되며, 브라우저를 변경하거나 기록을 삭제하면 사라집니다.</p>
+        <p class="text-xs text-red-500 mt-3 p-1">⚠️ 이 기록은 현재 브라우저에만 저장되며, 브라우저를 변경하거나 기록을 삭제하면 사라집니다.</p>
     </div>
     <!-- 히스토리 영역 끝 -->
 </div>
 
-<!-- 삭제 확인 모달 -->
-<div id="delete-modal-backdrop" class="modal-backdrop hidden" onclick="hideDeleteModal()">
+<!-- 삭제 확인 커스텀 모달 (Custom Modal) -->
+<div id="delete-modal-backdrop" class="modal-backdrop" onclick="hideDeleteModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <h4 class="text-lg font-bold mb-3 text-gray-800">삭제 확인</h4>
-        <p id="delete-modal-message" class="mb-4 text-gray-600">이 계산 기록을 정말로 삭제하시겠습니까?</p>
-        <div class="flex justify-end space-x-3">
-            <button onclick="hideDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+        <div class="text-center">
+            <svg class="mx-auto h-10 w-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <h4 class="text-xl font-bold mt-3 mb-2 text-gray-800">삭제 확인</h4>
+        </div>
+        <p id="delete-modal-message" class="mb-5 text-gray-600 text-center text-sm leading-relaxed">이 계산 기록을 정말로 삭제하시겠습니까?</p>
+        <div class="flex justify-center space-x-3">
+            <button onclick="hideDeleteModal()" class="px-5 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition w-full sm:w-auto">
                 취소
             </button>
-            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition" 
+            <button id="confirm-delete-btn" class="px-5 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition w-full sm:w-auto" 
                     onclick="confirmDelete()">
-                삭제
+                영구 삭제
             </button>
         </div>
     </div>
@@ -325,9 +346,6 @@
 
     // --- Local Storage Helper Functions ---
 
-    /**
-     * Local Storage에서 히스토리 데이터를 불러옵니다.
-     */
     function getHistoryData() {
         const storedData = localStorage.getItem(HISTORY_STORAGE_KEY);
         try {
@@ -338,52 +356,52 @@
         }
     }
 
-    /**
-     * 히스토리 데이터를 Local Storage에 저장합니다.
-     */
     function setHistoryData(data) {
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(data));
     }
 
-    // --- History Modal Logic ---
+    // --- History Modal Logic (Custom Implementation) ---
 
+    /**
+     * 커스텀 삭제 모달을 표시합니다.
+     */
     window.showDeleteModal = function(docId, name) {
         docToDeleteId = docId;
-        document.getElementById('delete-modal-message').textContent = `'${name}' 기록을 정말로 삭제하시겠습니까? (이 작업은 되돌릴 수 없습니다)`;
-        document.getElementById('delete-modal-backdrop').classList.remove('hidden');
+        document.getElementById('delete-modal-message').innerHTML = `선택하신 계산 기록 <strong>'${name}'</strong>을 정말로 삭제하시겠습니까? <br/>(이 작업은 되돌릴 수 없습니다)`;
+        document.getElementById('delete-modal-backdrop').classList.add('active');
     }
 
+    /**
+     * 커스텀 삭제 모달을 숨깁니다.
+     */
     window.hideDeleteModal = function() {
         docToDeleteId = null;
-        document.getElementById('delete-modal-backdrop').classList.add('hidden');
+        document.getElementById('delete-modal-backdrop').classList.remove('active');
     }
 
+    /**
+     * 삭제 확인 버튼 클릭 시 실제 삭제 로직을 실행합니다.
+     */
     window.confirmDelete = function() {
         if (docToDeleteId !== null) {
             deleteCalculationLocal(docToDeleteId);
-            hideDeleteModal();
+            hideDeleteModal(); // 삭제 후 모달 닫기
         }
     }
 
     // --- History Data Operations (Local Storage) ---
 
-    /**
-     * 현재 계산 상태를 Local Storage에 저장합니다.
-     */
     window.saveCalculationLocal = function() {
         const saveNameInput = document.getElementById('saveNameInput');
         let name = saveNameInput.value.trim();
 
         if (name === '') {
-            // Can't use prompt/alert in this environment, so skip or use a custom message box if needed.
-            // For simplicity, we'll use a placeholder name if input is empty
             const date = new Date().toLocaleTimeString('ko-KR');
             name = `미지정 저장 (${date})`;
         }
         
-        // 입력 값 (문자열 그대로 저장하여 정밀도 유지)
         const dataToSave = {
-            id: Date.now().toString(), // Use current timestamp as unique ID
+            id: Date.now().toString(), 
             name: name,
             buyPrice: document.getElementById('pl_buyPrice').value.replace(/,/g, ''),
             quantity: document.getElementById('pl_quantity').value.replace(/,/g, ''),
@@ -394,29 +412,22 @@
         };
 
         const histories = getHistoryData();
-        histories.unshift(dataToSave); // 최신 항목을 맨 앞에 추가
+        histories.unshift(dataToSave); 
         setHistoryData(histories);
 
-        saveNameInput.value = ''; // 저장 성공 시 입력창 초기화
-        loadHistoryLocal(); // 히스토리 목록 업데이트
+        saveNameInput.value = ''; 
+        loadHistoryLocal(); 
     }
 
-    /**
-     * Local Storage에서 계산 기록을 삭제합니다.
-     */
     function deleteCalculationLocal(docId) {
         let histories = getHistoryData();
         
-        // ID가 일치하지 않는 항목만 남깁니다.
         histories = histories.filter(item => item.id !== docId);
         setHistoryData(histories);
         
-        loadHistoryLocal(); // 히스토리 목록 업데이트
+        loadHistoryLocal(); 
     }
 
-    /**
-     * Local Storage의 계산 기록을 불러와 화면에 표시합니다.
-     */
     function loadHistoryLocal() {
         const historyList = document.getElementById('history-list');
         const noHistoryMessage = document.getElementById('no-history-message');
@@ -428,33 +439,30 @@
             noHistoryMessage.classList.remove('hidden');
             historyList.appendChild(noHistoryMessage);
             return;
-        } else {
-            noHistoryMessage.classList.add('hidden');
-        }
-
-        // histories는 이미 saveCalculationLocal에서 최신순으로 정렬됨
+        } 
+        
+        noHistoryMessage.classList.add('hidden');
 
         histories.forEach(item => {
             const dateStr = new Date(item.timestamp).toLocaleDateString('ko-KR', { 
                 month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
-            });
-            
+            }).replace(/\. /g, '.').replace(/\.$/, ''); // 형식 깔끔하게
+
             const itemDiv = document.createElement('div');
             itemDiv.className = 'history-item';
             itemDiv.innerHTML = `
-                <span class="history-item-name" title="${item.name}">${item.name} <span class="text-xs text-gray-400">(${dateStr})</span></span>
+                <span class="history-item-name" title="${item.name}">${item.name} <span class="text-xs font-normal text-gray-400">(${dateStr})</span></span>
                 <div class="history-actions">
                     <button class="load-btn" onclick='loadCalculationLocal("${item.id}")'>불러오기</button>
-                    <button class="delete-btn" onclick='showDeleteModal("${item.id}", "${item.name}")'>삭제</button>
+                    <button class="delete-btn" onclick='showDeleteModal("${item.id}", "${item.name}")'>
+                        <svg class="w-4 h-4 inline-block -mt-0.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"></path></svg>
+                    </button>
                 </div>
             `;
             historyList.appendChild(itemDiv);
         });
     }
 
-    /**
-     * 선택된 계산 기록을 입력 필드에 적용하고 계산을 실행합니다.
-     */
     window.loadCalculationLocal = function(docId) {
         const histories = getHistoryData();
         const data = histories.find(item => item.id === docId);
@@ -464,7 +472,6 @@
             return;
         }
 
-        // 1. 데이터 파싱
         const loadData = {
             buyPrice: data.buyPrice || '',
             quantity: data.quantity || '',
@@ -473,7 +480,6 @@
             taxRate: data.taxRate || DEFAULT_TAX_RATE,
         };
 
-        // 2. 입력 필드 업데이트
         const inputs = [
             { id: 'pl_buyPrice', value: loadData.buyPrice, cookie: 'stockBuyPrice' },
             { id: 'pl_quantity', value: loadData.quantity, cookie: 'stockQuantity' },
@@ -485,18 +491,15 @@
         inputs.forEach(item => {
             const input = document.getElementById(item.id);
             if (input.id.includes('Rate')) {
-                // 비율 필드는 값만 설정
                 input.value = item.value;
             } else {
-                // 금액 필드는 포맷팅 및 쿠키 저장
                 const rawValue = item.value;
                 input.value = rawValue;
                 window.formatCurrencyInput(input);
             }
-            setCookie(item.cookie, item.value); // 입력값 쿠키에도 반영
+            setCookie(item.cookie, item.value); 
         });
 
-        // 3. 계산 실행 및 피드백
         calculateProfitLoss();
     }
 
@@ -523,9 +526,6 @@
         document.cookie = name + "=" + value + expires + "; path=/; SameSite=Lax";
     }
 
-    /**
-     * 금액을 한국 통화 형식으로 포맷합니다.
-     */
     function formatCurrency(amount, precision = 0) {
         if (typeof amount !== 'number' || isNaN(amount)) {
             amount = 0;
@@ -533,17 +533,12 @@
         const absoluteAmount = Math.abs(amount);
         
         if (precision === 0) {
-            // 손익분기점, 원금, 수량, 손익금액 등 (정수)
             return Math.floor(absoluteAmount).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
         }
 
-        // 순수 평균 단가, 수익률, 변동률 등 (소수점 둘째 자리)
         return absoluteAmount.toLocaleString('ko-KR', { minimumFractionDigits: precision, maximumFractionDigits: precision });
     }
 
-    /**
-     * 입력 필드의 숫자를 포맷하고 커서 위치를 유지합니다. (빈 값 처리 포함)
-     */
     window.formatCurrencyInput = function(input) {
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
@@ -576,9 +571,6 @@
         input.setSelectionRange(newCursorStart, newCursorStart);
     }
     
-    /**
-     * 금액 입력(단가/수량)을 포맷하고, 해당 값을 쿠키에 저장하며, 계산을 실행합니다.
-     */
     window.handleCurrencyInputAndSave = function(input, cookieName) {
         const cursorStart = input.selectionStart;
         const oldValue = input.value;
@@ -590,6 +582,7 @@
         if (rawValue === '' || parseFloat(rawValue) === 0) {
             input.value = '';
             if (cookieName) setCookie(cookieName, '');
+            calculateProfitLoss(); // 계산 재실행
             return; 
         }
         
@@ -614,9 +607,6 @@
         if (cookieName) setCookie(cookieName, rawValue);
     }
 
-    /**
-     * 비율 입력(수수료율/거래세율) 값을 쿠키에 저장합니다.
-     */
     window.handleRateInputAndSave = function(input, cookieName) {
         const rawValue = input.value.replace(/,/g, ''); 
         
@@ -625,9 +615,6 @@
         }
     }
     
-    /**
-     * 개별 입력 필드를 기본값으로 초기화합니다.
-     */
     window.resetIndividualInput = function(inputId, cookieName, defaultValue, type) {
         const input = document.getElementById(inputId);
         
@@ -640,7 +627,6 @@
         }
     };
     
-    // --- Cost Calculation Helper (Shared Logic) ---
     function calculateTotalCosts(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate) {
         const F = feeRate / 100; 
         const T = taxRate / 100;   
@@ -661,8 +647,6 @@
         if (totalCost === 0 || totalQuantity === 0 || marketPrice === 0) {
             return {
                 netProfitLoss: 0, netProfitRate: 0, 
-                profitLossText: '0 원', profitRateText: '0.00 %', 
-                resultClass: `${prefix}-neutral-text`,
                 costs: {}
             };
         }
@@ -671,25 +655,9 @@
         const netProfitLoss = costs.grossSellAmount - totalCost - costs.totalDeductions;
         const netProfitRate = (totalCost > 0) ? (netProfitLoss / totalCost) * 100 : (netProfitLoss > 0 ? Infinity : 0);
 
-        let resultClass = `${prefix}-neutral-text`;
-        let signPrefix = ''; 
-        
-        if (netProfitLoss > 0) {
-            resultClass = `${prefix}-profit-text`;
-            signPrefix = '+';
-        } else if (netProfitLoss < 0) {
-            resultClass = `${prefix}-loss-text`;
-            signPrefix = '';
-        }
-
-        const profitLossText = signPrefix + formatCurrency(netProfitLoss, 0) + ' 원'; 
-        const profitRateText = signPrefix + (isFinite(netProfitRate) ? formatCurrency(netProfitRate, 2) : 'N/A') + ' %';
-        
-        return { netProfitLoss, netProfitRate, profitLossText, profitRateText, resultClass, costs };
+        return { netProfitLoss, netProfitRate, costs };
     }
 
-
-    // --- CALCULATION 1: Profit/Loss Calculator Logic ---
 
     window.calculateProfitLoss = function() {
         // 입력값 가져오기 (PL Calculator IDs)
@@ -708,7 +676,7 @@
 
         if (totalBuyCost === 0 && totalQuantity === 0 && sellPrice === 0) {
             document.getElementById('pl_result').style.display = 'none';
-            document.getElementById('bep_display').style.display = 'none'; // BEP 숨기기
+            document.getElementById('bep_display').style.display = 'none'; 
             return;
         }
 
@@ -739,8 +707,12 @@
         }
         
         
-        const { netProfitLoss, netProfitRate, profitRateText, resultClass, costs } = 
+        const { netProfitLoss, costs } = 
             calculateProfitStatus(totalBuyCost, totalQuantity, sellPrice, feeRate, taxRate, 'pl');
+        
+        // 순손익률 계산 (순손익 / 총 매수 비용)
+        const netProfitRate = (totalBuyCost > 0) ? (netProfitLoss / totalBuyCost) * 100 : (netProfitLoss > 0 ? Infinity : 0);
+
         
         // PL Calculator specific logic
         const grossSellAmount = costs.grossSellAmount;
@@ -748,11 +720,11 @@
         const totalFee = costs.totalFee;
         const totalTax = costs.totalTax;
         
-        let rateClass = 'pl-neutral-text';
+        let resultClass = 'pl-neutral-text';
         if (netProfitLoss > 0) {
-            rateClass = 'pl-profit-text';
+            resultClass = 'pl-profit-text';
         } else if (netProfitLoss < 0) {
-            rateClass = 'pl-loss-text';
+            resultClass = 'pl-loss-text';
         }
 
         // 매도 후 순회수액 (매도 금액 - 매도 수수료 - 거래세)
@@ -793,7 +765,7 @@
                     <td class="value-col">${formatCurrency(grossSellAmount, 0)} 원</td>
                 </tr>
                 <tr>
-                    <th><span class="pl-deduction-color">총 공제액</span></th>
+                    <th><span class="pl-deduction-color">총 공제액 (수수료+세금)</span></th>
                     <td class="value-col pl-deduction-color">- ${formatCurrency(totalDeductions, 0)} 원</td>
                 </tr>
                 <tr class="deduction-detail">
@@ -813,19 +785,19 @@
                 <tr class="bg-gray-50">
                     <th>순이익/손실 (세후)</th>
                     <td class="value-col">
-                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '-' : '')} ${formatCurrency(netProfitLoss, 0)} 원</span>
+                        <span class="${resultClass} text-xl">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '' : '')} ${formatCurrency(netProfitLoss, 0)} 원</span>
                     </td>
                 </tr>
                 <tr class="font-bold text-lg bg-yellow-100">
                     <th><span class="text-blue-600">최종 손익률 (세후)</span></th>
                     <td class="value-col">
-                        <span class="${resultClass}">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '-' : '')}${formatCurrency(netProfitRate, 2)} %</span>
+                        <span class="${resultClass} text-xl">${netProfitLoss > 0 ? '+' : (netProfitLoss < 0 ? '' : '')}${formatCurrency(netProfitRate, 2)} %</span>
                     </td>
                 </tr>
                 <tr>
                     <th>참고: 단순 수익률 (세전)</th>
                     <td class="value-col">
-                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'}">${simpleProfitPrefix}${simpleProfitRateText}</span>
+                        <span class="${simpleProfit > 0 ? 'pl-profit-text' : simpleProfit < 0 ? 'pl-loss-text' : 'pl-neutral-text'} font-medium">${simpleProfitPrefix}${simpleProfitRateText}</span>
                     </td>
                 </tr>
             </tbody>
@@ -837,21 +809,17 @@
         // 결과창의 테두리와 배경색을 순손익에 따라 변경 (한국 주식 색상: 수익=빨강, 손실=파랑)
         const resultDiv = document.getElementById('pl_result');
         if (netProfitLoss > 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg'; 
+            resultDiv.className = 'result mt-6 p-4 border-2 border-red-500 bg-red-50 rounded-lg shadow-lg'; 
         } else if (netProfitLoss < 0) {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg'; 
+            resultDiv.className = 'result mt-6 p-4 border-2 border-blue-500 bg-blue-50 rounded-lg shadow-lg'; 
         } else {
-            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg';
+            resultDiv.className = 'result mt-6 p-4 border-2 border-gray-400 bg-gray-50 rounded-lg shadow-lg';
         }
 
     }
 
-    /**
-     * 쿠키에 저장된 모든 값을 불러와 입력 필드에 채우고 계산합니다.
-     */
     function loadFromCookies() {
         
-        // --- PL Calculator Fields ---
         const plCurrencyInputs = [
             { id: 'pl_buyPrice', cookie: 'stockBuyPrice' },
             { id: 'pl_quantity', cookie: 'stockQuantity' },
@@ -868,7 +836,6 @@
             }
         });
 
-        // --- Rate Fields (PL) ---
         const rateInputs = [
             { id: 'pl_feeRateInput', cookie: 'stockFeeRate', default: DEFAULT_FEE_RATE },
             { id: 'pl_taxRateInput', cookie: 'stockTaxRate', default: DEFAULT_TAX_RATE }
@@ -880,15 +847,11 @@
             document.getElementById(item.id).value = value;
         });
         
-        // 초기 로드 후 계산 실행
         calculateProfitLoss();
     }
 
-    // 초기화 및 이벤트 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
-        // 1. 쿠키에서 기존 값 로드 (입력 필드)
         loadFromCookies(); 
-        // 2. Local Storage에서 히스토리 로드
         loadHistoryLocal();
     });
 
