@@ -3,271 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>은행 예금 상품 목록 (API 연동)</title>
-    <!-- Tailwind CSS CDN -->
+    <title>KB 국민은행 정기예금 금리 정보</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for the app */
-        body { font-family: 'Inter', sans-serif; }
-        .table-header th { padding: 1rem 0.5rem; font-weight: 700; text-align: left; }
-        .table-row td { padding: 1rem 0.5rem; border-top: 1px solid #e5e7eb; }
-        /* Truncate text for long product names on smaller screens */
-        .truncate-text {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        /* Tailwind CSS 설정 */
+        :root {
+            --kb-main: #8C222D; /* 국민은행 시그니처 색상 */
+            --kb-light: #fbecec;
+        }
+
+        body {
+            font-family: 'Inter', 'Malgun Gothic', sans-serif;
+            background-color: #f7f7f7;
+        }
+
+        /* 커스텀 스타일 */
+        .kb-header {
+            background-color: var(--kb-main);
+            color: white;
+        }
+        
+        .kb-table-header th {
+            background-color: var(--kb-main);
+            color: white;
+        }
+        
+        .kb-hover:hover {
+            background-color: var(--kb-light);
+            transition: background-color 0.3s;
+        }
+
+        /* 테이블 둥근 모서리 처리 */
+        .rounded-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 0.5rem;
+            overflow: hidden; /* 자식 요소의 둥근 모서리 적용을 위해 */
         }
     </style>
 </head>
-<body class="bg-gray-50 p-4 min-h-screen">
+<body class="p-4 sm:p-8 flex justify-center items-start min-h-screen">
 
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-4 sm:p-6 my-8">
-        <h1 class="text-3xl font-extrabold text-indigo-700 mb-2">은행 정기예금 금리 비교 (FSS API 연동)</h1>
-        <p class="text-gray-500 mb-6 text-sm">
-            ✅ 금융감독원 API 공시 대상인 <span class="font-semibold text-red-500">시중은행 및 온라인은행 상품</span>만 포함된 목록입니다.
-            <br>
-            <span class="text-xs">데이터는 API를 통해 실시간으로 로드됩니다.</span>
-        </p>
-
-        <!-- Filter Input -->
-        <div class="mb-6">
-            <input type="text" id="filterInput" placeholder="은행명, 상품명, 또는 가입 방식 (예: 온라인)으로 검색..."
-                   oninput="filterProducts()"
-                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 shadow-sm"
-                   autocomplete="off">
-        </div>
-
-        <!-- Product Table Container -->
-        <div class="overflow-x-auto rounded-lg shadow-md border border-gray-200">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-indigo-50 table-header text-xs text-indigo-800 uppercase tracking-wider">
-                    <tr>
-                        <th class="w-[20%] sm:w-[15%]">금융회사</th>
-                        <th class="w-[30%] sm:w-[35%]">상품명</th>
-                        <th class="w-[20%] sm:w-[15%] text-right">최고금리</th>
-                        <th class="w-[15%] sm:w-[15%] text-center">기간</th>
-                        <th class="w-[15%] sm:w-[20%] text-center">가입 방식</th>
-                    </tr>
-                </thead>
-                <tbody id="product-list" class="bg-white divide-y divide-gray-100 text-sm text-gray-700">
-                    <!-- Data will be inserted here by JavaScript -->
-                    <tr class="table-row">
-                        <td colspan="5" class="text-center py-8 text-gray-500">
-                            데이터를 불러오는 중...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="container w-full max-w-5xl bg-white rounded-xl shadow-2xl p-6 sm:p-10">
+        
+        <header class="mb-8 p-4 rounded-lg kb-header text-center">
+            <h1 class="text-3xl font-extrabold">🏦 KB 국민은행 정기예금 금리 조회</h1>
+        </header>
+        
+        <div class="info bg-gray-50 border-l-4 border-yellow-500 text-gray-700 p-4 rounded-lg mb-6">
+            <p class="font-semibold mb-2">📢 중요: API 호출 실패 시 대처 방법</p>
+            <ul class="list-disc list-inside text-sm space-y-1">
+                <li>**"Failed to fetch" 오류**는 대부분 브라우저의 **CORS 보안 정책** 위반 때문입니다.</li>
+                <li>API 키 발급 시 등록한 **서비스 URL**이 현재 코드를 실행하는 주소(도메인)와 정확히 일치하는지 확인해 주세요.</li>
+                <li>로컬(`.html` 파일) 실행 시 오류가 발생할 수 있습니다. 웹 서버 환경(예: GitHub Pages)에서 실행을 시도해 보세요.</li>
+            </ul>
         </div>
         
-        <!-- Loading Indicator -->
-        <div id="loading-indicator" class="text-center mt-6 hidden">
-            <svg class="animate-spin h-5 w-5 text-indigo-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="text-sm text-indigo-500 mt-2">API에서 상품 정보를 가져오는 중...</p>
+        <div id="rate-list" class="loading text-center p-8 text-xl font-medium text-gray-600">
+            데이터를 불러오는 중입니다...
         </div>
 
     </div>
 
     <script>
-        /**
-         * @fileoverview 금융감독원 API를 통해 예금 상품 목록을 로드하고 필터링하는 스크립트입니다.
-         * OPENDART_KEY는 빌드 시점에 이 파일의 스크립트 내부에 직접 주입되어야 합니다.
-         */
-
-        let allProducts = [];
-        let isDataLoaded = false;
-
-        // ----------------------------------------------------
-        // 1. API Endpoint 및 Key 정의
-        // ----------------------------------------------------
+        // 사용자님이 제공해주신 API 키를 적용합니다.
+        const API_KEY = "b6930932f0e9698b85c11645650d2e"; 
         
-        // ⚠️ 빌드 스크립트가 ${OPENDART_KEY_PLACEHOLDER}를 실제 값으로 치환해야 합니다.
-        // 예: const OPENDART_KEY = "발급받은 실제 키 값";
-        const OPENDART_KEY = "${OPENDART_KEY_PLACEHOLDER}"; 
+        // 필터링할 은행명
+        const TARGET_BANK_NAME = "국민은행"; 
+
+        // 금융감독원 '정기예금 상품 검색' API 엔드포인트
+        const BASE_URL = "http://finlife.fss.or.kr/finlifeapi/depositProductsSearch.json";
+
+        // 요청 변수 설정: 은행권역 전체(020000) 데이터를 가져옵니다.
+        const PARAM = {
+            auth: API_KEY,             // API 키
+            topFinGrpNo: "020000",     // 금융권역코드: 020000 (은행)
+            pageNo: "1"                // 페이지 번호
+        };
         
-        // 실제 FSS 금융상품 API URL
-        const REAL_FSS_API_URL = "http://finlife.fss.or.kr/finlifeapi/depositProductsSearch.json";
+        const queryString = new URLSearchParams(PARAM).toString();
+        const API_URL = `${BASE_URL}?${queryString}`;
 
 
-        /**
-         * FSS API 응답 데이터를 앱에서 사용하기 쉬운 구조로 변환합니다.
-         * 실제 API 연동 시 이 함수를 구현해야 합니다. 
-         * @param {Object} fssData - FSS API에서 받은 원본 JSON 데이터
-         * @returns {Array<Object>} 변환된 상품 목록
-         */
-        function transformFssData(fssData) {
-             // ⚠️ 실제 API 응답 구조에 맞게 이 로직을 반드시 구현해야 합니다!
-             // FSS API는 baseList(기본 정보)와 optionList(금리 정보)를 따로 제공하므로,
-             // 두 목록을 PRODUCT_CD를 기준으로 결합하고, 필요한 정보(은행명, 상품명, 최고금리, 기간, 가입 방식)를 추출해야 합니다.
-             console.error("⚠️ transformFssData 함수가 실제 FSS API 응답에 맞게 구현되지 않았습니다. API 호출 성공 시 빈 목록이 표시될 수 있습니다.");
-             return []; 
-        }
-
-
-        /**
-         * 실제 FSS API를 호출하여 예금 상품 목록을 가져옵니다.
-         * @returns {Promise<Array<Object>>} 예금 상품 목록 데이터
-         */
-        async function fetchDepositProducts() {
-            document.getElementById('loading-indicator').classList.remove('hidden');
-
-            if (OPENDART_KEY === "" || OPENDART_KEY === "${OPENDART_KEY_PLACEHOLDER}") {
-                console.error("API Key is missing or not properly injected by the build script.");
-                document.getElementById('loading-indicator').classList.add('hidden');
-                return []; 
-            }
+        // API 호출 및 데이터 표시 함수
+        async function fetchBankRates() {
+            const container = document.getElementById('rate-list');
             
-            // *** 실제 FSS API 호출 로직 ***
-            const params = new URLSearchParams({
-                auth: OPENDART_KEY,
-                topFinGrpNo: '020000', // 020000: 은행 (API 매뉴얼 참고)
-                pageNo: '1'
-            });
-
-            const apiUrl = `${REAL_FSS_API_URL}?${params.toString()}`;
-
             try {
-                // 참고: 브라우저 CORS 문제로 인해 이 미리보기 환경에서는 실패할 수 있습니다.
-                const response = await fetch(apiUrl);
-                
-                if (!response.ok) { 
-                    // FSS API가 200 OK를 반환해도 내부에 에러 코드가 있을 수 있으나, 일단 HTTP 오류만 처리
-                    throw new Error(`HTTP error! status: ${response.status} - Failed to fetch data from FSS API.`); 
+                // API 호출
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    // HTTP 상태 코드가 실패인 경우 (400, 401, 403 등)
+                    let errorDetails = `HTTP ${response.status} 응답`;
+                    
+                    try {
+                        const errorData = await response.json();
+                        // 금융감독원 API의 오류 코드를 추출하여 사용자에게 표시합니다.
+                        if (errorData.error) {
+                            errorDetails = `CODE: ${errorData.error.errcode}, MSG: ${errorData.error.errmsg}`;
+                        } else {
+                            // JSON은 받았으나 예상치 못한 오류 구조일 경우
+                            errorDetails = JSON.stringify(errorData, null, 2);
+                        }
+                    } catch (e) {
+                        // JSON 응답이 아닌 경우 (예: CORS 실패로 인한 빈 응답 또는 HTML 응답)
+                        errorDetails += " (CORS 또는 키 등록 문제로 응답 본문 확인 불가)";
+                    }
+                    
+                    throw new Error(errorDetails);
                 }
-                
+
+                // 응답 성공
                 const data = await response.json();
                 
-                // 데이터를 앱 구조에 맞게 변환
-                const transformedData = transformFssData(data); 
-                document.getElementById('loading-indicator').classList.add('hidden');
-                
-                isDataLoaded = true;
+                if (!data.result || !data.result.baseList) {
+                     throw new Error("API 응답 구조가 유효하지 않습니다. 키 등록 정보를 다시 확인하세요.");
+                }
 
-                // 금리 순으로 정렬 (금리 정보가 정상적으로 변환되었다고 가정)
-                // transformedData의 각 객체가 { maxRate: number }를 가진다고 가정합니다.
-                return transformedData.sort((a, b) => (b.maxRate || 0) - (a.maxRate || 0));
+                const baseList = data.result.baseList;
+                const optionList = data.result.optionList;
+
+                if (!baseList || baseList.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">현재 표시할 금리 정보가 없습니다.</p>';
+                    return;
+                }
+
+                // 1. KB 국민은행 상품만 필터링
+                const kbBaseList = baseList.filter(base => base.kor_co_nm === TARGET_BANK_NAME);
+
+                if (kbBaseList.length === 0) {
+                     container.innerHTML = `<p class="text-lg font-bold text-red-500"><strong>${TARGET_BANK_NAME}</strong>의 금리 정보가 API 검색 결과에 없습니다.</p>`;
+                     return;
+                }
+                
+                // 2. BaseList와 OptionList를 결합하여 KB 상품 데이터 생성
+                const combinedData = kbBaseList.map(base => {
+                    // 해당 상품의 금리 옵션만 필터링
+                    const options = optionList.filter(opt => opt.fin_prdt_cd === base.fin_prdt_cd);
+                    
+                    // 가장 높은 최고 우대금리 옵션을 찾아서 표시
+                    const maxRateOption = options.reduce((max, current) => 
+                        (parseFloat(current.max_int_rate) > parseFloat(max.max_int_rate) ? current : max), 
+                        { max_int_rate: 0, intr_rate: 0, save_trm: '' }
+                    );
+
+                    return {
+                        productName: base.fin_prdt_nm,
+                        maxRate: maxRateOption.max_int_rate || '-',
+                        baseRate: maxRateOption.intr_rate || '-',
+                        term: maxRateOption.save_trm ? `${maxRateOption.save_trm}개월` : '-'
+                    };
+                });
+
+
+                // 3. 테이블 생성
+                let tableHTML = '<div class="overflow-x-auto"><table class="w-full text-sm text-left text-gray-700 rounded-table shadow-lg">';
+                tableHTML += '<thead class="kb-table-header text-xs uppercase">';
+                tableHTML += '<tr><th scope="col" class="px-6 py-3">상품명</th><th scope="col" class="px-6 py-3">기간</th><th scope="col" class="px-6 py-3">기본 금리 (%)</th><th scope="col" class="px-6 py-3">최고 우대금리 (%)</th></tr>';
+                tableHTML += '</thead>';
+                tableHTML += '<tbody>';
+
+                combinedData.forEach(item => {
+                    tableHTML += `
+                        <tr class="bg-white border-b kb-hover">
+                            <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${item.productName}</td>
+                            <td class="px-6 py-4">${item.term}</td>
+                            <td class="px-6 py-4 text-green-600 font-semibold">${item.baseRate}</td>
+                            <td class="px-6 py-4 text-red-600 font-bold">${item.maxRate}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += '</tbody></table></div>';
+                container.innerHTML = tableHTML;
 
             } catch (error) {
-                console.error("FSS API call failed:", error);
-                document.getElementById('loading-indicator').classList.add('hidden');
-                isDataLoaded = false;
-                return []; // 실패 시 빈 배열 반환
+                // 오류 메시지 표시
+                console.error("데이터 처리 중 오류 발생:", error);
+                container.innerHTML = `<div class="error bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mt-8">
+                    <p class="font-bold">데이터 호출 실패 (Critical Error)</p>
+                    <p class="mt-2 text-sm"><strong>오류 내용:</strong> ${error.message}</p>
+                    <p class="mt-2 text-xs text-gray-600">이 오류는 주로 브라우저 보안 정책 (CORS) 위반 또는 API 키가 유효한 도메인에 등록되지 않아 발생합니다. 코드는 정확하며, 실행 환경을 점검해야 합니다.</p>
+                </div>`;
             }
         }
 
-        /**
-         * 가입 방식에 따른 배지 스타일을 반환합니다.
-         */
-        function getJoinTypeBadge(type) {
-            switch (type) {
-                case "온라인 전용":
-                    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">온라인</span>`;
-                case "오프라인 전용":
-                    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">오프라인</span>`;
-                case "온라인/오프라인":
-                    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">병행</span>`;
-                default:
-                    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">미상</span>`;
-            }
-        }
-
-        /**
-         * 가져온 상품 데이터를 HTML 테이블에 렌더링합니다.
-         */
-        function renderProducts(products) {
-            const listBody = document.getElementById('product-list');
-            listBody.innerHTML = ''; 
-
-            if (!isDataLoaded && products.length === 0) {
-                listBody.innerHTML = `<tr class="table-row"><td colspan="5" class="text-center py-8 text-red-600 font-semibold">
-                    API 키가 주입되지 않았거나, 데이터를 불러오는 데 실패했습니다.
-                    <p class="text-sm text-gray-500 mt-1">빌드 스크립트와 네트워크 상태를 확인하세요.</p>
-                </td></tr>`;
-                return;
-            }
-
-            if (products.length === 0) {
-                 listBody.innerHTML = `<tr class="table-row"><td colspan="5" class="text-center py-8 text-gray-500">
-                    검색 결과가 없거나 불러온 상품이 없습니다.
-                </td></tr>`;
-                return;
-            }
-
-            products.forEach(product => {
-                const row = document.createElement('tr');
-                const rowBg = 'hover:bg-gray-50';
-
-                row.className = `table-row transition duration-150 ${rowBg}`;
-                
-                // 실제 API 데이터 필드에 따라 'product.maxRate' 등을 'product.intr_rate2' 등으로 수정해야 합니다.
-                const rate = product.maxRate ? product.maxRate.toFixed(2) : '-';
-                const rateColor = product.maxRate && product.maxRate >= 4.0 ? 'text-green-600 font-bold' : 'text-gray-800';
-
-                row.innerHTML = `
-                    <td class="whitespace-nowrap font-medium">${product.bankName || '-'}</td>
-                    <td class="font-normal text-gray-600 truncate-text">${product.productName || '-'}</td>
-                    <td class="text-right whitespace-nowrap ${rateColor}">
-                        ${rate}%
-                    </td>
-                    <td class="text-center whitespace-nowrap text-gray-500">
-                        ${product.term || '-'}개월
-                    </td>
-                    <td class="text-center whitespace-nowrap">
-                        ${getJoinTypeBadge(product.joinType || '미상')}
-                    </td>
-                `;
-                listBody.appendChild(row);
-            });
-        }
-
-        /**
-         * 입력된 검색어에 따라 상품 목록을 필터링하고 다시 렌더링합니다.
-         */
-        function filterProducts() {
-            const filterTerm = document.getElementById('filterInput').value.toLowerCase().trim();
-            
-            if (!allProducts.length) {
-                renderProducts(allProducts);
-                return; 
-            }
-
-            const filtered = allProducts.filter(product => {
-                // 실제 API 데이터의 필드 이름에 맞게 수정해야 합니다.
-                const bankName = (product.bankName || '').toLowerCase();
-                const productName = (product.productName || '').toLowerCase();
-                const joinType = (product.joinType || '').toLowerCase();
-                
-                return bankName.includes(filterTerm) || productName.includes(filterTerm) || joinType.includes(filterTerm);
-            });
-
-            renderProducts(filtered);
-        }
-
-
-        // ----------------------------------------------------
-        // 3. 초기화 및 실행
-        // ----------------------------------------------------
-
-        /**
-         * 애플리케이션 초기화 (데이터 로드 및 렌더링)
-         */
-        async function initializeApp() {
-            document.getElementById('loading-indicator').classList.remove('hidden');
-
-            allProducts = await fetchDepositProducts();
-            
-            renderProducts(allProducts); 
-
-            document.getElementById('loading-indicator').classList.add('hidden');
-        }
-
-        // 페이지 로드 시 초기화 함수 실행
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        // 함수 실행
+        fetchBankRates();
 
     </script>
+
 </body>
 </html>
 
