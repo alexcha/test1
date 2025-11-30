@@ -304,7 +304,7 @@ PREDICTION_HEADER_EMBED="AI 기반 추이 분석 및 예측"
 PREDICTION_TEXT_EMBED='<div class="error-message"><span style="font-weight: 700;">⚠️ 오류: API 키 없음.</span> 환경 변수 GEMINI_API_KEY가 설정되지 않아 예측을 실행할 수 없습니다.</div>' 
 
 if [ -n "$GEMINI_API_KEY" ] && [ -n "$TARGET_DATE" ] && [ -n "$RAW_DATA_PROMPT_CONTENT" ]; then
-    SYSTEM_PROMPT="**핵심 고려 사항: CONTEXTUAL_PRIORITY**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다. 4) ** https://raw.githubusercontent.com/alexcha/alexcha.github.io/refs/heads/main/11.result.txt 는 11월의 매출 데이터 입니다. "
+    SYSTEM_PROMPT="**핵심 고려 사항: CONTEXTUAL_PRIORITY**\n**데이터 맥락: 분석하는 데이터는 10월 28일에 오픈한 모바일 게임의 누적 매출 데이터입니다. https://raw.githubusercontent.com/alexcha/alexcha.github.io/refs/heads/main/11.result.txt 는 11월의 매출 데이터 입니다. (단위: 달러)**\n\n당신은 전문 데이터 분석가입니다. 제공된 시계열 누적 데이터를 분석하고, 다음 세 가지 핵심 정보를 포함하여 **최대 3문장 이내**로 응답하세요: 1) **현재 일별 변화 추이(상승, 하락, 횡보)**, 2) **다음 날(${TARGET_DATE})의 예상 최종 누적 값**, 3) **이달 말(${END_OF_MONTH_DATE})의 예상 최종 누적 값**. 불필요한 서론/결론, 목록, 표는 절대 포함하지 마세요. 추정치임을 명시해야 합니다."
     USER_QUERY="다음은 시계열 누적 데이터입니다. 이 데이터를 분석하여 **${TARGET_DATE}**와 **${END_OF_MONTH_DATE}**의 예상 누적 값을 예측해주세요.\\n\\n데이터:\\n${RAW_DATA_PROMPT_CONTENT}"
 
     JSON_SYSTEM_PROMPT=$(escape_json "$SYSTEM_PROMPT")
