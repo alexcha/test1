@@ -77,11 +77,9 @@ jobs:
                   let errorMessage = 'API response structure is invalid (missing result or baseList).';
                   if (resultData && resultData.err_msg) {
                     errorMessage = \`FSS API Error: \${resultData.err_msg} (OPENDART_KEY를 확인하세요)\`;
-                    console.error('::error::' + errorMessage);
-                  } else {
-                    console.error('::error::' + errorMessage);
                   }
                   
+                  console.error(errorMessage);
                   console.error('Raw API Response Data (for debugging):', JSON.stringify(data, null, 2));
                   process.exit(1); 
                 }
@@ -108,7 +106,7 @@ jobs:
                 console.log('Successfully saved data to bank-data.txt. Updated at: ' + updateTime);
 
               } catch (error) {
-                console.error('::error::Failed to fetch or process data: ' + error.message);
+                console.error('Failed to fetch or process data:', error.message);
                 process.exit(1);
               }
             }
@@ -141,7 +139,7 @@ jobs:
           INITIAL_SIZE=$(wc -c < result.txt)
           echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
           
-          # 🚨 3-1. 11.result.txt 다운로드 (신규 추가, 커밋 대상 아님)
+          # 🚨 3-1. 11.result.txt 다운로드 (신규 추가)
           echo "3-1. 11.result.txt 다운로드 시도..."
           # 다운로드 실패해도 워크플로우는 계속 진행 (경고만 출력)
           wget "$WGET_11_RESULT_URL" -O 11.result.txt || { echo "경고: 11.result.txt 다운로드 실패 또는 파일 없음." ; } 
@@ -170,7 +168,7 @@ jobs:
         run: |
           echo "--- Git Commit and Push Start ---"
           
-          # bank-data.txt 파일 존재 여부 확인 후 추가
+          # 🚨 bank-data.txt 파일 존재 여부 확인 후 추가
           if [ -f "bank-data.txt" ]; then
               git add bank-data.txt
               echo "bank-data.txt added."
@@ -179,8 +177,8 @@ jobs:
           fi
 
           # 🚨 11.result.txt는 요청에 따라 커밋 대상에서 제외됩니다.
-          
-          # 나머지 파일들을 추가
+
+          # 나머지 파일들은 스트리밍 스크립트가 생성했다고 가정하고 추가
           git add result.txt money.html
           
           git config --global user.email "github-actions-bot@example.com"
