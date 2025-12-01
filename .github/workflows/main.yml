@@ -1,5 +1,6 @@
 Name: Combined Sequential Data Updates
 
+
 on:
   push:
     branches: [ main ]
