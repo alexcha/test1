@@ -1,4 +1,4 @@
-Name: Combined Sequential Data Updates
+name: Combined Sequential Data Updates
 
 on:
   push:
@@ -77,11 +77,9 @@ jobs:
                   let errorMessage = 'API response structure is invalid (missing result or baseList).';
                   if (resultData && resultData.err_msg) {
                     errorMessage = \`FSS API Error: \${resultData.err_msg} (OPENDART_KEY를 확인하세요)\`;
-                    console.error('::error::' + errorMessage);
-                  } else {
-                    console.error('::error::' + errorMessage);
                   }
                   
+                  console.error(errorMessage);
                   console.error('Raw API Response Data (for debugging):', JSON.stringify(data, null, 2));
                   process.exit(1); 
                 }
@@ -108,7 +106,7 @@ jobs:
                 console.log('Successfully saved data to bank-data.txt. Updated at: ' + updateTime);
 
               } catch (error) {
-                console.error('::error::Failed to fetch or process data: ' + error.message);
+                console.error('Failed to fetch or process data:', error.message);
                 process.exit(1);
               }
             }
@@ -128,9 +126,6 @@ jobs:
           WGET_CHART_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/generate_chart.sh"
           WGET_RESULT_URL="https://raw.githubusercontent.com/alexcha/test1/refs/heads/main/result.txt"
           
-          # 🚨 신규 다운로드 URL 상수 추가
-          WGET_11_RESULT_URL="https://raw.githubusercontent.com/alexcha/alexcha.github.io/refs/heads/main/11.result.txt"
-          
           # 2. 필수 패키지 설치: html2text, jq, curl (AI 예측 및 파싱에 필요)
           sudo apt-get -y update
           sudo apt-get -y install html2text jq curl
@@ -140,14 +135,6 @@ jobs:
           wget "$WGET_RESULT_URL" -O result.txt || { touch result.txt && echo "result.txt not found, starting fresh."; }
           INITIAL_SIZE=$(wc -c < result.txt)
           echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
-          
-          # 🚨 3-1. 11.result.txt 다운로드 (커밋 대상 아님)
-          echo "3-1. 11.result.txt 다운로드 시도..."
-          # 다운로드 실패해도 워크플로우는 계속 진행 (경고만 출력)
-          wget "$WGET_11_RESULT_URL" -O 11.result.txt || { echo "경고: 11.result.txt 다운로드 실패 또는 파일 없음." ; } 
-          if [ -f "11.result.txt" ]; then
-             echo "   -> 11.result.txt 다운로드 완료. 크기: $(wc -c < 11.result.txt) 바이트"
-          fi
           
           # 4. check.sh 및 generate_chart.sh 다운로드 및 실행 권한 부여
           echo "4. 스크립트 다운로드 및 권한 부여..."
@@ -170,7 +157,7 @@ jobs:
         run: |
           echo "--- Git Commit and Push Start ---"
           
-          # bank-data.txt 파일 존재 여부 확인 후 추가
+          # 🚨 bank-data.txt 파일 존재 여부 확인 후 추가
           if [ -f "bank-data.txt" ]; then
               git add bank-data.txt
               echo "bank-data.txt added."
@@ -178,8 +165,6 @@ jobs:
               echo "bank-data.txt was not created (FSS fetch failed), skipping git add for this file."
           fi
 
-          # 🚨 11.result.txt는 커밋 대상에서 제외됩니다.
-          
           # 나머지 파일들은 스트리밍 스크립트가 생성했다고 가정하고 추가
           git add result.txt money.html
           
