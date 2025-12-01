@@ -139,12 +139,15 @@ jobs:
           INITIAL_SIZE=$(wc -c < result.txt)
           echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
           
-          # 🚨 3-1. 11.result.txt 다운로드 (신규 추가)
+          # 🚨 3-1. 11.result.txt 다운로드 (신규 추가, 안전하게 오류 무시 처리)
           echo "3-1. 11.result.txt 다운로드 시도..."
-          # 다운로드 실패해도 워크플로우는 계속 진행 (경고만 출력)
-          wget "$WGET_11_RESULT_URL" -O 11.result.txt || { echo "경고: 11.result.txt 다운로드 실패 또는 파일 없음." ; } 
+          # wget 실패 시 (파일이 없거나 오류) 워크플로우가 멈추지 않도록 || true 추가
+          wget "$WGET_11_RESULT_URL" -O 11.result.txt || true 
+          
           if [ -f "11.result.txt" ]; then
              echo "   -> 11.result.txt 다운로드 완료. 크기: $(wc -c < 11.result.txt) 바이트"
+          else
+             echo "경고: 11.result.txt 파일을 다운로드하지 못했습니다. (파일 부재 또는 URL 오류)"
           fi
           
           # 4. check.sh 및 generate_chart.sh 다운로드 및 실행 권한 부여
@@ -177,7 +180,7 @@ jobs:
           fi
 
           # 🚨 11.result.txt는 요청에 따라 커밋 대상에서 제외됩니다.
-
+          
           # 나머지 파일들은 스트리밍 스크립트가 생성했다고 가정하고 추가
           git add result.txt money.html
           
