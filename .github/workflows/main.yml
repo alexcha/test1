@@ -1,6 +1,5 @@
 Name: Combined Sequential Data Updates
 
-
 on:
   push:
     branches: [ main ]
@@ -78,9 +77,11 @@ jobs:
                   let errorMessage = 'API response structure is invalid (missing result or baseList).';
                   if (resultData && resultData.err_msg) {
                     errorMessage = \`FSS API Error: \${resultData.err_msg} (OPENDART_KEY를 확인하세요)\`;
+                    console.error('::error::' + errorMessage);
+                  } else {
+                    console.error('::error::' + errorMessage);
                   }
                   
-                  console.error(errorMessage);
                   console.error('Raw API Response Data (for debugging):', JSON.stringify(data, null, 2));
                   process.exit(1); 
                 }
@@ -107,7 +108,7 @@ jobs:
                 console.log('Successfully saved data to bank-data.txt. Updated at: ' + updateTime);
 
               } catch (error) {
-                console.error('Failed to fetch or process data:', error.message);
+                console.error('::error::Failed to fetch or process data: ' + error.message);
                 process.exit(1);
               }
             }
@@ -140,7 +141,7 @@ jobs:
           INITIAL_SIZE=$(wc -c < result.txt)
           echo "   -> 다운로드 직후 result.txt 크기: $INITIAL_SIZE 바이트"
           
-          # 🚨 3-1. 11.result.txt 다운로드 (신규 추가, 커밋 대상 아님)
+          # 🚨 3-1. 11.result.txt 다운로드 (커밋 대상 아님)
           echo "3-1. 11.result.txt 다운로드 시도..."
           # 다운로드 실패해도 워크플로우는 계속 진행 (경고만 출력)
           wget "$WGET_11_RESULT_URL" -O 11.result.txt || { echo "경고: 11.result.txt 다운로드 실패 또는 파일 없음." ; } 
