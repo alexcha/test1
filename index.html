@@ -1,1 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChaChaCha Studio | 스마트한 유틸리티 & 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-text { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-bg { background: radial-gradient(circle at top right, #1e293b, #0f172a); }
+    </style>
+</head>
+<body class="hero-bg">
+
+    <nav class="fixed w-full z-50 glass">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold tracking-tighter gradient-text">CHACHACHA <span class="text-white font-light">STUDIO</span></h1>
+            <div class="space-x-8 hidden md:flex text-sm font-medium">
+                <a href="#apps" class="hover:text-sky-400 transition">Apps</a>
+                <a href="#games" class="hover:text-sky-400 transition">Games</a>
+                <a href="#contact" class="hover:text-sky-400 transition">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="pt-32 pb-20 px-6 text-center">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-5xl md:text-7xl font-bold mb-6">Simple, Smart,<br><span class="gradient-text">ChaChaCha</span></h2>
+            <p class="text-slate-400 text-lg md:text-xl mb-10">복잡한 일상을 심플하게 만드는 도구와 즐거움을 연구합니다.</p>
+            <div class="flex justify-center space-x-4">
+                <button class="bg-sky-500 hover:bg-sky-600 px-8 py-3 rounded-full font-bold transition">Play Store 방문</button>
+                <button class="border border-slate-600 hover:bg-slate-800 px-8 py-3 rounded-full font-bold transition">프로젝트 보기</button>
+            </div>
+        </div>
+    </header>
+
+    <section id="apps" class="max-w-6xl mx-auto px-6 py-20">
+        <div class="flex items-center mb-12">
+            <div class="h-1 w-12 bg-sky-500 mr-4"></div>
+            <h3 class="text-3xl font-bold">Main Utilities</h3>
+        </div>
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="glass p-8 rounded-3xl hover:border-sky-500/50 transition group">
+                <div class="w-16 h-16 bg-sky-500/20 rounded-2xl flex items-center justify-center mb-6 text-sky-400 text-3xl">
+                    <i class="fa-solid fa-calculator"></i>
+                </div>
+                <h4 class="text-2xl font-bold mb-3">ChaCha Calculator</h4>
+                <p class="text-slate-400 mb-6 leading-relaxed">최대 15자리 정밀 계산과 다양한 커스텀 테마를 지원하는 프리미엄 계산기 앱입니다.</p>
+                <span class="text-sm font-bold text-sky-400 group-hover:underline">Learn More →</span>
+            </div>
+            <div class="glass p-8 rounded-3xl hover:border-indigo-500/50 transition group">
+                <div class="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6 text-indigo-400 text-3xl">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <h4 class="text-2xl font-bold mb-3">ChaCha Exchange</h4>
+                <p class="text-slate-400 mb-6 leading-relaxed">실시간 환율 데이터를 기반으로 빠르고 정확한 통화 변환을 도와주는 환율 계산기입니다.</p>
+                <span class="text-sm font-bold text-indigo-400 group-hover:underline">Learn More →</span>
+            </div>
+        </div>
+    </section>
+
+    <section id="games" class="bg-slate-900/50 py-20 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center mb-12">
+                <div class="h-1 w-12 bg-emerald-500 mr-4"></div>
+                <h3 class="text-3xl font-bold">Games</h3>
+            </div>
+            <div class="glass p-10 rounded-[3rem] flex flex-col md:flex-row items-center gap-10">
+                <div class="w-full md:w-1/2">
+                    <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800" alt="Puzzle Game" class="rounded-2xl shadow-2xl">
+                </div>
+                <div class="w-full md:w-1/2">
+                    <div class="bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">600 STAGES</div>
+                    <h4 class="text-4xl font-bold mb-4">ChaChaCha Puzzle</h4>
+                    <p class="text-slate-400 text-lg mb-8">빈티지하고 앤틱한 UI 디자인과 함께 뇌를 자극하는 수백 개의 스테이지를 경험하세요.</p>
+                    <ul class="space-y-3 text-slate-300">
+                        <li><i class="fa-solid fa-check text-emerald-500 mr-2"></i> Firestore 기반 데이터 관리</li>
+                        <li><i class="fa-solid fa-check text-emerald-500 mr-2"></i> 점진적 난이도 밸런싱</li>
+                        <li><i class="fa-solid fa-check text-emerald-500 mr-2"></i> 오프라인 모드 지원</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contact" class="py-20 px-6 border-t border-slate-800">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
+            <div>
+                <h2 class="text-2xl font-bold gradient-text mb-4">CHACHACHA STUDIO</h2>
+                <p class="text-slate-500">Android Developer & System Administrator<br>Crafting utility and joy.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-16">
+                <div>
+                    <h5 class="font-bold mb-4">Contact</h5>
+                    <p class="text-slate-400 text-sm">support@alexcha.com</p>
+                    <div class="flex space-x-4 mt-6">
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fa-brands fa-github text-xl"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white transition"><i class="fa-brands fa-google-play text-xl"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="font-bold mb-4">Legal</h5>
+                    <p class="text-slate-400 text-xs hover:underline cursor-pointer mb-2">Privacy Policy</p>
+                    <p class="text-slate-400 text-xs hover:underline cursor-pointer">Terms of Service</p>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-6xl mx-auto mt-16 pt-8 border-t border-slate-800/50 text-center text-slate-600 text-xs">
+            &copy; 2026 ChaChaCha Studio (Alex Cha). All rights reserved.
+        </div>
+    </footer>
+
+</body>
+</html>
 
