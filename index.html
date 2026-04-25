@@ -9,8 +9,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap');
         
         body {
-            background-color: #ffffff;
-            color: #111111;
+            background-color: #0a0a0c; /* 깊은 무채색 배경 */
+            color: #eeeeee;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
             word-break: keep-all;
@@ -18,25 +18,29 @@
 
         .text-balanced { text-wrap: balance; }
         
-        /* 세련된 무채색 카드 */
+        /* 다크 모드 전용 세련된 카드 */
         .app-card {
-            background-color: #f9f9fb;
-            border: 1px solid #eeeeee;
+            background-color: #121214;
+            border: 1px solid #1f1f22;
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             cursor: pointer;
         }
         
         .app-card:hover {
-            background-color: #ffffff;
-            border-color: #111111;
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.04);
+            background-color: #161619;
+            border-color: #3b82f6; /* 포인트 컬러만 살짝 노출 */
+            transform: translateY(-6px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
         }
 
         .sub-link {
             position: relative;
             display: inline-block;
+            color: #888888;
+            transition: color 0.3s ease;
         }
+
+        .sub-link:hover { color: #ffffff; }
 
         .sub-link::after {
             content: '';
@@ -45,97 +49,95 @@
             height: 1px;
             bottom: -2px;
             left: 0;
-            background-color: currentColor;
+            background-color: #ffffff;
             transform: scaleX(0);
             transition: transform 0.3s ease;
         }
 
-        .sub-link:hover::after {
-            transform: scaleX(1);
-        }
+        .sub-link:hover::after { transform: scaleX(1); }
     </style>
 </head>
 <body>
 
-    <nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md">
-        <div class="max-w-5xl mx-auto px-6 py-6 flex justify-between items-center">
-            <div class="text-lg font-black tracking-tighter uppercase">
-                ChaChaCha <span class="font-light text-slate-400">Studio</span>
+    <nav class="fixed top-0 w-full z-50 bg-[#0a0a0c]/80 backdrop-blur-xl border-b border-white/5">
+        <div class="max-w-5xl mx-auto px-8 py-7 flex justify-between items-center">
+            <div class="text-xl font-black tracking-tighter uppercase">
+                ChaChaCha <span class="font-thin text-slate-500">Studio</span>
             </div>
-            <div class="text-[11px] font-semibold tracking-widest uppercase flex gap-8">
-                <a href="#apps" class="sub-link">Apps</a>
+            <div class="text-[10px] font-bold tracking-[0.3em] uppercase flex gap-10">
+                <a href="#apps" class="sub-link">Products</a>
                 <a href="https://play.google.com/store/apps/developer?id=ChaChaCha+Studio" target="_blank" class="sub-link">Developer</a>
             </div>
         </div>
     </nav>
 
-    <header class="pt-48 pb-32 px-6">
+    <header class="pt-64 pb-32 px-8">
         <div class="max-w-5xl mx-auto">
-            <h1 class="text-6xl md:text-8xl font-black tracking-tighter mb-10 leading-[0.9]">
-                Simplicity <br/>is <span class="text-slate-300">Precision.</span>
+            <h1 class="text-6xl md:text-8xl font-black tracking-tighter mb-10 leading-[0.85] text-white">
+                Simple <br/>but <span class="text-zinc-700">Absolute.</span>
             </h1>
-            <p class="text-xl md:text-2xl text-slate-500 max-w-xl font-light leading-relaxed text-balanced">
-                복잡한 계산과 데이터를 가장 정갈한 방식으로 풀어냅니다. 
-                우리는 도구가 가져야 할 본연의 가치에 집중합니다.
+            <p class="text-lg md:text-xl text-zinc-500 max-w-lg font-light leading-relaxed text-balanced">
+                본질에 집중하는 도구가 가장 강력합니다. <br/>
+                ChaChaCha Studio는 정밀한 설계와 고도로 정제된 인터페이스를 지향합니다.
             </p>
         </div>
     </header>
 
-    <section id="apps" class="pb-48 px-6">
-        <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
+    <section id="apps" class="pb-64 px-8">
+        <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
             
             <div onclick="window.open('https://play.google.com/store/apps/details?id=com.chachacha.cal', '_blank')" 
-                 class="app-card p-12 rounded-3xl flex flex-col justify-between h-[400px]">
+                 class="app-card p-14 rounded-[2.5rem] flex flex-col justify-between h-[450px]">
                 <div>
-                    <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-10">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <div class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mb-12 border border-white/10">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <h2 class="text-3xl font-bold mb-4">Calculator</h2>
-                    <p class="text-slate-500 font-light leading-relaxed">
-                        9가지의 엄선된 테마와 15자리 정밀 연산 엔진. <br/>
-                        가장 세련된 방식으로 숫자를 다루세요.
+                    <h2 class="text-4xl font-bold mb-5 text-white">Calculator</h2>
+                    <p class="text-zinc-500 font-light leading-relaxed">
+                        9가지의 정교한 테마 시스템과 15자리 정밀 연산 엔진. <br/>
+                        가장 세련된 방식으로 숫자를 정의합니다.
                     </p>
                 </div>
-                <div class="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
-                    Open Store — 01
+                <div class="text-[10px] font-bold tracking-[0.4em] uppercase text-zinc-700 group-hover:text-white transition">
+                    Play Store / 01
                 </div>
             </div>
 
             <div onclick="window.open('https://play.google.com/store/apps/details?id=com.chachacha.ex', '_blank')" 
-                 class="app-card p-12 rounded-3xl flex flex-col justify-between h-[400px]">
+                 class="app-card p-14 rounded-[2.5rem] flex flex-col justify-between h-[450px]">
                 <div>
-                    <div class="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center mb-10">
-                        <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mb-12 border border-white/10">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h2 class="text-3xl font-bold mb-4">Exchange</h2>
-                    <p class="text-slate-500 font-light leading-relaxed">
+                    <h2 class="text-4xl font-bold mb-5 text-white">Exchange</h2>
+                    <p class="text-zinc-500 font-light leading-relaxed">
                         실시간 환율 동기화와 직관적인 인터페이스. <br/>
-                        전 세계의 가치를 손끝에서 변환합니다.
+                        가장 빠르고 정확하게 세계의 가치를 변환합니다.
                     </p>
                 </div>
-                <div class="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
-                    Open Store — 02
+                <div class="text-[10px] font-bold tracking-[0.4em] uppercase text-zinc-700">
+                    Play Store / 02
                 </div>
             </div>
 
         </div>
     </section>
 
-    <footer class="py-20 border-t border-slate-100">
-        <div class="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-end gap-10">
+    <footer class="py-24 border-t border-white/5 bg-[#08080a]">
+        <div class="max-w-5xl mx-auto px-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-12">
             <div>
-                <div class="text-sm font-black uppercase mb-4 tracking-tighter">ChaChaCha Studio</div>
-                <p class="text-[11px] text-slate-400 leading-loose uppercase tracking-widest">
-                    Focused on Build & Infrastructure.<br/>
-                    Managed by Alex Cha.
+                <div class="text-sm font-black uppercase mb-5 tracking-tighter text-white">ChaChaCha Studio</div>
+                <p class="text-[11px] text-zinc-600 leading-loose uppercase tracking-[0.25em]">
+                    Architecture & Infrastructure by Alex Cha.<br/>
+                    Built for Precision.
                 </p>
             </div>
-            <div class="text-[10px] font-medium text-slate-300 tracking-widest">
-                &copy; 2026 ALL RIGHTS RESERVED.
+            <div class="text-[9px] font-medium text-zinc-800 tracking-[0.5em] uppercase">
+                &copy; 2026 ChaChaCha Studio. All rights reserved.
             </div>
         </div>
     </footer>
